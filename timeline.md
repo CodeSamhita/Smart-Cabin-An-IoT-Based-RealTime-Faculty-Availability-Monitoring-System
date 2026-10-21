@@ -15,6 +15,27 @@ Template for each entry:
 
 ---
 
+## 2026-10-21 – Pi Zero 2W back: live camera web stream
+
+**Done:**
+- The user is using the Pi Zero 2W again over SSH.
+- New `pi/` folder: `config.py`, `camera.py`, `stream_server.py`, `main.py`, `README.md`.
+  - The camera runs in a background thread and keeps the newest frame as a JPEG. It supports the Pi Camera (picamera2) or a USB webcam (OpenCV).
+  - Uses the built-in `http.server`, so there's nothing to pip install. Routes: `/` (page), `/stream.mjpg` (live MJPEG), `/snapshot.jpg` (one frame, for laptop YOLO later, like the old ESP32 `/capture`).
+  - Open from the laptop at `http://localhost:8000` via SSH tunnel (`ssh -L 8000:localhost:8000 ...`) or at `http://<pi-ip>:8000`.
+
+**Tried / tested:**
+- On the laptop with a fake frame: page 200, snapshot returned, stream sends `--frame` parts.
+
+**What didn't / why:**
+- Not yet run on the real Pi or camera.
+
+**Next:**
+- Run on the Pi and check the FPS at 640x480. If it's slow, lower the size or FPS in `config.py`.
+- Laptop reads `/snapshot.jpg` → YOLOv8n headcount.
+
+---
+
 ## 2026-10-21 – Rescope to laptop-only, demo web UI
 
 **Done:**
@@ -68,6 +89,10 @@ Template for each entry:
   - 9: Chen 2018 (occupancy review)
   - 10: Ahamed 2024 (edge CPU people counting, TENCON)
   - Added to README references. Details confirmed from publisher/arXiv pages. Full PDFs of 6 and 10 are still to be read.
+  - **User feedback: papers 7–10 were not related to the topic.** They were about counting people in buildings to save energy, not faculty availability. Agreed scope: faculty availability systems, cabin/door status displays, faculty presence by face recognition, timetable-based availability, 2020+ only.
+  - Replaced papers 7–10 (kept 6, SILA) with: 7 Soppari 2025 (faculty presence by webcam face recognition), 8 IJSRED 2026 (faculty tracking with RFID + app), 9 Saxena 2024 (RFID tracking of students and professors), 10 CNLAS 2026 (lecturer availability app, weak source). Rewrote the comparison table and research gap.
+  - Finding: faculty availability papers are mostly in smaller journals, none of the 2020+ ones uses timetables, and none reports measured accuracy. Both points go into the research gap.
+  - Also confirmed the title of README paper 2 (Za'bah & Mohamad 2021, IIUM). Two more candidates (IJRDST, INDJST) couldn't be opened, so they're listed as "to get from library".
 
 **Tried / tested (redesign):**
 - Search: "hod" → 4 HODs, "computer available" → 1, "cabin 104" → 1, "xyz" → "No one matches".

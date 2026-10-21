@@ -1,10 +1,14 @@
 # Smart Cabin – Research papers
 
-Plain-language summaries of papers related to the project, with how each one is relevant to Smart Cabin.
+Plain-language summaries of papers on **faculty / lecturer availability**, with how each one relates to Smart Cabin.
 Numbers continue from the reference list in `README.md` section 9 (papers 1–5 are listed there and still need summaries).
 
-**Read status keys:** *Abstract checked* = details confirmed from the publisher or arXiv page. *Full text read* = whole paper read.
+Scope (agreed 21 Oct 2026): faculty availability systems, cabin/door status displays, faculty presence by face recognition, and timetable-based availability. **2020 or newer only.**
+
+**Read status keys:** *Abstract checked* = details confirmed from the journal page. *Full text read* = whole paper read.
 Always read the full paper yourself before citing it in the report.
+
+> **Note on venues:** papers on faculty availability mostly appear in smaller open-access journals, not IEEE/Springer. That's fine for the literature survey, but check each journal's standing before citing it in the final research paper. It also suggests the topic is **under-studied in major venues**, which is good for your contribution.
 
 ---
 
@@ -14,130 +18,143 @@ Always read the full paper yourself before citing it in the report.
 |---|---|
 | Citation | N. Mohamad Nor, S. Zubir, M. S. Shahrudin, "Leveraging IoT to Enhance Real-Time Lecturer Accessibility in Higher Education," *International Journal of Academic Research in Business and Social Sciences*, vol. 14, no. 10, pp. 2990–2999, 2024. DOI: 10.6007/IJARBSS/v14-i10/22959 |
 | Link | https://hrmars.com/ijarbss/article/view/22959/Leveraging-IoT-to-Enhance-Real-Time-Lecturer-Accessibility-in-Higher-Education |
-| Read status | Abstract checked (the PDF could not be read here, so hardware details and survey numbers are still to be checked) |
+| Topic area | Faculty availability system |
+| Read status | Abstract checked (full PDF still to read for hardware details and survey numbers) |
 
 - **Problem:** Students waste time looking for lecturers who are not in their rooms.
-- **Method:** SILA ("Synced Information on Lecturer Availability") uses ESP32 boards and a web interface. **Lecturers update their own status**, and students see it in real time.
-- **Evaluation:** Tested with users for usefulness, satisfaction and usability. The abstract gives no numbers.
-- **Limitations:** Fully manual. If the lecturer forgets to update it, the status is wrong. There is no sensing or timetable link.
+- **Method:** SILA ("Synced Information on Lecturer Availability") uses ESP32 boards and a web page. **Lecturers update their own status**, and students see it in real time.
+- **Evaluation:** User testing for usefulness, satisfaction and usability. The abstract gives no numbers.
+- **Limitations:** Fully manual. If the lecturer forgets to update it, the status is wrong. There is no sensing and no timetable.
 
-**Relevance to Smart Cabin:** This is the **closest paper to our exact problem** in a university setting. It is the "manual status" baseline. Our staff override and future hardware buttons do the same job, but Smart Cabin adds **automatic detection (camera) and timetable context**, so it still works when nobody presses anything. Its usability evaluation (usefulness, satisfaction, usability) is a good model for our user survey.
-
----
-
-## 7. Edge-based classroom occupancy with camera + Raspberry Pi (2022)
-
-| | |
-|---|---|
-| Citation | L. Monti, R. Tse, S.-K. Tang, S. Mirri, G. Delnevo, V. Maniezzo, P. Salomoni, "Edge-Based Transfer Learning for Classroom Occupancy Detection in a Smart Campus Context," *Sensors*, vol. 22, no. 10, art. 3692, 2022. DOI: 10.3390/s22103692 |
-| Link | https://pmc.ncbi.nlm.nih.gov/articles/PMC9143913/ (open access) |
-| Read status | Abstract checked (details taken from the open-access article page) |
-
-- **Problem:** Count people in campus classrooms without training a new model for every room.
-- **Method:**
-  - Intel RealSense D415 camera and a Raspberry Pi 4B. **One snapshot every 5 minutes.**
-  - A simplified YOLOv3, fine-tuned with transfer learning on their own classroom images plus COCO.
-  - **Only the count and a timestamp leave the device.** A Flask web app shows the counts.
-- **Data:** About 2,000 images from 2 classrooms for training, and 1,100 test images from 8 other classrooms.
-- **Results:** Accuracy of 94–97% in small rooms and 91–96% in large rooms. Mean absolute error (MAE) between 0.21 and 1.23 people.
-- **Limitations:**
-  - It over-counts when there are more than 30 people, because people far away (8–12 m) look tiny.
-  - Tested on one campus only, and the dataset is not public.
-
-**Relevance to Smart Cabin:** **Very close to our design**: periodic snapshots instead of video, an edge device, YOLO, and only a count stored. That matches our "status, not footage" rule. It also gives us a ready **evaluation method** (accuracy, MAE, RMSE against a manual count). A faculty cabin is small, with 1–5 people a few metres away, so we should avoid their main error source. It also supports a Raspberry Pi as a possible standalone device.
+**Relevance to Smart Cabin:** The **closest match to our problem**. SILA is the manual approach; our staff override and future hardware buttons do the same job. Smart Cabin adds **automatic detection by camera** and **timetable context**, so the status stays right even when nobody updates it. Its usability evaluation is a good template for our user survey.
 
 ---
 
-## 8. Occupancy detection survey + privacy-preserving camera counting (2018/2021)
+## 7. Faculty presence detection and alert system – face recognition (2025)
 
 | | |
 |---|---|
-| Citation | J. Ahmad, H. Larijani, R. Emmanuel, M. Mannion, A. Javed, "Occupancy detection in non-residential buildings – A survey and novel privacy preserved occupancy monitoring solution," *Applied Computing and Informatics*, vol. 17, no. 2, pp. 279–295, 2021 (online 2018). DOI: 10.1016/j.aci.2018.12.001 |
-| Link | https://www.emerald.com/aci/article/17/2/279-295/6028 (open access) |
-| Read status | Abstract checked (details taken from the open-access article page) |
-
-- **Survey:** Compares 6 ways of detecting occupancy:
-  - **Cameras:** detailed, but raise privacy problems.
-  - **PIR:** cheap, but only yes/no, and it misses people sitting still.
-  - **Ultrasonic:** prone to false "on" readings.
-  - **RF/RFID:** affected by radio conditions.
-  - **Sensor fusion:** accurate, but costly.
-  - **Wi-Fi/Bluetooth:** reuses existing networks, but gives false positives.
-- **Their solution:** An overhead camera finds people by background subtraction, then **scrambles (encrypts) only the regions where people are**. It tracks and counts people crossing a line while the image stays encrypted.
-- **Results:** Encryption added only about 1 ms per frame, and they say counting accuracy did not change.
-- **Limitations:** No overall counting accuracy is reported, and the security test used a single frame with one person.
-
-**Relevance to Smart Cabin:**
-- Useful for the **literature review table** and for justifying our sensor choices. It shows PIR misses people sitting still, which is why we rejected PIR.
-- It shows cameras need explicit privacy measures.
-- Their "protect the image" approach is an alternative to ours. We **delete the frame right after counting** and never show it, which is simpler and stronger for a status display.
-
----
-
-## 9. Building occupancy estimation and detection – review (2018)
-
-| | |
-|---|---|
-| Citation | Z. Chen, C. Jiang, L. Xie, "Building occupancy estimation and detection: A review," *Energy and Buildings*, vol. 169, pp. 260–270, 2018. DOI: 10.1016/j.enbuild.2018.03.084 |
-| Link | https://pure.bit.edu.cn/en/publications/building-occupancy-estimation-and-detection-a-review |
+| Citation | K. Soppari, Varun D, R. Eedula, A. Manchala, "Faculty presence detection and alert system," *International Journal of Science and Research Archive*, vol. 14, no. 1, pp. 1244–1251, 2025. DOI: 10.30574/ijsra.2025.14.1.0203 |
+| Link | https://ijsra.net/content/faculty-presence-detection-and-alert-system |
+| Topic area | Faculty presence via face recognition |
 | Read status | Abstract checked |
 
-- **Coverage:** Reviews occupancy estimation (how many people) and detection (anyone there or not), grouped by sensor type. It also covers systems that **fuse several sensors** and compares the sensor types.
-- **Why it matters:** A widely cited review (around 200+ citations), from Nanyang Technological University. The main motivation in this field is building energy use, since buildings use about 40% of global energy.
-- **Limitations:** Focused on energy and HVAC, not on showing a person's availability. It was published before the newer lightweight detectors (YOLOv5/v8).
+- **Problem:** Check whether a faculty member is present, cheaply and automatically.
+- **Method:**
+  - Uses the computer's **built-in webcam**, with no Raspberry Pi or external camera.
+  - **OpenCV with a Haar Cascade** for real-time face detection and recognition.
+  - A **Flask web interface** shows the result, with live detection and alerts.
+- **Evaluation:** Tested under different conditions for accuracy, speed and scalability. The abstract gives no numbers.
+- **Limitations:**
+  - Haar Cascade is an old method that struggles with side angles and poor lighting.
+  - It records video, with no privacy measures mentioned.
+  - Presence only, with no timetable or return time.
 
-**Relevance to Smart Cabin:** The standard **background citation** for occupancy sensing and sensor fusion. It supports our design of combining several sources of evidence (camera, timetable, RFID, buttons) into one status. It also shows that our use of occupancy, telling people *who* is available, is a less common application, which helps define our research gap.
+**Relevance to Smart Cabin:**
+- **Very close to our current setup**: laptop webcam, Python, OpenCV and a web page.
+- It supports our laptop-first choice.
+- Our planned face matching (InsightFace/ArcFace embeddings) is a clear **technical improvement** over Haar Cascade. Comparing the two would make a good experiment for the report.
+- Our design also differs on privacy: **snapshots only, and the frame is deleted after checking**.
 
 ---
 
-## 10. Real-time people counting with overhead camera on a low-power edge PC (2024)
+## 8. IoT-based faculty tracking with RFID and a mobile app (2026)
 
 | | |
 |---|---|
-| Citation | I. Ahamed, C. D. Ranathunga, D. S. Udayantha, B. K. K. Ng, C. Yuen, "Real-Time AI-Driven People Tracking and Counting Using Overhead Cameras," accepted at IEEE TENCON 2024. arXiv:2411.10072 |
-| Link | https://arxiv.org/abs/2411.10072 |
-| Read status | Abstract checked, HTML version skimmed |
+| Citation | "Design and Implementation of an IoT-Based Faculty Tracking System Using RFID and Mobile Application," *International Journal of Scientific Research and Engineering Development (IJSRED)*, vol. 9, no. 2, pp. 2544–2559, 2026. Paper ID IJSRED-V9I2P376 |
+| Link | https://www.ijsred.com/volume9/issue2/paper-details/IJSRED-V9I2P376.html |
+| Topic area | Faculty availability system (RFID) |
+| Read status | Abstract checked. **The author list differs between the page and its "How to cite" box, so confirm the authors from the PDF before citing.** |
 
-- **Problem:** Count people entering and leaving a room accurately, even with several people at once.
+- **Problem:** Students can't find faculty because of changing schedules, meetings and empty cabins. The authors say fixed timetables and asking around are slow and unreliable.
 - **Method:**
-  - A Wi-Fi camera with infrared night mode above a doorway.
-  - An **SSD MobileNet** detector (not YOLO), with one model for day and one for low light.
-  - Their own tracking and line-crossing counting.
-  - Runs on an **Intel NUC mini PC using only the CPU**, with no GPU.
-- **Results:** About 97% accuracy in live tests, and 92% in a two-day lab test. Speed was 20–27 frames per second.
-- **Limitations:** Speed drops as more people appear. The 97% and 92% figures are not reconciled, and the dataset size is not given.
+  - Each faculty member carries an **RFID tag**, and **readers are placed around campus**.
+  - An **ESP32** sends each scan to a Spring Boot server with a MySQL database.
+  - Students see the faculty member's last location and availability in a **Flutter mobile app**.
+- **Evaluation:** Only qualitative claims (saves time, user friendly). No accuracy, delay or user numbers.
+- **Limitations:**
+  - It shows only *where the tag was last read*, which isn't the same as being in the cabin and free.
+  - A forgotten or shared tag gives wrong results.
+  - There's no measured evaluation.
+  - Future work lists GPS, notifications and AI scheduling.
 
 **Relevance to Smart Cabin:**
-- It shows **real-time counting is possible on a small CPU-only computer**, which is useful evidence for the deferred standalone device decision.
-- It suggests trying a **light detector like MobileNet-SSD** alongside YOLOv8n in our detector comparison.
-- Its entry/exit counting at the door is an alternative to our snapshot approach. It needs continuous video, though, which goes against our privacy rules, so it's a point to discuss in the report.
+- It confirms the **same real problem** in an Indian college setting.
+- It shows the main **weakness of RFID-only systems**: a tag proves the card was there, not the person, and not whether they're busy with visitors.
+- This is why our design treats **RFID as supporting evidence only**, with the camera as the main check.
+- Its point that fixed timetables alone don't work supports our approach of **timetable plus sensing**.
 
 ---
 
-## Comparison table (papers 6–10)
+## 9. RFID-based real-time tracking of students and professors (2024)
 
-| # | Paper | Sensing | Automatic? | Identifies the person? | Timetable aware? | Privacy approach | Runs on | Evaluation |
-|---|---|---|---|---|---|---|---|---|
-| 6 | SILA 2024 | None (manual) | No | Yes (self-report) | No | No data collected | ESP32 + web | Usability survey |
-| 7 | Monti 2022 | Depth/RGB camera, snapshots | Yes | No (count only) | No | Only count + time leave the device | Raspberry Pi 4 | Accuracy, MAE, RMSE |
-| 8 | Ahmad 2021 | Overhead camera | Yes | No | No | Encrypt the person regions | PC (MATLAB) | Security metrics |
-| 9 | Chen 2018 | Review of many sensors | – | – | – | – | – | Review |
-| 10 | Ahamed 2024 | Overhead IR camera, video | Yes | No | No | Not discussed | Intel NUC (CPU) | Accuracy, FPS |
-| – | **Smart Cabin** | Camera snapshots + timetable (+ RFID, buttons later) | **Yes** | **Yes, enrolled staff only** | **Yes** | Frame deleted after counting, status only | Laptop now, edge device later | Headcount accuracy, false-green rate, delay |
+| | |
+|---|---|
+| Citation | S. Saxena, S. Saxena, P. Chauhan, "RFID-Based Tracking System For Real-Time Monitoring Of Students And Professors," *Educational Administration: Theory and Practice (KUEY)*, vol. 30, no. 6(S), 2024. DOI: 10.53555/kuey.v30i6(S).5370 |
+| Link | https://kuey.net/index.php/kuey/article/view/5370 |
+| Topic area | Faculty availability system (RFID, campus) |
+| Read status | Abstract checked (from the journal listing and search results; full text not yet read) |
+
+- **Problem:** Students and professors find it hard to locate each other on campus.
+- **Method:** RFID tags record where people are in real time, and the data goes to a central store. A **search by name** lets students find professors and the other way round.
+- **Evaluation:** "Positive results" from initial trials, with no numbers in the abstract.
+- **Limitations:** Tracks students as well as staff, which is a bigger privacy question. No accuracy figures, and the same tag-not-person problem as paper 8.
+
+**Relevance to Smart Cabin:**
+- Another **RFID-based locator** from an Indian university (Silver Oak University, Ahmedabad).
+- Its **name search** is the same idea as our keyword search across 839 faculty.
+- It tracks *location* continuously. Smart Cabin only shows a *status* (available / with visitors / away / unknown) and tracks no one around campus, which is a **stronger privacy position** to highlight in the report.
+
+---
+
+## 10. Campus navigation and lecturer availability app – CNLAS (2026)
+
+| | |
+|---|---|
+| Citation | F. O. Busola, O. Mayowa, O. O. Adebakin, O. Fabiyi, O. J. Adelowo, U. Alfred, "A Mobile Application for Campus Navigation and Lecturer Availability System (CNLAS)," *International Journal of Computer Techniques*, vol. 13, no. 4, pp. 287–291, 2026 |
+| Link | https://ijctjournal.org/mobile-application-campus-navigation-lecturer-availability-system-cnlas/ |
+| Topic area | Faculty availability system (app) |
+| Read status | Abstract checked. **Weak source:** some of its references look like placeholders (an example.org link and a dummy Zenodo DOI). Use it only as an example of current app-based work, not as strong evidence. |
+
+- **Problem:** Large campuses make it hard to find buildings and to know whether a lecturer is available.
+- **Method:** A Flutter mobile app with a Node.js/Express backend and PostgreSQL, combining **campus maps** and **"real-time lecturer availability"**. The abstract doesn't say where availability data comes from (manual, timetable or sensor).
+- **Evaluation:** Functionality, speed and usability testing. Users reported spending less time finding lecturers. No numbers or sample size.
+- **Limitations:** Unclear availability source, no measured results, and doubtful references.
+
+**Relevance to Smart Cabin:** It shows the problem is **still being worked on in 2026**, but with apps that rely on unclear or manual data. It supports our argument that availability needs **automatic, explainable evidence**. Our "How we know" panel shows exactly why each status was given.
+
+---
+
+## Comparison table (papers 6–10 and Smart Cabin)
+
+| # | Paper | How presence is known | Automatic? | Knows it's the right person? | Uses timetable? | Shows busy / visitors? | Return time? | Privacy | Measured results? |
+|---|---|---|---|---|---|---|---|---|---|
+| 6 | SILA 2024 | Lecturer updates it | No | Yes (self-report) | No | Only if lecturer sets it | No | No data collected | Usability survey |
+| 7 | Soppari 2025 | Webcam + Haar face recognition | Yes | Yes (face) | No | No | No | Not discussed (video) | Not in abstract |
+| 8 | IJSRED 2026 | RFID tag read at campus points | Yes | Tag only | No | No | No | Location tracking | No |
+| 9 | Saxena 2024 | RFID tags | Yes | Tag only | No | No | No | Tracks staff and students | No numbers |
+| 10 | CNLAS 2026 | Not stated | Unclear | Unclear | Unclear | No | No | Not discussed | No numbers |
+| – | **Smart Cabin** | **Camera snapshots + timetable (+ RFID, buttons later)** | **Yes** | **Yes (face match, enrolled staff only)** | **Yes** | **Yes (headcount)** | **Yes (planned)** | **Snapshots only, frame deleted, status shown, no footage** | **Planned: accuracy, false-green rate, delay** |
 
 ## Research gap (draft for Review 1 slides)
 
-- **Occupancy papers (7–10)** detect or count people to save energy or manage rooms. They count *how many* people, not *whether a specific faculty member is available*, and they don't use timetables.
-- **Availability papers (6, and the IIUM and Benin works in README)** show a lecturer's status, but rely on manual updates or simple sensors (proximity, PIR) that can't tell the lecturer from a visitor.
-- **No paper here combines** automatic camera-based presence of a *specific* person with **timetable context**, a **return-time estimate**, and a **privacy-first design** (snapshots only, frames deleted) for faculty availability. That combination is the gap Smart Cabin fills.
+1. **Manual systems (SILA, CNLAS)** go wrong as soon as the lecturer forgets to update them.
+2. **RFID systems (papers 8, 9)** prove a card was read, not that the person is in the cabin and free. They also track people around campus.
+3. **Face recognition systems (paper 7)** detect the person, but use old methods (Haar Cascade), record video, and ignore the timetable.
+4. **None of the 2020+ papers found uses the class timetable** to explain *why* someone is away or *when* they'll be back, even though paper 8 names schedules as the root problem.
+5. **None reports measured accuracy** (false "available" rate, delay).
 
-## Also worth a look (not summarised yet)
+**Smart Cabin's contribution:** an automatic, privacy-first faculty availability system that combines **camera-based presence of the specific faculty member** (modern face embeddings plus a headcount for "with visitors"), **timetable context** (reason and expected return), and optional RFID and buttons. It is evaluated with **measured accuracy, false-green rate and update delay**.
 
-- A. Gharib, E. Abusamra, "A Microcontroller-Based Face Recognition Attendance System," *International Journal of Engineering Research* (Sirte University), 2024. Face recognition on an ESP32-CAM, relevant if face matching moves onto the board. https://journal.su.edu.ly/index.php/ijer/article/view/2702
-- M. Aszkowski, M. Piechocki, "Thermo Presence," PP-RAI 2022. People detection with a low-resolution thermal camera on a Raspberry Pi 4, relevant to privacy and liveness. https://wydawnictwo.umg.edu.pl/pp-rai2022/pdfs/11_pp-rai-2022-094.pdf
+## Also found (not included)
+
+- *Availability and Attendance Monitoring System for Faculty using IoT* (IJRDST, around 2023). RFID + NodeMCU, aimed at faculty missing from the staff room. **Could not be opened** (unreadable PDF), so authors and year are not confirmed. Worth getting from the library. https://ijrdst.org/public/uploads/paper/239431684907211.pdf
+- *In-Classroom Faculty Attendance Monitoring System based on UHF RFID with Captured Image Cross-verification* (Indian Journal of Science and Technology). RFID plus a photo to confirm the right person. The site blocked access, so the year is not confirmed. https://indjst.org/articles/in-classroom-faculty-attendance-monitoring-system-based-on-ultra-high-frequency-uhf-radio-frequency-identification-rfid-with-captured-image-cross-verification-mechanism
+- No 2020+ paper was found that uses **timetables** for faculty availability. This is a gap in itself.
 
 ## Still to do
 
 - Summarise papers 1–5 from README section 9 in the same format.
-- Read the full PDFs of papers 6 and 10 to fill in hardware details and survey numbers.
-- Pick candidate IEEE/Springer conferences with deadlines before or around December 2026.
+- Get the full PDFs of papers 6–10 and fill in hardware details and numbers.
+- Try Google Scholar / IEEE Xplore through the university library for "faculty availability" and "lecturer availability". Those databases aren't reachable from here.

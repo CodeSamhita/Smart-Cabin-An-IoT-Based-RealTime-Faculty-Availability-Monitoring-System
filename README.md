@@ -360,15 +360,15 @@ If time runs short, iterations 7 and 8 are cut first. Iterations 0 to 6 already 
 Please read each source in full and verify titles, authors and years before citing.
 
 1. G. O. Osemwengie, *Design and Implementation of a Real-Time Occupancy Detection and Interactive Staff Availability Display System for Smart Offices*, M.Eng thesis, Department of Computer Engineering, University of Benin, January 2026. Chosen as the base work for now. PIR detection, status buttons and an ESP-NOW door display. Its future-work list names web interface, calendar integration, RFID, data logging and MQTT. https://repository.uniben.edu/sites/default/files/2026-05/GIDEON.pdf
-2. IIUM, JISDT journal: a lecturer IN/OUT system using a proximity sensor, Raspberry Pi and Firebase (title to be confirmed when read in full). https://journals.iium.edu.my/kict/index.php/jisdt/article/view/168
+2. Za'bah and Mohamad (2021), *A Mobile Application Monitoring System Using Internet of Things (IoT) and Firebase*, Journal of Information Systems and Digital Technologies 3(1), 16–30. DOI 10.31436/jisdt.v3i1.168. A lecturer IN/OUT system using a proximity sensor, Raspberry Pi and Firebase (title confirmed 21 Oct 2026; full author names to check). https://journals.iium.edu.my/kict/index.php/jisdt/article/view/168
 3. *Anyone here? Smart embedded low-resolution omnidirectional video sensor to measure room occupancy*, arXiv:2007.04934. https://arxiv.org/pdf/2007.04934
 4. An ESP32 thermal-array people counter that processes data on the device (title to be confirmed). https://www.synapsesocial.com/papers/69a75c25c6e9836116a24abf
 5. Found through the Benin thesis's references, to be checked: K. Stone and J. Spies (2015), *Design and Implementation of an Automatic Staff Availability Tracking System*, ICCCS; A. Mannino et al. (2019), *Office building occupancy monitoring through image recognition sensors*, Int. J. of Safety and Security Engineering, 9(4).
 6. N. Mohamad Nor, S. Zubir, M. S. Shahrudin (2024), *Leveraging IoT to Enhance Real-Time Lecturer Accessibility in Higher Education*, IJARBSS 14(10), 2990–2999. DOI 10.6007/IJARBSS/v14-i10/22959. Manual lecturer availability with ESP32 (SILA).
-7. L. Monti et al. (2022), *Edge-Based Transfer Learning for Classroom Occupancy Detection in a Smart Campus Context*, Sensors 22(10), 3692. DOI 10.3390/s22103692. Camera snapshots + Raspberry Pi + YOLOv3, count only.
-8. J. Ahmad et al. (2021), *Occupancy detection in non-residential buildings – A survey and novel privacy preserved occupancy monitoring solution*, Applied Computing and Informatics 17(2), 279–295. DOI 10.1016/j.aci.2018.12.001.
-9. Z. Chen, C. Jiang, L. Xie (2018), *Building occupancy estimation and detection: A review*, Energy and Buildings 169, 260–270. DOI 10.1016/j.enbuild.2018.03.084.
-10. I. Ahamed et al. (2024), *Real-Time AI-Driven People Tracking and Counting Using Overhead Cameras*, IEEE TENCON 2024, arXiv:2411.10072.
+7. K. Soppari et al. (2025), *Faculty presence detection and alert system*, Int. J. of Science and Research Archive 14(1), 1244–1251. DOI 10.30574/ijsra.2025.14.1.0203. Webcam + OpenCV Haar face recognition + Flask.
+8. *Design and Implementation of an IoT-Based Faculty Tracking System Using RFID and Mobile Application* (2026), IJSRED 9(2), 2544–2559 (authors to confirm from PDF). RFID + ESP32 + Flutter app.
+9. S. Saxena, S. Saxena, P. Chauhan (2024), *RFID-Based Tracking System For Real-Time Monitoring Of Students And Professors*, Educational Administration: Theory and Practice 30(6). DOI 10.53555/kuey.v30i6(S).5370.
+10. F. O. Busola et al. (2026), *A Mobile Application for Campus Navigation and Lecturer Availability System (CNLAS)*, Int. J. of Computer Techniques 13(4), 287–291. Weak source (placeholder-looking references).
 
 Summaries and relevance for papers 6–10 are in [research/papers.md](research/papers.md).
 
