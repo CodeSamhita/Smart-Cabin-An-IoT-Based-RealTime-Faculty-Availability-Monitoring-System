@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | Project type | M.Tech Data Science, yearly project and report (6 to 8 months) |
-| Document status | Iteration 0 done. Laptop-only prototype with demo web UI. Version 0.2, 21 October 2026 |
+| Document status | Iteration 0 done. Demo web dashboard with 839 Presidency University faculty (laptop), face recognition prototypes (laptop + Raspberry Pi Zero 2W). Version 0.3, 21 October 2026 |
 | Day-by-day log | See [timeline.md](timeline.md) |
 | Prototype scope | Demo/prototype. No deployment planned. A university GPU server could be used if it is ever deployed |
 
@@ -17,9 +17,15 @@
 
 ---
 
-## Current scope (laptop-only)
+## Current scope
 
-As of 21 October 2026, everything runs on the laptop. No ESP32 or Pi camera is used for now, and external hardware comes back later. The full design below stays as the long-term plan.
+As of 21 October 2026, the project has three working parts. The full design below stays as the long-term plan.
+
+1. **Web dashboard (laptop):** shows the status of all 839 Presidency University faculty. It uses **demo statuses** for now, because it is not yet connected to a camera.
+2. **Face recognition on the laptop** (`face recoginition/`): webcam, MTCNN + FaceNet (PyTorch). Register, recognise and delete people.
+3. **Face recognition on the Raspberry Pi Zero 2W** (`codes for raspberry pi/`): one self-installing file with OpenCV YuNet + SFace (light enough for 512 MB RAM) and its own web page. **Not yet run on the real Pi.**
+
+No ESP32 is used for now. The final standalone device is decided after Review 1. Code is kept simple: small files of plain functions plus one main file.
 
 | Review | Dates | What is expected |
 |---|---|---|
@@ -43,7 +49,7 @@ cd code
 python install_requirements.py
 ```
 
-`python main.py` reads the people and timetables from `data/`, writes `web/data.js` and opens `web/index.html` in your browser. Every 10 seconds one random person's status changes. Press Ctrl+C to stop. You can also double-click `web/index.html` to open it without Python.
+`python main.py` reads the people and timetables from `data/`, writes `web/data.js` and opens `web/index.html` in your browser. Every 10 seconds 5 random people's statuses change (demo data). Press Ctrl+C to stop. You can also double-click `web/index.html` to open it without Python.
 
 The system supports many HODs and faculty across departments. To add or change people, edit `data/people.csv` and `data/timetable.csv` (Excel works).
 
@@ -64,12 +70,34 @@ The system supports many HODs and faculty across departments. To add or change p
 |---|---|
 | `web/index.html` | Home: grid of cards grouped by department, with keyword search (e.g. "physics available", "gopal") and quick select buttons for Role (Everyone / Deans / HODs / Faculty) and School |
 | `web/programs.html` | All programmes grouped by degree (B.Tech, M.Tech, MBA, ...), with quick select buttons for level (Bachelor's / Master's / Ph.D / Diploma) and degree, plus search |
-| `web/person.html?id=p1` | One person: big status, reason, expected return, today's timetable, how we know |
+| `web/person.html?id=f001` | One person: big status, reason, expected return, today's timetable, how we know |
 | `web/staff.html` | Staff login (pick your name, demo password `staff123`, not secure): set my status, edit my timetable, my history |
 | `web/system.html` | System health, sensors (planned ones greyed out), demo controls, recent changes |
 | `web/common.js` | Helpers shared by all pages (also fills in the header title) |
 
 Every page has the same header, which stays at the top while scrolling, with links to Faculty status, Programmes, Staff login and System. Every page also has the same footer. School and department names are the official ones from the university website.
+
+### Face recognition
+
+| File | What it does |
+|---|---|
+| `face recoginition/face_app.py` | Laptop webcam face recognition: detect (MTCNN) → embed (FaceNet, 512 numbers) → match (cosine similarity). Keys: R register, D delete, Q quit. Faces saved in `known_faces.pkl` |
+| `face recoginition/system_check.py` | Read-only check of Python, libraries and versions before running `face_app.py` |
+| `codes for raspberry pi/smartcabin_pi.py` | Raspberry Pi version in **one file** (paste it into `nano` over SSH). Detect (YuNet) → embed (SFace, 128 numbers) → match. Installs missing libraries and downloads the models on first run. Web page on port 8000 with live video, who is "In cabin" (seen in the last 15 s), Register and Delete, plus `/status.json` |
+
+Run on the Pi:
+
+```
+python3 smartcabin_pi.py
+```
+
+Then open `http://<pi-ip>:8000`, or use an SSH tunnel (`ssh -L 8000:localhost:8000 ...`) and open `http://localhost:8000`.
+
+Faces registered on the laptop don't carry over to the Pi, because they use different models. Register again on the Pi.
+
+### Research
+
+Paper summaries, relevance to Smart Cabin, a comparison table and the draft research gap are in [research/papers.md](research/papers.md).
 
 ---
 
@@ -392,10 +420,12 @@ Summaries and relevance for papers 6–10 are in [research/papers.md](research/p
 - (21 Oct 2026) Presidency University, Bengaluru is the target institution. The faculty (839) and programme (114) lists come from the university website. Cabin numbers and timetables are not on the website, so cabins are empty and the timetable is demo data until the real ones are available. The flat UI style is kept as it is.
 - (21 Oct 2026) RFID, fingerprint and other biometrics shown in the UI as planned optional sensors.
 - (21 Oct 2026) Hardware buttons (Available / Busy / Back soon) may be added later. They would do the same job as the HOD panel override buttons, and are shown in the UI as planned.
+- (21 Oct 2026, later) **Raspberry Pi Zero 2W back in use** over SSH for face recognition. The code is one self-installing file pasted into `nano`. It uses OpenCV YuNet + SFace instead of PyTorch, which is too heavy for 512 MB RAM. Status matters more than video, and 1–10 FPS is enough.
+- (21 Oct 2026) Research papers limited to faculty availability, cabin/door status displays, faculty presence by face recognition, and timetable-based availability, 2020 or newer. Earlier building-occupancy papers were removed as not related.
 
 **Deferred (decide after Review 1)**
 
-- Standalone compact device: ESP32-S3 / ESP32-CAM vs Raspberry Pi, and which detector can run on it (YOLOv8n is too heavy for a plain ESP32).
+- Standalone compact device: ESP32-S3 / ESP32-CAM vs Raspberry Pi, and which detector can run on it (YOLOv8n is too heavy for a plain ESP32). The Pi Zero 2W face recognition test will feed into this decision.
 
 **Open**
 

@@ -15,113 +15,198 @@ Template for each entry:
 
 ---
 
-## 2026-10-21 – Pi Zero 2W back: live camera web stream
+## 2026-10-21 – Demo web UI with real university data, research papers, Pi face recognition
 
-**Done:**
-- The user is using the Pi Zero 2W again over SSH.
-- New `pi/` folder: `config.py`, `camera.py`, `stream_server.py`, `main.py`, `README.md`.
-  - The camera runs in a background thread and keeps the newest frame as a JPEG. It supports the Pi Camera (picamera2) or a USB webcam (OpenCV).
-  - Uses the built-in `http.server`, so there's nothing to pip install. Routes: `/` (page), `/stream.mjpg` (live MJPEG), `/snapshot.jpg` (one frame, for laptop YOLO later, like the old ESP32 `/capture`).
-  - Open from the laptop at `http://localhost:8000` via SSH tunnel (`ssh -L 8000:localhost:8000 ...`) or at `http://<pi-ip>:8000`.
+### Summary of the day
 
-**Tried / tested:**
-- On the laptop with a fake frame: page 200, snapshot returned, stream sends `--frame` parts.
+1. **Scope:** started laptop-only with simple, modular Python (plain functions + one `main.py`). Later the same day the Pi Zero 2W came back for face recognition (part 9).
+2. **Web UI:** built a plain HTML/CSS/JS dashboard that runs without a server and is fed by Python through `web/data.js`.
+3. **Many faculty:** changed from one HOD to all faculty, with people and timetables in CSV files.
+4. **Real data:** loaded **839 faculty** and **114 programmes** of Presidency University, Bengaluru from the university website.
+5. **UI changes requested by the user:** flat look kept, quick select buttons instead of drop-downs, official school names, a header that stays at the top while scrolling, a footer, and programmes divided by degree.
+6. **Install script** for the Python libraries.
+7. **Research:** 5 more papers on faculty availability (2020+), with a comparison table and draft research gap.
+8. **Raspberry Pi Zero 2W:** one self-installing face recognition file with a web page.
 
-**What didn't / why:**
-- Not yet run on the real Pi or camera.
+### 1. Scope and plan
 
-**Next:**
-- Run on the Pi and check the FPS at 640x480. If it's slow, lower the size or FPS in `config.py`.
-- Laptop reads `/snapshot.jpg` → YOLOv8n headcount.
+- Review 1 is on 3–6 Nov 2026 and needs a working prototype, so scope was cut. No ESP32 hardware for now, and hardware comes back later.
+- Code style agreed: small module files of plain functions and one `main.py` that calls them. No advanced patterns.
+- Deferred: the standalone compact device (ESP32-S3 / ESP32-CAM vs Raspberry Pi). Decide after Review 1.
 
----
+### 2. Demo web UI (first version)
 
-## 2026-10-21 – Rescope to laptop-only, demo web UI
-
-**Done:**
-- Decided to build on the laptop only for now. No ESP32 or Pi camera. External hardware comes later.
-- Decided to keep the code simple and modular: small files of plain functions plus one `main.py`.
-- Built the demo web UI in plain HTML/CSS/JS (`web/`). It runs without a server.
-  - `index.html`: public status page (status card, reason, expected return, last checked, today's timetable, "How we know" evidence, system health and sensors, colour legend, demo buttons, privacy note).
-  - `hod.html`: HOD panel (demo login, manual override with expiry, timetable editor with CSV upload, status history).
-  - The sensors panel shows RFID, fingerprint, face recognition, BLE and thermal as "planned (future)".
-- Python launches and feeds the page (`code/`): `config.py`, `demo_data.py`, `webpage.py`, `main.py`.
-  - Python writes `web/data.js`, and the page re-reads it every 10 s.
+- `web/` pages in plain HTML/CSS/JS that open by double-click, with no server needed.
+- Python (`code/`): `config.py`, `demo_data.py`, `webpage.py`, `main.py`. Python writes `web/data.js`, and the page re-reads it every 10 s.
+- First version: one HOD status page (status card, reason, expected return, timetable, "How we know", sensors, legend, demo buttons) and an HOD panel (demo login, override with expiry, timetable editor with CSV upload, history).
+- The sensors panel lists face recognition, hardware buttons, RFID, fingerprint, BLE and thermal as "planned (future)", because hardware buttons and biometrics may be added later.
 - Added `.gitignore` and this `timeline.md`.
-- Added `code/requirements.txt` and `code/install_requirements.py`. The script checks the Python version, installs the libraries with pip, then checks that each one imports.
-- Added "Hardware buttons" as a planned sensor in the UI, because physical Available / Busy / Back soon buttons may come in future. The HOD panel notes that its override buttons can later also come from hardware.
 
-- **UI redesign (same day):** made it simpler and changed it from one HOD to many HODs and faculty across departments.
-  - People and timetables now come from `data/people.csv` and `data/timetable.csv`, read by the new `code/people.py`.
-  - `index.html` is now a grid of cards grouped by department, with keyword search (every typed word must match the name, role, department, cabin or status) and a department filter.
-  - New `person.html?id=...` page per person.
-  - `hod.html` replaced by `staff.html`: any HOD or faculty member picks their name and logs in (demo password `staff123`).
-  - Sensors, health and demo buttons moved to a separate `system.html`, so the public pages show only status.
-  - Shared helpers moved into `web/common.js`, with one small JS file per page.
-  - Demo: `main.py` gives everyone a status, then changes one random person every 10 s. If the timetable says they're in class right now, they show as Away with the class as the reason.
+### 3. Redesign for many HODs and faculty
 
-- **Real university data (same day):** loaded Presidency University, Bengaluru faculty and programmes from presidencyuniversity.in.
-  - New `code/fetch_presidency_data.py` reads the 11 school faculty pages and 10 department pages: 839 faculty (11 Deans, 23 HODs, 805 faculty) and 114 programmes, saved to `data/people.csv` and `data/programs.csv`.
-  - New columns: designation (full title from the website), role (Dean / HOD / Faculty, worked out from the designation), and school.
-  - The website has no cabin numbers or timetables, so cabin is empty and `data/timetable.csv` is a random **demo** timetable (2 classes a day).
-  - Home page now has School and Role filters, with department headings like "Physics - Engineering (21)". New `programs.html` page.
-  - `main.py` now changes 5 random people every 10 s. The timetable is grouped per person so lookups stay fast.
-  - The user likes the flat UI, so it stays as it is for now.
-  - Replaced the School and Role drop-downs with quick select buttons (rounded "chips"; the chosen one is dark). One click filters, and the choice stays when the page auto-refreshes. Tested: HODs + Computer Science and Engineering → 4 people.
-  - My shortened school names ("AI and Advanced Computing", "Physics - Engineering") confused the user. Switched to the **official names from the website**: `people.csv` and `programs.csv` now store e.g. "Presidency School of Artificial Intelligence and Advanced Computing" and "Department of Physics". Buttons and headings show them without "Presidency" (e.g. "School of Law", "Department of Physics - School of Engineering"). Schools now appear in the same order as on the website. The AI school page's 136 faculty were already included, so no one was removed.
-  - Added a header to every page that stays at the top while scrolling: Smart Cabin, Presidency University, Bengaluru, and links (Faculty status / Programmes / Staff login / System; the current page is highlighted). The links moved up from the bottom of the page. Added the same footer to every page (privacy note + project line). On phones the subtitle is hidden so the 4 links fit on one row.
-  - Tested: the header stays at the top after scrolling, all pages show the header and footer, and there's no sideways scroll at 375 px.
-  - **Programmes divided by degree:** `fetch_presidency_data.py` now works out each programme's degree and level from its name (`degree_of()` with a simple lookup list). All 114 were classified, none left as "Other": 72 Bachelor's (B.Tech 19, B.A. 21, BBA 6, B.Com 6, ...), 18 Master's (M.Tech 6, MBA 5, ...), 18 Ph.D, 6 Diploma. The programmes page now groups by degree, with Level and Degree quick select buttons. Picking a level shows only that level's degrees.
-  - Bug found: some programme names from the website contained HTML (`<br> <span ...>`). Fixed `clean()` to remove HTML tags; checked that no `<` is left in the CSV files.
-  - Tested: Master's → 18 (7 degree buttons), M.Tech → 6, search "data" → 8 across B.Tech / BCA / B.Sc / M.Tech / M.Sc / PG Diploma.
+- People and timetables moved to `data/people.csv` and `data/timetable.csv`, read by the new `code/people.py`.
+- Pages:
+  - `index.html`: grid of cards per person, grouped by department, with keyword search (every word must match)
+  - `person.html?id=...`: one person's status, timetable and evidence
+  - `staff.html`: any staff member picks their name and logs in (demo password `staff123`). Replaces `hod.html`.
+  - `system.html`: health, sensors, demo buttons and recent changes, so the public pages show only status
+- `web/common.js` holds the shared helpers, plus one small JS file per page.
 
-**Tried / tested (real data):**
-- Searches on 839 people take 1–11 ms. "physics" → 21, HOD filter → 23, Dean filter → 11, Engineering school → 229.
-- Programmes page: 114 shown, "m.tech" → 5.
-- Staff login lists all 839 people; an override works for Dr. Nakul Ramanna Sanjeevaiah.
-- Bug found: on Windows, `os.replace` on `data.js` failed with "Access is denied" when another program had the file open, which crashed `main.py`. Fixed by retrying up to 10 times, then skipping that cycle instead of crashing.
-- `data.js` is now about 1 MB. That's fine for a local file.
+### 4. Real Presidency University data
 
-- **Research papers:** found and checked 5 more papers (numbers 6–10), written up in `research/papers.md` with a summary, relevance to Smart Cabin, comparison table and draft research gap:
-  - 6: SILA 2024 (ESP32 lecturer availability, manual)
-  - 7: Monti 2022 (camera snapshots + Raspberry Pi + YOLOv3, count only)
-  - 8: Ahmad 2021 (occupancy survey + privacy-preserving camera)
-  - 9: Chen 2018 (occupancy review)
-  - 10: Ahamed 2024 (edge CPU people counting, TENCON)
-  - Added to README references. Details confirmed from publisher/arXiv pages. Full PDFs of 6 and 10 are still to be read.
-  - **User feedback: papers 7–10 were not related to the topic.** They were about counting people in buildings to save energy, not faculty availability. Agreed scope: faculty availability systems, cabin/door status displays, faculty presence by face recognition, timetable-based availability, 2020+ only.
-  - Replaced papers 7–10 (kept 6, SILA) with: 7 Soppari 2025 (faculty presence by webcam face recognition), 8 IJSRED 2026 (faculty tracking with RFID + app), 9 Saxena 2024 (RFID tracking of students and professors), 10 CNLAS 2026 (lecturer availability app, weak source). Rewrote the comparison table and research gap.
-  - Finding: faculty availability papers are mostly in smaller journals, none of the 2020+ ones uses timetables, and none reports measured accuracy. Both points go into the research gap.
-  - Also confirmed the title of README paper 2 (Za'bah & Mohamad 2021, IIUM). Two more candidates (IJRDST, INDJST) couldn't be opened, so they're listed as "to get from library".
+- New `code/fetch_presidency_data.py` reads the 11 school faculty pages and 10 department pages of presidencyuniversity.in. Results:
+  - **839 faculty:** 11 Deans, 23 HODs, 805 faculty. Columns: id, name, designation, role, school, department, cabin.
+  - **114 programmes:** columns school, program, degree, level, duration.
+- The website has **no cabin numbers or timetables**, so cabin is empty and `data/timetable.csv` is a random **demo** timetable (2 classes a day, in time order).
+- Demo: `main.py` changes 5 random people every 10 s. If the timetable says a person is in class now, they show as Away with the class as the reason.
+- The timetable is grouped per person so lookups stay fast. Writing `data.js` for 839 people takes about 0.3 s, and the file is about 1 MB.
 
-**Tried / tested (redesign):**
-- Search: "hod" → 4 HODs, "computer available" → 1, "cabin 104" → 1, "xyz" → "No one matches".
-- Staff login as Dr. B. Rao, set "In a meeting, back at 15:00" → his card and page show Away with "Set manually".
-- System page: demo set and clear-all work, and the counts and sensor list show.
-- `main.py` loop (run without opening a browser for 3 cycles) → 3 changes written to `data.js` and to history.
-- Phone width → cards stack in one column, with no sideways scrolling.
+### 5. UI changes asked for by the user
 
-**Tried / tested:**
-- Demo buttons (green / yellow / red / grey) → the card, icon, reason and evidence all update.
-- HOD override "In meeting, back at 15:00" → the status page shows it with the "Set manually" tag.
+- **Look:** the user likes the flat UI, so it stays as it is.
+- **Quick select buttons** instead of drop-downs: a Role row (Everyone / Deans / HODs / Faculty), then a School row. The choice stays when the page auto-refreshes.
+- **Official names:** my shortened names ("AI and Advanced Computing", "Physics - Engineering") confused the user. The data now stores the website's names, e.g. "Presidency School of Artificial Intelligence and Advanced Computing" and "Department of Physics". Buttons and headings drop "Presidency", e.g. "School of Law" or "Department of Physics - School of Engineering". Schools appear in the website's order.
+  - The user asked to use the AI school's faculty page. Its 136 faculty were already included, so no one was removed.
+- **Header and footer:** every page has a header that **stays at the top while scrolling**, with Smart Cabin, Presidency University, Bengaluru, and links (Faculty status / Programmes / Staff login / System, current page highlighted). The links moved there from the bottom. The same footer is on every page (privacy note + project line). On phones the subtitle hides so the 4 links fit on one row.
+
+### 6. Programmes divided by degree
+
+- `degree_of()` in the fetch script works out the degree and level from each programme name using a simple lookup list.
+- All 114 were classified, none left as "Other":
+  - 72 Bachelor's (B.Tech 19, B.A. 21, BBA 6, B.Com 6, ...)
+  - 18 Master's (M.Tech 6, MBA 5, ...)
+  - 18 Ph.D
+  - 6 Diploma
+- `programs.html` groups by degree, with Level and Degree quick select buttons. Picking a level shows only that level's degrees.
+
+### 7. Install script
+
+- `code/requirements.txt` (opencv-python, numpy, requests, ultralytics) and `code/install_requirements.py`. The script checks the Python version, installs with pip, then checks each library imports.
+- **Not run yet.** The laptop has Python 3.15, and PyTorch (needed by ultralytics) may not support it yet. If it fails, use Python 3.11 or 3.12.
+
+### 8. Research papers (`research/papers.md`)
+
+- The first set of papers 7–10 was about counting people in buildings to save energy. **The user said they were not related to the topic**, and they were replaced.
+- Agreed scope for papers: faculty availability systems, cabin/door status displays, faculty presence by face recognition, timetable-based availability, **2020 or newer**.
+- Papers now:
+  - 6: SILA 2024 (ESP32, lecturers update their own status)
+  - 7: Soppari 2025 (faculty presence by webcam face recognition, OpenCV Haar, Flask)
+  - 8: IJSRED 2026 (faculty tracking with RFID + ESP32 + mobile app)
+  - 9: Saxena 2024 (RFID tracking of students and professors)
+  - 10: CNLAS 2026 (lecturer availability app, weak source)
+- Wrote a comparison table and draft research gap for the Review 1 slides. None of the 2020+ papers uses timetables, and none reports measured accuracy.
+- Confirmed the title of README paper 2 (Za'bah & Mohamad 2021, IIUM).
+
+### 9. Raspberry Pi Zero 2W – face recognition (later in the day)
+
+- The user is using the Pi Zero 2W again over SSH.
+- First a `pi/` folder with a live camera stream (`config.py`, `camera.py`, `stream_server.py`, `main.py`). It was tested on the laptop with a fake frame: page, snapshot and stream all worked.
+- Then **replaced by one self-installing file**, `codes for raspberry pi/smartcabin_pi.py`. The user doesn't copy files to the Pi; they paste one file into `nano`, so it's one file on purpose.
+  - It does what `face recoginition/face_app.py` does (detect → embed → match, register, delete), but with a web page instead of an OpenCV window and keys.
+  - It uses OpenCV **YuNet** (detect) + **SFace** (128-number embedding) instead of PyTorch MTCNN + FaceNet, because torch is too heavy for 512 MB RAM. Faces registered on the laptop (`known_faces.pkl`) don't carry over, so people must re-register on the Pi.
+  - On first run it installs missing libraries (apt on the Pi: python3-opencv, python3-numpy, python3-picamera2) and downloads the models into `models/`. OpenCV below 4.8 (the Pi has 4.6) gets the older 2022mar YuNet model.
+  - The web page shows live video, "In view now", and a table of each person: In cabin / Not seen (seen in the last 15 s) and last seen time. It also has Register (name box) and Delete. `/status.json` is for status-only use later. FPS can be set from 1 to 10, default 3.
+  - `.gitignore` now skips the downloaded models and saved faces (`codes for raspberry pi/models/`, `known_faces_pi.json`).
+- **Tested on the laptop** with a sample face photo in place of the camera:
+  - 1 face found (0 in a blank picture)
+  - registered → recognised → "In cabin"
+  - snapshot, stream and delete all work
+  - the old 2022mar model downloads as a real ONNX file
+
+### 10. Pi: RFID, manual override buttons, NeoPixel LEDs (same file)
+
+- Added to `smartcabin_pi.py`, so it's still one file to paste:
+  - **RC522 RFID** (`mfrc522` library, SPI). Tap a card to check in, tap again to check out. Holding the card counts once (3 s repeat guard). New cards are linked to a name from the web page: Link card, then tap within 30 s.
+  - **3 buttons** (Available / Busy / Back soon) on GPIO 5 / 6 / 26 with internal pull-ups. Pressing the same button again goes back to automatic. An override ends after 60 min. The same override buttons and **Auto** are on the web page.
+  - **NeoPixel / WS2812** (`rpi_ws281x`) on GPIO18, 8 LEDs: green Available, red Busy, amber Back soon, dim white Away, blue while registering a face or linking a card.
+- **Status rules:** override first; otherwise Available if a known person's face was seen in the last 15 s or their card is tapped in; otherwise Away.
+- Each part can be switched off (`USE_RFID` / `USE_BUTTONS` / `USE_LEDS`). If a part fails or isn't a Pi, the rest still runs, and the web page shows each part's state.
+- Install: apt `python3-rpi-lgpio python3-spidev`, pip `mfrc522 rpi_ws281x` (`--no-deps --break-system-packages`). If SPI is off, the script turns it on and asks for a reboot. Run with `sudo` (the LEDs need it).
+- New `codes for raspberry pi/README.md` with the wiring tables. Card links are saved in `cards_pi.json` (git-ignored).
+- **Tested on the laptop** with fake GPIO / RFID reader / LED strip and the face photo: unknown card → linked → tap in = Available (held 1 s counted once) → tap out = Away; Busy button on/off; web Back soon / Auto; face → Available, gone 20 s → Away; delete removes the face and cards; LED colours matched every step.
+- **Not tested:** real RC522, buttons and LEDs on the Pi.
+
+### 11. Pi: per-person override, hardware check, Bluetooth phones (same file)
+
+- **User feedback:** the override must be per person, not for everyone, and shown next to the person's name. Changes:
+  - Every person's row has Available / Busy / Back soon / Auto, and the status + reason are shown next to the name.
+  - The hardware buttons and LEDs belong to one person, chosen on the page ("Hardware buttons and LEDs are for:"), saved in `settings_pi.json`.
+- **Hardware check panel** (green / amber / red / grey per part):
+  - camera: not connected, stopped, or no new picture for 10 s. It reconnects by itself.
+  - RFID: reads the RC522 version register every 5 s, so an unplugged reader is caught and set up again when it's back.
+  - buttons: stuck pressed for 10 s, last press shown. A loose wire can't be detected until pressed.
+  - LEDs: start errors / missing sudo. WS2812 has no feedback.
+  - Bluetooth: no adapter, or switched off (turned back on).
+  - power: under-voltage now / since boot, and CPU temperature.
+- **Bluetooth:** "Pair phone" makes the Pi discoverable for 60 s with `bt-agent` (NoInputNoOutput) and links the first newly paired phone to the name. A typed Bluetooth address also works (for iPhones). Presence: `l2ping` every 15 s, and the phone counts for 60 s. Saved in `phones_pi.json`. Note: about 10 m range through walls, so it's weaker evidence than a face or a card.
+- Person status: their own override first, otherwise Available if face (15 s), card tapped in, or phone (60 s), otherwise Away.
+- **Tested on the laptop** with fake GPIO / RFID / LEDs / Bluetooth:
+  - web override for one person didn't change the other
+  - the button went to the chosen person
+  - a stuck button was caught after 10 s and cleared when released
+  - pairing linked the new phone; phone near → Available, gone 70 s → Away
+  - a bad typed address was rejected, and `aa-bb-cc-dd-ee-ff` → `AA:BB:CC:DD:EE:FF`
+  - RFID unplugged → error, back → ok + set up again
+  - camera pulled → error → reconnected; camera frozen → "no new picture for 30 s"
+  - delete removed the person's card and phone
+- Bug found in testing: just after start, the camera showed "no new picture for 1792601630 s" before the first frame. Fixed by setting the frame time when the camera connects.
+- **Not tested:** real Bluetooth pairing, `l2ping` with real phones (Android / iPhone), `vcgencmd` on the Pi.
+
+### 12. Pi → laptop data link with mDNS
+
+- New `codes for raspberry pi/pi_sender.py` (Pi) and `code/pi_receiver.py` (laptop). Both install `zeroconf` themselves (apt `python3-zeroconf` on the Pi, pip on the laptop). Added to `code/requirements.txt`.
+- The laptop announces the mDNS service `_smartcabin._tcp` (all its IPv4 addresses, port 8500). The Pi finds it with no IP typed, reads `smartcabin_pi.py`'s `/status.json` every 2 s and POSTs it with an `X-Token` header.
+- Push from the Pi (not pull from the laptop), so many cabin Pis can report to one laptop.
+- Receiver page: one card per Pi (online / OFFLINE after 15 s, people with status / how / last seen, only hardware problems listed, link to the Pi's own page). Saved to `data/pi_status.json` (git-ignored), ready to feed the dashboard.
+- **Tested on the laptop** (sender + fake status server + receiver on one machine): found by mDNS, "app not running" sent while the status server was down, people arrived once it was up, wrong token → 403, OFFLINE 18 s after stopping, page renders with no JS errors.
+- Bug found: the laptop also has a Windows Mobile Hotspot adapter (192.168.137.1), and the Pi switched to that address. Fixed: the receiver announces all addresses, and the sender prefers the one on its own subnet.
+- **Not tested:** real Pi → laptop over Wi-Fi (college Wi-Fi may block mDNS; a phone hotspot works).
+
+### Bugs found and fixed today
+
+- CSS `.hidden` was overridden by `.tag`, so "Set manually" always showed. Fixed with `!important`.
+- On Windows, replacing `data.js` failed with "Access is denied" when the browser had it open, which crashed `main.py`. It now retries for up to 2 s, then skips that cycle instead of crashing.
+- Some programme names from the website contained HTML (`<br> <span ...>`). `clean()` now removes tags, and the CSV files have no `<` left.
+- Demo timetable rows weren't in time order. Fixed by sorting.
+
+### Tried / tested
+
+- Search on 839 people takes 1–11 ms. Examples: "physics" → 21, HODs → 23, Deans → 11, School of Engineering → 229, HODs + School of CSE → 4, AI school → 136.
+- Programmes: Master's → 18 (7 degree buttons), M.Tech → 6, "data" → 8.
+- Staff override ("In a meeting, back at 15:00") shows on the person's card and page with "Set manually".
 - Python wrote a new status while the page was open → the page updated within 10 s, with no reload and no server.
-- Phone width (375 px) → the layout stacks, with no sideways scrolling.
+- The header stays at the top after scrolling. All pages have the header and footer, with no sideways scroll at phone width (375 px).
+- `main.py` loop run without a browser for a few cycles: changes written to `data.js` and history.
 
-**What worked:**
-- Loading data through `<script src="data.js">` instead of `fetch()`. Browsers block `fetch()` on files opened directly (`file://`), but a script tag works.
-- Writing `data.js` to a temp file first and then swapping it in, so the page never reads a half-written file.
+### What worked
 
-**What didn't / why:**
-- The CSS class `.hidden` was being overridden by `.tag`, so "Set manually" always showed. Fixed with `!important` on `.hidden`.
-- Overrides and timetable edits are saved in the browser (localStorage), so Python can't see them yet. That's fine for the demo; a small server comes later.
+- Loading data with `<script src="data.js">` instead of `fetch()`. Browsers block `fetch()` on files opened directly, but a script tag works.
+- Writing `data.js` to a temp file and then swapping it in, so the page never reads a half-written file.
+- Reading the faculty lists straight from the website's HTML with Python's standard library only.
 
-**Next:**
-- Read the research papers: summaries plus relevance in `research/papers.md`.
-- Bring back the camera headcount (webcam) as modules (`camera.py`, `detector.py`) and feed the real count into `write_status()`.
-- Simple status rules + timetable CSV in Python.
+### What didn't / why
 
-**Deferred (decide after Review 1):**
-- Standalone compact device: ESP32-S3 / ESP32-CAM vs Raspberry Pi. Also which detector can run on it (YOLOv8n is too heavy for a plain ESP32).
+- Staff overrides and timetable edits are saved only in the browser (localStorage), so Python can't see them yet. A small database or server is needed (SQLite was discussed: Python has it built in).
+- Cabin numbers and real timetables are not on the website, so the demo uses placeholders. The statuses shown next to real names are random demo data.
+- Research papers were checked from journal pages only. Full PDFs of papers 6–10 are still to be read, and paper 8's author list needs confirming.
+
+### Not yet done / not tested
+
+- `install_requirements.py` not run (Python 3.15 concern).
+- `smartcabin_pi.py` not yet run on the real Pi Zero 2W + Pi Camera (the install step and real FPS), and RFID / buttons / LEDs not yet wired and tried.
+- Nothing committed to Git yet. `yolov8n.pt` is still tracked; run `git rm --cached yolov8n.pt`.
+
+### Next
+
+- Run `smartcabin_pi.py` on the Pi and note the real FPS and recognition quality.
+- Connect the Pi's `/status.json` (or the laptop face recognition) to `write_status()`, so the dashboard shows real status instead of demo data.
+- Add SQLite to log every status change, giving data for the Review 2 results.
+- Summarise papers 1–5 from README section 9 in `research/papers.md`. Read the full PDFs of 6–10.
+- Get real cabin numbers and timetables (at least for one department) to replace the demo data.
+
+### Deferred (decide after Review 1)
+
+- Final standalone compact device (Pi Zero 2W vs ESP32-S3 / ESP32-CAM) and which models can run on it.
 
 ---
 
