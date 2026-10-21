@@ -1,0 +1,9 @@
+python --version
+
+
+winget install -e --id Python.Python.3.12
+
+py -3.12 -m pip install --upgrade pip
+py -3.12 -m pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121
+py -3.12 -m pip install facenet-pytorch==2.6.0 --no-deps
+py -3.12 -m pip install "numpy<2" "pillow<10.3" opencv-python==4.10.0.84 requests tqdm
