@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Cabin - Staff</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header: same on every page, stays at the top while scrolling -->
+  <header class="site-header">
+    <div class="brand">
+      <a href="index.html" id="site-title">Smart Cabin</a>
+      <span id="site-subtitle"></span>
+    </div>
+    <nav>
+      <a href="index.html">Faculty status</a>
+      <a href="programs.html">Programmes</a>
+      <a href="staff.html" class="active">Staff login</a>
+      <a href="system.html">System</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1 class="page-title">Staff panel</h1>
+    <p id="logged-in-as" class="small">For Deans, HODs and faculty</p>
+
+    <!-- Login -->
+    <div id="login-box" class="box">
+      <h3>Login</h3>
+      <p class="warning">Demo only, not secure. The real system will check logins on a server.</p>
+      <p>
+        <select id="login-person"></select>
+      </p>
+      <p>
+        <input type="password" id="password" placeholder="Password (demo: staff123)">
+      </p>
+      <button onclick="login()">Login</button>
+      <p id="login-error" class="small"></p>
+    </div>
+
+    <div id="panel" class="hidden">
+
+      <!-- Set my status -->
+      <div class="box">
+        <h3>Set my status</h3>
+        <p class="small">This wins over the camera and timetable until it expires.
+          In future, the same choices can also come from hardware buttons at the desk or door.</p>
+
+        <button onclick="setOverride('green', '')">Available</button>
+        <button onclick="setOverride('yellow', 'Busy - do not disturb')">Busy</button>
+        <button onclick="setOverride('red', 'In a meeting')">In a meeting</button>
+        <button onclick="setOverride('red', 'On leave')">On leave</button>
+
+        <p>
+          Back at: <input type="time" id="back-time">
+          for
+          <select id="expire-hours">
+            <option value="0.5">30 minutes</option>
+            <option value="1" selected>1 hour</option>
+            <option value="2">2 hours</option>
+            <option value="4">4 hours</option>
+            <option value="10">Rest of the day</option>
+          </select>
+        </p>
+
+        <button onclick="clearOverride()">Clear</button>
+        <p id="override-info" class="small"></p>
+      </div>
+
+      <!-- My timetable -->
+      <div class="box">
+        <h3>My weekly timetable</h3>
+        <p class="small">Edit the rows, or load a CSV file with columns: day,start,end,activity</p>
+        <input type="file" id="csv-file" accept=".csv" onchange="loadCsv()">
+
+        <table>
+          <thead>
+            <tr><th>Day</th><th>Start</th><th>End</th><th>Activity</th><th></th></tr>
+          </thead>
+          <tbody id="tt-body"></tbody>
+        </table>
+
+        <button onclick="addRow()">Add row</button>
+        <button onclick="saveTimetable()">Save</button>
+        <button onclick="resetTimetable()">Reset</button>
+        <p id="tt-info" class="small"></p>
+      </div>
+
+      <!-- My history -->
+      <div class="box">
+        <h3>My status history</h3>
+        <table>
+          <thead>
+            <tr><th>Time</th><th>Status</th><th>Source</th><th>Note</th></tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+
+      <button onclick="logout()">Logout</button>
+    </div>
+  </main>
+
+  <!-- Footer: same on every page -->
+  <footer class="site-footer">
+    &#128274; Status only. No images are stored or shown.<br>
+    Smart Cabin - M.Tech project prototype, Presidency University, Bengaluru
+  </footer>
+
+  <script id="data-script" src="data.js"></script>
+  <script src="common.js"></script>
+  <script src="staff.js"></script>
+</body>
+</html>

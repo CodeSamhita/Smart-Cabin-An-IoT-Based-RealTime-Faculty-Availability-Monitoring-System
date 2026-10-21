@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Cabin - System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header: same on every page, stays at the top while scrolling -->
+  <header class="site-header">
+    <div class="brand">
+      <a href="index.html" id="site-title">Smart Cabin</a>
+      <span id="site-subtitle"></span>
+    </div>
+    <nav>
+      <a href="index.html">Faculty status</a>
+      <a href="programs.html">Programmes</a>
+      <a href="staff.html">Staff login</a>
+      <a href="system.html" class="active">System</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1 class="page-title">System</h1>
+    <p class="small">Health, sensors and demo controls</p>
+
+    <!-- Health -->
+    <div class="box">
+      <h3>System health</h3>
+      <p>Last update from Python: <b id="last-update">-</b></p>
+      <p>People monitored: <b id="people-count">0</b></p>
+      <p id="status-counts"></p>
+    </div>
+
+    <!-- Sensors -->
+    <div class="box">
+      <h3>Sensors</h3>
+      <ul id="sensor-list" class="sensor-list"></ul>
+    </div>
+
+    <!-- Demo controls -->
+    <div class="box">
+      <h3>Demo controls</h3>
+      <p class="small">Only for showing the design. Normally the status comes from the camera and timetable.</p>
+      <p><select id="demo-person"></select></p>
+      <button onclick="demoSet('green')">Available</button>
+      <button onclick="demoSet('yellow')">With visitors</button>
+      <button onclick="demoSet('red')">Away</button>
+      <button onclick="demoSet('grey')">Unknown</button>
+      <br>
+      <button onclick="demoClearAll()">Clear all demo and manual statuses</button>
+      <p id="demo-info" class="small"></p>
+    </div>
+
+    <!-- Recent changes -->
+    <div class="box">
+      <h3>Recent changes</h3>
+      <table>
+        <thead>
+          <tr><th>Time</th><th>Person</th><th>Status</th><th>Source</th></tr>
+        </thead>
+        <tbody id="history-body"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Footer: same on every page -->
+  <footer class="site-footer">
+    &#128274; Status only. No images are stored or shown.<br>
+    Smart Cabin - M.Tech project prototype, Presidency University, Bengaluru
+  </footer>
+
+  <script id="data-script" src="data.js"></script>
+  <script src="common.js"></script>
+  <script src="system.js"></script>
+</body>
+</html>

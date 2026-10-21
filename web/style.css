@@ -1,0 +1,368 @@
+/* Smart Cabin - simple stylesheet */
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f4f5f7;
+  color: #222;
+  margin: 0;
+}
+
+a {
+  color: #1f5fa8;
+}
+
+/* ---------- Header: stays at the top while scrolling ---------- */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: white;
+  border-bottom: 1px solid #ddd;
+  padding: 10px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.brand a {
+  font-size: 20px;
+  font-weight: bold;
+  color: #1f3b5a;
+  text-decoration: none;
+  margin-right: 10px;
+}
+
+.brand span {
+  font-size: 13px;
+  color: #666;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+nav a {
+  color: #333;
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+nav a:hover {
+  background: #eef2f6;
+}
+
+nav a.active {
+  background: #1f3b5a;
+  color: white;
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.page-title {
+  font-size: 24px;
+  margin: 8px 0 4px 0;
+}
+
+/* ---------- Footer ---------- */
+
+.site-footer {
+  text-align: center;
+  padding: 16px;
+  margin-top: 24px;
+  border-top: 1px solid #ddd;
+  background: white;
+  color: #777;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+h2 {
+  font-size: 18px;
+  margin: 24px 0 10px 0;
+  color: #444;
+}
+
+.box {
+  background: white;
+  border: 1px solid #e2e2e2;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.box h3 {
+  margin-top: 0;
+}
+
+.small {
+  font-size: 14px;
+  color: #666;
+}
+
+.center {
+  text-align: center;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ---------- Search bar ---------- */
+
+.search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search-bar input {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* ---------- Quick select buttons ---------- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.chip {
+  background: white;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 16px;
+  padding: 6px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.chip:hover {
+  background: #eef2f6;
+}
+
+.chip.active {
+  background: #1f3b5a;
+  color: white;
+  border-color: #1f3b5a;
+}
+
+input, select {
+  padding: 8px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* ---------- Grid of person cards ---------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.person-card {
+  display: block;
+  background: white;
+  border: 1px solid #e2e2e2;
+  border-top: 6px solid #8a8a8a;
+  border-radius: 8px;
+  padding: 12px;
+  color: #222;
+  text-decoration: none;
+}
+
+.person-card:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.person-card .name {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.person-card .status-line {
+  margin-top: 8px;
+  font-weight: bold;
+}
+
+.person-card.green  { border-top-color: #2e9e44; }
+.person-card.yellow { border-top-color: #e0a800; }
+.person-card.red    { border-top-color: #d43c3c; }
+.person-card.grey   { border-top-color: #8a8a8a; }
+
+/* ---------- Status colours (dot + big card) ---------- */
+
+.dot {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  border-radius: 50%;
+  color: white;
+  font-size: 11px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.dot.green, .big-icon.green   { background: #2e9e44; }
+.dot.yellow, .big-icon.yellow { background: #e0a800; }
+.dot.red, .big-icon.red       { background: #d43c3c; }
+.dot.grey, .big-icon.grey     { background: #8a8a8a; }
+
+.big-status {
+  text-align: center;
+}
+
+.big-icon {
+  width: 80px;
+  height: 80px;
+  line-height: 80px;
+  border-radius: 50%;
+  margin: 0 auto;
+  color: white;
+  font-size: 40px;
+}
+
+.big-status h3 {
+  font-size: 26px;
+  margin: 10px 0;
+}
+
+.tag {
+  display: inline-block;
+  background: #1f3b5a;
+  color: white;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  font-size: 14px;
+  margin-top: 24px;
+}
+
+/* ---------- Tables ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+tr.now {
+  background: #fff4c2;
+  font-weight: bold;
+}
+
+td input {
+  width: 100%;
+}
+
+/* ---------- Buttons ---------- */
+
+button {
+  background: #1f3b5a;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  margin: 4px 4px 4px 0;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:hover {
+  background: #2d5683;
+}
+
+.warning {
+  background: #fff4c2;
+  padding: 8px;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+/* ---------- Sensors (System page) ---------- */
+
+.sensor-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sensor-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.sensor-list li.future {
+  color: #999;
+}
+
+.sensor-state {
+  float: right;
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: white;
+}
+
+.sensor-state.active   { background: #2e9e44; }
+.sensor-state.offline  { background: #d43c3c; }
+.sensor-state.planned  { background: #999; }
+.sensor-state.optional { background: #bbb; }
+
+/* ---------- Phone screens ---------- */
+
+@media (max-width: 500px) {
+  main {
+    padding: 10px;
+  }
+
+  /* Smaller header on phones: hide the subtitle, smaller links */
+  .site-header {
+    padding: 8px 10px;
+  }
+
+  .brand span {
+    display: none;
+  }
+
+  nav a {
+    padding: 5px 8px;
+    font-size: 13px;
+  }
+
+  th, td {
+    padding: 6px 4px;
+    font-size: 14px;
+  }
+}

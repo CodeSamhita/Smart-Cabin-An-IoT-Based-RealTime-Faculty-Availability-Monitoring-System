@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Cabin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header: same on every page, stays at the top while scrolling -->
+  <header class="site-header">
+    <div class="brand">
+      <a href="index.html" id="site-title">Smart Cabin</a>
+      <span id="site-subtitle"></span>
+    </div>
+    <nav>
+      <a href="index.html" class="active">Faculty status</a>
+      <a href="programs.html">Programmes</a>
+      <a href="staff.html">Staff login</a>
+      <a href="system.html">System</a>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- Search: type any words, e.g. "physics available", "gopal" -->
+    <div class="search-bar">
+      <input type="text" id="search" placeholder="Search by name, department, designation or status..." oninput="showCards()">
+    </div>
+
+    <!-- Quick select buttons, added by index.js -->
+    <div id="role-buttons" class="chips"></div>
+    <div id="school-buttons" class="chips"></div>
+    <p id="result-count" class="small"></p>
+
+    <!-- Cards are added here by index.js, grouped by department -->
+    <div id="cards"></div>
+
+    <div class="legend">
+      <span><span class="dot green">&#10004;</span>Available</span>
+      <span><span class="dot yellow">&#9679;&#9679;</span>With visitors</span>
+      <span><span class="dot red">&#10006;</span>Away</span>
+      <span><span class="dot grey">?</span>Unknown</span>
+    </div>
+
+  </main>
+
+  <!-- Footer: same on every page -->
+  <footer class="site-footer">
+    &#128274; Status only. No images are stored or shown.<br>
+    Smart Cabin - M.Tech project prototype, Presidency University, Bengaluru
+  </footer>
+
+  <!-- data.js is written by the Python code (code/webpage.py) -->
+  <script id="data-script" src="data.js"></script>
+  <script src="common.js"></script>
+  <script src="index.js"></script>
+</body>
+</html>

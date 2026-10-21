@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Secrets
+.env
+
+# Model weights (downloaded automatically by ultralytics)
+*.pt
+
+# Temporary file written by code/webpage.py
+web/data.js.tmp

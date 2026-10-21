@@ -5,7 +5,8 @@
 | | |
 |---|---|
 | Project type | M.Tech Data Science, yearly project and report (6 to 8 months) |
-| Document status | Brainstorming finished, design in progress. Version 0.1, 8 October 2026 |
+| Document status | Iteration 0 done. Laptop-only prototype with demo web UI. Version 0.2, 21 October 2026 |
+| Day-by-day log | See [timeline.md](timeline.md) |
 | Prototype scope | Demo/prototype. No deployment planned. A university GPU server could be used if it is ever deployed |
 
 **Status keys used in this document**
@@ -13,6 +14,62 @@
 - **Decided**: you have agreed to it.
 - **Proposed**: my suggestion, waiting for your confirmation.
 - **Open**: not decided yet.
+
+---
+
+## Current scope (laptop-only)
+
+As of 21 October 2026, everything runs on the laptop. No ESP32 or Pi camera is used for now, and external hardware comes back later. The full design below stays as the long-term plan.
+
+| Review | Dates | What is expected |
+|---|---|---|
+| Review 0 | 29 Sept – 2 Oct 2026 | Topic, problem, literature survey, objectives (done) |
+| Review 1 | 3 – 6 Nov 2026 | Working prototype, model implementation, experimental setup |
+| Review 2 | 8 – 11 Dec 2026 | Results and discussion, final report, research paper (IEEE/Springer venue, to be chosen) |
+
+### Running the demo
+
+Needs Python 3 only (standard library, nothing to install).
+
+```
+cd code
+python main.py
+```
+
+For the camera and headcount part (not needed for the web demo), install the libraries once:
+
+```
+cd code
+python install_requirements.py
+```
+
+`python main.py` reads the people and timetables from `data/`, writes `web/data.js` and opens `web/index.html` in your browser. Every 10 seconds one random person's status changes. Press Ctrl+C to stop. You can also double-click `web/index.html` to open it without Python.
+
+The system supports many HODs and faculty across departments. To add or change people, edit `data/people.csv` and `data/timetable.csv` (Excel works).
+
+| File | What is in it |
+|---|---|
+| `data/people.csv` | One row per faculty member: id, name, designation, role (Dean / HOD / Faculty), school, department, cabin. Currently 839 Presidency University faculty from the university website |
+| `data/programs.csv` | One row per programme: school, program, degree (B.Tech, M.Tech, MBA, Ph.D, ...), level (Bachelor's / Master's / Doctoral / Diploma), duration (114 programmes) |
+| `data/timetable.csv` | One row per class or meeting: person_id, day, start, end, activity. **Currently a made-up demo timetable** |
+| `code/fetch_presidency_data.py` | Downloads the faculty and programme lists from presidencyuniversity.in into `data/`, and makes the demo timetable. Re-run it to refresh |
+| `code/config.py` | Settings (folders, site title, timings) |
+| `code/people.py` | Reads the CSV files, finds a person's timetable and current class |
+| `code/demo_data.py` | Fake statuses and the sensor list for the demo |
+| `code/webpage.py` | `build_site_data()`, `write_status()` (writes `web/data.js`) and `open_dashboard()` |
+| `code/main.py` | Main program that calls the modules above |
+| `code/install_requirements.py` | Installs everything in `code/requirements.txt` and checks each library imports |
+
+| Web page | What it shows |
+|---|---|
+| `web/index.html` | Home: grid of cards grouped by department, with keyword search (e.g. "physics available", "gopal") and quick select buttons for Role (Everyone / Deans / HODs / Faculty) and School |
+| `web/programs.html` | All programmes grouped by degree (B.Tech, M.Tech, MBA, ...), with quick select buttons for level (Bachelor's / Master's / Ph.D / Diploma) and degree, plus search |
+| `web/person.html?id=p1` | One person: big status, reason, expected return, today's timetable, how we know |
+| `web/staff.html` | Staff login (pick your name, demo password `staff123`, not secure): set my status, edit my timetable, my history |
+| `web/system.html` | System health, sensors (planned ones greyed out), demo controls, recent changes |
+| `web/common.js` | Helpers shared by all pages (also fills in the header title) |
+
+Every page has the same header, which stays at the top while scrolling, with links to Faculty status, Programmes, Staff login and System. Every page also has the same footer. School and department names are the official ones from the university website.
 
 ---
 
@@ -307,6 +364,13 @@ Please read each source in full and verify titles, authors and years before citi
 3. *Anyone here? Smart embedded low-resolution omnidirectional video sensor to measure room occupancy*, arXiv:2007.04934. https://arxiv.org/pdf/2007.04934
 4. An ESP32 thermal-array people counter that processes data on the device (title to be confirmed). https://www.synapsesocial.com/papers/69a75c25c6e9836116a24abf
 5. Found through the Benin thesis's references, to be checked: K. Stone and J. Spies (2015), *Design and Implementation of an Automatic Staff Availability Tracking System*, ICCCS; A. Mannino et al. (2019), *Office building occupancy monitoring through image recognition sensors*, Int. J. of Safety and Security Engineering, 9(4).
+6. N. Mohamad Nor, S. Zubir, M. S. Shahrudin (2024), *Leveraging IoT to Enhance Real-Time Lecturer Accessibility in Higher Education*, IJARBSS 14(10), 2990–2999. DOI 10.6007/IJARBSS/v14-i10/22959. Manual lecturer availability with ESP32 (SILA).
+7. L. Monti et al. (2022), *Edge-Based Transfer Learning for Classroom Occupancy Detection in a Smart Campus Context*, Sensors 22(10), 3692. DOI 10.3390/s22103692. Camera snapshots + Raspberry Pi + YOLOv3, count only.
+8. J. Ahmad et al. (2021), *Occupancy detection in non-residential buildings – A survey and novel privacy preserved occupancy monitoring solution*, Applied Computing and Informatics 17(2), 279–295. DOI 10.1016/j.aci.2018.12.001.
+9. Z. Chen, C. Jiang, L. Xie (2018), *Building occupancy estimation and detection: A review*, Energy and Buildings 169, 260–270. DOI 10.1016/j.enbuild.2018.03.084.
+10. I. Ahamed et al. (2024), *Real-Time AI-Driven People Tracking and Counting Using Overhead Cameras*, IEEE TENCON 2024, arXiv:2411.10072.
+
+Summaries and relevance for papers 6–10 are in [research/papers.md](research/papers.md).
 
 ---
 
@@ -322,6 +386,16 @@ Please read each source in full and verify titles, authors and years before citi
 - RFID, BLE and buttons as supporting signals. PIR and hall sensors rejected.
 - Camera is the ground truth when it disagrees with the timetable.
 - University of Benin thesis as the base work for now.
+- (21 Oct 2026) Laptop-only prototype for now (laptop webcam). ESP32 and Pi set aside until later. Pi Zero 2W was tried, but remote sessions were troublesome.
+- (21 Oct 2026) Web UI in plain HTML/CSS/JS, opened and fed by the Python code through `web/data.js`. No server needed for the demo.
+- (21 Oct 2026) Scope widened from one HOD to many HODs and faculty across departments. People and timetables are kept in CSV files (`data/`).
+- (21 Oct 2026) Presidency University, Bengaluru is the target institution. The faculty (839) and programme (114) lists come from the university website. Cabin numbers and timetables are not on the website, so cabins are empty and the timetable is demo data until the real ones are available. The flat UI style is kept as it is.
+- (21 Oct 2026) RFID, fingerprint and other biometrics shown in the UI as planned optional sensors.
+- (21 Oct 2026) Hardware buttons (Available / Busy / Back soon) may be added later. They would do the same job as the HOD panel override buttons, and are shown in the UI as planned.
+
+**Deferred (decide after Review 1)**
+
+- Standalone compact device: ESP32-S3 / ESP32-CAM vs Raspberry Pi, and which detector can run on it (YOLOv8n is too heavy for a plain ESP32).
 
 **Open**
 

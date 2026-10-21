@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Cabin - Status</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header: same on every page, stays at the top while scrolling -->
+  <header class="site-header">
+    <div class="brand">
+      <a href="index.html" id="site-title">Smart Cabin</a>
+      <span id="site-subtitle"></span>
+    </div>
+    <nav>
+      <a href="index.html" class="active">Faculty status</a>
+      <a href="programs.html">Programmes</a>
+      <a href="staff.html">Staff login</a>
+      <a href="system.html">System</a>
+    </nav>
+  </header>
+
+  <main>
+    <p><a href="index.html">&larr; All faculty</a></p>
+
+    <p id="not-found" class="box hidden">Person not found. Go back to the list and pick a name.</p>
+
+    <div id="person-page">
+      <h1 id="person-name" class="page-title">-</h1>
+      <p id="person-details" class="small"></p>
+
+      <!-- Big status -->
+      <div class="box big-status">
+        <div id="status-icon" class="big-icon grey">?</div>
+        <h3 id="status-text">Unknown</h3>
+        <p id="status-reason"></p>
+        <p id="status-back"></p>
+        <p class="small">Last checked: <span id="status-time">-</span></p>
+        <p id="status-manual" class="tag hidden">Set manually</p>
+      </div>
+
+      <!-- Today's timetable -->
+      <div class="box">
+        <h3>Today's timetable (<span id="today-name"></span>)</h3>
+        <table>
+          <tbody id="timetable-body"></tbody>
+        </table>
+      </div>
+
+      <!-- How the system decided -->
+      <div class="box">
+        <h3>How we know</h3>
+        <ul id="evidence-list"></ul>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer: same on every page -->
+  <footer class="site-footer">
+    &#128274; Status only. No images are stored or shown.<br>
+    Smart Cabin - M.Tech project prototype, Presidency University, Bengaluru
+  </footer>
+
+  <script id="data-script" src="data.js"></script>
+  <script src="common.js"></script>
+  <script src="person.js"></script>
+</body>
+</html>

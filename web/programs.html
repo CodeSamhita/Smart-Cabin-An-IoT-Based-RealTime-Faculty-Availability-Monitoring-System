@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Cabin - Programmes</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header: same on every page, stays at the top while scrolling -->
+  <header class="site-header">
+    <div class="brand">
+      <a href="index.html" id="site-title">Smart Cabin</a>
+      <span id="site-subtitle"></span>
+    </div>
+    <nav>
+      <a href="index.html">Faculty status</a>
+      <a href="programs.html" class="active">Programmes</a>
+      <a href="staff.html">Staff login</a>
+      <a href="system.html">System</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1 class="page-title">Programmes</h1>
+    <p class="small">Every programme offered by Presidency University, grouped by degree</p>
+
+    <div class="search-bar">
+      <input type="text" id="search" placeholder="Search programmes, e.g. data science, law, psychology" oninput="showPrograms()">
+    </div>
+
+    <!-- Quick select buttons, added by programs.js -->
+    <div id="level-buttons" class="chips"></div>
+    <div id="degree-buttons" class="chips"></div>
+    <p id="result-count" class="small"></p>
+
+    <!-- Tables are added here by programs.js, one per degree -->
+    <div id="programs"></div>
+  </main>
+
+  <!-- Footer: same on every page -->
+  <footer class="site-footer">
+    &#128274; Status only. No images are stored or shown.<br>
+    Smart Cabin - M.Tech project prototype, Presidency University, Bengaluru
+  </footer>
+
+  <script id="data-script" src="data.js"></script>
+  <script src="common.js"></script>
+  <script src="programs.js"></script>
+</body>
+</html>
