@@ -5,7 +5,8 @@
 #   1. DETECT : find where the faces are in the picture   (YuNet model)
 #   2. EMBED  : turn each face into 128 numbers            (SFace model)
 #   3. MATCH  : compare with the saved people (cosine similarity). Too far from everyone -> "Unknown"
-# It uses OpenCV's small face models instead of PyTorch, because the Pi Zero 2W only has 512 MB RAM.
+# It uses OpenCV's small face models instead of PyTorch: nothing big to install, and they run fast on the
+# Raspberry Pi 4's CPU (board details: board_specs.md).
 #
 # Status of each person, in this order:
 #   1. Their manual override (web page, or the hardware buttons) wins, until cleared or OVERRIDE_MINUTES pass
@@ -32,7 +33,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 # ---------------- Settings you can tune ----------------
 CAMERA = "pi"                 # "pi" = ribbon-cable Pi Camera, "usb" = USB webcam
 WIDTH, HEIGHT = 640, 480
-FPS = 3                       # pictures checked per second (1 - 10). The Zero 2W manages about 2-4.
+FPS = 6                       # pictures checked per second (1 - 10). The Pi 4 manages about 5-10; lower it if the CPU runs hot.
 THRESHOLD = 0.36              # higher = stricter matching (try 0.30 - 0.50)
 MIN_FACE_CONFIDENCE = 0.9     # ignore weak detections
 SAMPLES_PER_PERSON = 10       # photos taken during registration
@@ -766,7 +767,7 @@ def check_power():
         temperature = 0
     temp_text = ", CPU " + format(temperature, ".0f") + " C"
     if flags & 0x1:
-        set_hardware("power", "error", "UNDER-VOLTAGE now - use a 5 V 2.5 A supply, power the LEDs separately" + temp_text)
+        set_hardware("power", "error", "UNDER-VOLTAGE now - use a 5 V 3 A USB-C supply (Pi 4), power the LEDs separately" + temp_text)
     elif temperature > 80:
         set_hardware("power", "warn", "too hot, the Pi is slowing down" + temp_text)
     elif flags & 0x10000:

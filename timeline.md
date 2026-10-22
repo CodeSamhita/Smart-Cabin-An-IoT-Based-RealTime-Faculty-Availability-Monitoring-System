@@ -210,6 +210,59 @@ Template for each entry:
 
 ---
 
+## 2026-10-22 – Pi system information script
+
+**Done:**
+- New `codes for raspberry pi/pi_system_info.py`. It uses only the standard library and the Pi's own files and commands (`/proc`, `/sys`, `vcgencmd`, `rpicam-hello`, `bluetoothctl`, `iwgetid`, `ps`).
+- Sections:
+  - board: model, serial, OS, kernel, Python
+  - uptime
+  - CPU: use, load, speed, temperature with a HOT warning at 80 °C
+  - RAM / swap / GPU memory
+  - SD card, with a warning at 90 % full
+  - power: every `get_throttled` bit explained in words, plus core voltage
+  - network: IP, Wi-Fi name and signal in dBm, `.local` mDNS name
+  - hardware: camera model or "NOT connected", SPI, I2C, Bluetooth
+  - top 5 processes by memory
+- Modes: plain report, `--watch N` (refresh), `--json` (to send to the laptop later).
+
+**Tried / tested:** ran on the Windows laptop. No crash, and the Pi-only items show "not available". Fixed `hostname -I`, which printed a Windows error.
+
+**Not tested:** on the real Pi (all the Pi-specific sections).
+
+**Later – ran on the real Pi, specs saved to `codes for raspberry pi/board_specs.md`:**
+- The board is a **Raspberry Pi 4 Model B Rev 1.5, 4 GB** (not the Zero 2W as noted before).
+  - OS: Debian 13 trixie 64-bit, kernel 6.18, Python 3.13.5, desktop OS
+  - Camera v2 (imx219) connected; SPI enabled; Bluetooth on
+  - 32 GB SD (29 % used); power OK (`0x0`); 57.9 °C
+- The Pi is on the laptop's Mobile Hotspot `ROG-StrixG16` (192.168.137.72, −40 dBm), mDNS name `pi.local`.
+- `pi_system_info.py` worked on the Pi: every section was filled in, and the camera model was read correctly.
+- Effect: with 4 cores / 4 GB, `FPS` can go up to 5–10.
+- Updated `smartcabin_pi.py` for the Pi 4:
+  - `FPS` 3 → 6
+  - comments no longer say Zero 2W / 512 MB
+  - the under-voltage message now says a 5 V 3 A USB-C supply
+  - README wiring heading changed to Pi 4
+  - **Not yet run on the Pi** at 6 FPS: check the fps on the page and the CPU temperature.
+- **There are two boards.** Also recorded the **Pi Zero 2 W Rev 1.0** (serial 0000000011933149) in `board_specs.md`, with a side-by-side table.
+  - Same OS (trixie 64-bit desktop), same camera (imx219), SPI on.
+  - **RAM 415 MB**: the desktop already uses 54 %, and 114 MB of swap is in use 1 min after boot.
+  - Advice: boot it to the console (`raspi-config nonint do_boot_behaviour B1`) and use `FPS` 2–3 on it.
+- **New `pi_benchmark.py`**, made for the evaluation plan (README section 8, "Update delay"). It imports `smartcabin_pi.py` and `pi_sender.py`, so it times the real code.
+  - It measures: Python / numpy / SD write speed; camera capture FPS at 640x480 and 320x240; YuNet detect, SFace embed, match vs 20 people, and JPEG times; RAM for the models; a 60 s sustained run with temperature and throttling; send time to the laptop by mDNS.
+  - It works out the worst-case update delay (arrive → Pi page / laptop page; leaving adds `PRESENT_SECONDS`) and suggests an FPS (70 % of sustained, 1–10). Results are saved to `benchmarks/benchmark_<host>_<time>.json`.
+  - Tested on the laptop: 640x480 whole frame 16 ms (detect 8.8, embed 6.6), 320x240 7.3 ms, mDNS found the receiver in 1.2 s, send 4.8 ms, 0 failures.
+  - Found while testing: the OpenCV sample photo's face scores only 0.90 (just at the 0.9 threshold). The benchmark uses 0.5 for its own timing, and detection is still timed if no face is found.
+  - **Not yet run on the Pi 4 or the Zero 2W.** `board_specs.md` has an empty results table for both.
+  - First run on the Pi crashed: `smartcabin_pi has no attribute run_command`. The user keeps versions (`smartcabin_pi.py`, `smartcabin_pi1.py`, `smartcabin_pi2.py` in `~`), and `smartcabin_pi.py` was an old one.
+    - Fix: the benchmark has its own `run_command`.
+    - It tries `smartcabin_pi*.py` newest first and uses the first with everything it needs (e.g. `close_camera`). `--app <file>` picks one version.
+    - If no file is new enough, it says to paste the newest one.
+    - Tested both cases on the laptop.
+- **Problem found: both boards have hostname `pi`**, so both are `pi.local`, and `pi_sender.py` would merge both into one card on the laptop. Fix: give them different hostnames (e.g. `cabin-pi4`, `cabin-zero`).
+
+---
+
 ## 2026-10 (before 21 Oct) – Raspberry Pi Zero 2W tried
 
 **Tried / tested:** Raspberry Pi Zero 2W as the camera / processing device.

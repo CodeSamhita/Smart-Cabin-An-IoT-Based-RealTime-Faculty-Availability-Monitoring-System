@@ -4,6 +4,9 @@
 |---|---|---|
 | `smartcabin_pi.py` | Pi | Face, RFID, Bluetooth, buttons, LEDs, hardware check, web page (port 8000) |
 | `pi_sender.py` | Pi | Finds the laptop by mDNS and sends it the status every 2 s |
+| `board_specs.md` | – | Specs of both boards: **Raspberry Pi 4 Model B (4 GB)** and **Pi Zero 2 W (512 MB)**, both trixie 64-bit with Camera v2. Both are named `pi` - rename one |
+| `pi_system_info.py` | Pi | System report: model, OS, uptime, CPU use / speed / temperature, RAM, SD card, power (under-voltage), Wi-Fi signal, camera, SPI, I2C, Bluetooth, top processes. `--watch 5` refreshes, `--json` gives JSON. Standard library only |
+| `pi_benchmark.py` | Pi | Benchmark using the real project code: camera FPS, face steps (detect / embed / match / JPEG) at 640x480 and 320x240, model RAM, 60 s sustained FPS + temperature + throttling, send time to the laptop (mDNS), update-delay estimate, suggested FPS. Saves `benchmarks/*.json`. Needs `smartcabin_pi.py` and `pi_sender.py` in the same folder; stop `smartcabin_pi.py` first |
 | `../code/pi_receiver.py` | Laptop | Announces the laptop by mDNS, receives from one or more Pis, page on port 8500, saves `data/pi_status.json` |
 
 ## Sending data from the Pi to the laptop (mDNS)
@@ -77,7 +80,7 @@ The status and reason are shown next to each name. The hardware buttons and LEDs
 - Presence: every 15 s the Pi sends each phone a tiny `l2ping`. It works while the phone's Bluetooth is on, even when the phone is locked.
 - Bluetooth reaches about 10 m, through walls, so a phone in the next room also counts. Treat it as weaker evidence than a face or a card.
 
-## Wiring (Pi Zero 2W)
+## Wiring (Raspberry Pi 4 – same 40-pin header on any Pi)
 
 GPIO numbers are used in the code. The physical pin number is in brackets. Bluetooth and the camera need no wiring.
 
