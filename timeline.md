@@ -259,6 +259,27 @@ Template for each entry:
     - It tries `smartcabin_pi*.py` newest first and uses the first with everything it needs (e.g. `close_camera`). `--app <file>` picks one version.
     - If no file is new enough, it says to paste the newest one.
     - Tested both cases on the laptop.
+- **First real benchmark: Pi Zero 2W** (full run, code `smartcabin_pi2.py`), saved in the new `codes for raspberry pi/benchmark_results.md`:
+  - camera 30 pictures/s at 640x480 and 320x240
+  - detect 170 ms + embed 164 ms → whole frame 354 ms (max 2.8 FPS); at 320x240, 274 ms (3.7 FPS)
+  - **sustained 1.9 FPS**; 54.8 → 66.6 °C in 60 s, no throttling
+  - models 42.6 MB, 113 MB free with the desktop running
+  - suggested **`FPS = 1`** on the Zero
+  - worst-case arrive → Pi page 2.35 s, → laptop page 5.35 s
+  - Findings: the face check is the bottleneck (about 22× slower than the laptop), not the camera. SFace time doesn't drop at 320x240 (fixed 112x112 crop). Matching 20 people costs 1.3 ms.
+  - Network test skipped: the laptop receiver wasn't found.
+  - Still to do: Pi 4 run, network test on both, 10-min heat run on the Zero, Zero without the desktop.
+- **Pi 4 benchmark** (full run, `smartcabin_pi2.py`), added to `benchmark_results.md` next to the Zero:
+  - camera 30 pictures/s
+  - detect 90.7 ms + embed 64.9 ms → whole frame 160.5 ms (max 6.2 FPS); at 320x240, 93 ms (max 10.8 FPS)
+  - **sustained 5.4 FPS**; 54.5 → 58.9 °C, steady, no throttling
+  - models 49.6 MB, 3.2 GB free
+  - suggested **`FPS = 3`**
+  - worst-case arrive → Pi page 1.49 s, → laptop page 4.49 s
+  - Pi 4 vs Zero: about 2.2× faster per frame, 2.8× sustained. The laptop is about 10× faster than the Pi 4.
+  - 320x240 helps the Pi 4 much more (detection is a bigger share there).
+  - **The current default `FPS = 6` is above the Pi 4's sustained 5.4**, so the loop never rests. Use 3 (max about 4).
+  - Network test skipped again on the Pi 4: the laptop receiver wasn't found (receiver not running, or the firewall blocking mDNS / port 8500).
 - **Problem found: both boards have hostname `pi`**, so both are `pi.local`, and `pi_sender.py` would merge both into one card on the laptop. Fix: give them different hostnames (e.g. `cabin-pi4`, `cabin-zero`).
 
 ---

@@ -20,25 +20,15 @@ There are **two boards**. Both specs were recorded on 2026-10-22 with `python3 p
 | Camera | imx219 (Camera v2) | imx219 (Camera v2) |
 | SPI / I2C / Bluetooth | enabled / disabled / on | enabled / disabled / on |
 | Power supply needed | 5 V 3 A USB-C | 5 V 2.5 A micro-USB |
-| Suggested `FPS` in `smartcabin_pi.py` | 6 (5–10) | 2–3 |
+| Suggested `FPS` in `smartcabin_pi.py` | **3** (measured: 5.4 sustained) | **1** (measured: 1.9 sustained) |
 
 ## Benchmark results (`pi_benchmark.py`)
 
-Still to run on both boards. Stop `smartcabin_pi.py`, keep `pi_receiver.py` running on the laptop, then run `python3 pi_benchmark.py`. Paste the SUMMARY block here.
+The full results and what they mean are in **`benchmark_results.md`**.
 
-| Measure | Pi 4 | Pi Zero 2W |
-|---|---|---|
-| Camera 640x480 (pictures/s) | – | – |
-| Detect / embed / whole frame at 640x480 (ms) | – | – |
-| Whole frame at 320x240 (ms) | – | – |
-| Sustained FPS (60 s) | – | – |
-| Max temperature / throttled | – | – |
-| RAM for models / RAM free (MB) | – | – |
-| Send to laptop (ms) | – | – |
-| Suggested FPS | – | – |
-| Arrive → laptop page, worst case (s) | – | – |
-
-For comparison, the Windows laptop gave about 16 ms for a whole 640x480 frame (≈ 60 FPS) and 5 ms to send to the receiver.
+- **Zero 2W:** a whole frame takes 354 ms; sustained 1.9 FPS; **suggested `FPS = 1`**; 66.6 °C max (still rising), no throttling; 113 MB RAM free.
+- **Pi 4:** a whole frame takes 160 ms; sustained 5.4 FPS; **suggested `FPS = 3`**; 58.9 °C max (steady), no throttling; 3.2 GB RAM free.
+- The Pi 4 is about 2–3× faster than the Zero 2W.
 
 ## Board 1 – Raspberry Pi 4 Model B (recorded 12:43, 6 min after boot)
 
