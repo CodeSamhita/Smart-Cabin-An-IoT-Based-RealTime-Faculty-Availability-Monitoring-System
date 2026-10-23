@@ -32,6 +32,12 @@
     <!-- Quick select buttons, added by index.js -->
     <div id="role-buttons" class="chips"></div>
     <div id="school-buttons" class="chips"></div>
+    <!-- Shown after a school is picked -->
+    <div id="department-buttons" class="chips"></div>
+    <!-- Shown after a department is picked -->
+    <div class="chips">
+      <select id="faculty-select" onchange="pickFaculty(this.value)" style="display: none"></select>
+    </div>
     <p id="result-count" class="small"></p>
 
     <!-- Cards are added here by index.js, grouped by department -->

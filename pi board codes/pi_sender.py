@@ -5,7 +5,7 @@
 # smartcabin_pi.py and sends it to the laptop.
 #
 # Run on the Pi (smartcabin_pi.py should be running too):  python3 pi_sender.py
-# On the laptop run:                                         python code/pi_receiver.py
+# On the laptop run:                                         python pi_receiver.py   (in "pi board codes")
 
 import json
 import socket
@@ -18,7 +18,7 @@ import urllib.request
 # ---------------- Settings you can tune ----------------
 SEND_SECONDS = 2                                   # how often to send
 STATUS_URL = "http://localhost:8000/status.json"   # where smartcabin_pi.py gives its status
-TOKEN = "smartcabin-2026"                          # must be the same in code/pi_receiver.py
+TOKEN = "smartcabin-2026"                          # must be the same in pi_receiver.py
 SERVICE_TYPE = "_smartcabin._tcp.local."           # the mDNS name the laptop announces
 # --------------------------------------------------------
 

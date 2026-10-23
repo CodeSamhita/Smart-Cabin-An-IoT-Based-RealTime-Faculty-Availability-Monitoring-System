@@ -10,7 +10,6 @@ import sys
 LIBRARIES = {
     "opencv-python": "cv2",
     "numpy": "numpy",
-    "requests": "requests",
     "ultralytics": "ultralytics",
 }
 

@@ -1,4 +1,6 @@
-# Codes for Raspberry Pi
+# Pi board codes
+
+Everything that uses a Raspberry Pi is in this folder: the code that runs on the Pi, and the laptop code that talks to the Pi.
 
 | File | Runs on | What it does |
 |---|---|---|
@@ -6,15 +8,18 @@
 | `pi_sender.py` | Pi | Finds the laptop by mDNS and sends it the status every 2 s |
 | `board_specs.md` | – | Specs of both boards: **Raspberry Pi 4 Model B (4 GB)** and **Pi Zero 2 W (512 MB)**, both trixie 64-bit with Camera v2. Both are named `pi` - rename one |
 | `benchmark_results.md` | – | Benchmark results per board, with what they mean. Zero 2W: 1.9 FPS sustained, use `FPS = 1`. Pi 4: 5.4 FPS sustained, use `FPS = 3` |
+| `compare_benchmarks.py` | Laptop | Compares two boards' `benchmarks/*.json`: prints a table with "x better", saves `benchmarks/board_comparison.png` (6 graphs: step times, whole frame, FPS, temperature, update delay, x faster). `python compare_benchmarks.py` (`--no-show` to only save) |
+| `benchmarks/` | – | Benchmark JSON of both boards (copied from the pasted outputs) and the comparison graph |
 | `pi_system_info.py` | Pi | System report: model, OS, uptime, CPU use / speed / temperature, RAM, SD card, power (under-voltage), Wi-Fi signal, camera, SPI, I2C, Bluetooth, top processes. `--watch 5` refreshes, `--json` gives JSON. Standard library only |
 | `pi_benchmark.py` | Pi | Benchmark using the real project code: camera FPS, face steps (detect / embed / match / JPEG) at 640x480 and 320x240, model RAM, 60 s sustained FPS + temperature + throttling, send time to the laptop (mDNS), update-delay estimate, suggested FPS. Saves `benchmarks/*.json`. Needs `smartcabin_pi.py` and `pi_sender.py` in the same folder; stop `smartcabin_pi.py` first |
-| `../code/pi_receiver.py` | Laptop | Announces the laptop by mDNS, receives from one or more Pis, page on port 8500, saves `data/pi_status.json` |
+| `pi_receiver.py` | Laptop | Announces the laptop by mDNS, receives from one or more Pis, page on port 8500, saves `pi_status.json` |
 
 ## Sending data from the Pi to the laptop (mDNS)
 
 1. **Laptop:**
 
-       python code/pi_receiver.py
+       cd "pi board codes"
+       python pi_receiver.py
 
    The first time, Windows asks to allow Python on the network. Allow it on **Private** networks. Then open http://localhost:8500
 2. **Pi**, in a second SSH window (`smartcabin_pi.py` keeps running in the first):

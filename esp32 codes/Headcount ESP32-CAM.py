@@ -1,3 +1,16 @@
+# Headcount from an ESP32-CAM using YOLOv8.
+#
+# What it does:
+#   1. Every INTERVAL seconds, grabs one JPEG snapshot from the ESP32-CAM
+#      (sends TOKEN in the "X-Token" header so only we can fetch it).
+#   2. Runs YOLOv8-nano on the frame and counts only "person" detections.
+#   3. Keeps the last CONFIRM counts; the headcount is only "confirmed"
+#      (and printed as [CONFIRMED]) when all of them agree and differ from
+#      the previous confirmed value. This filters out one-off misdetections.
+#   4. If DEBUG is on, shows the frame with boxes drawn in a window
+#      (press "q" to quit). Frames are never saved to disk.
+#   5. Camera/Wi-Fi errors are printed and the loop just tries again.
+
 import time
 from collections import deque
 

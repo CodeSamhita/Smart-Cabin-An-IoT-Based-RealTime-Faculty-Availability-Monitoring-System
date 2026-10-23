@@ -2,7 +2,7 @@
 #
 # It announces this laptop on the Wi-Fi with mDNS as "_smartcabin._tcp", so pi_sender.py on the Pi
 # finds it by itself - no IP addresses to type. Each Pi sends its status every few seconds.
-# Everything received is shown on a web page and saved to data/pi_status.json.
+# Everything received is shown on a web page and saved to pi_status.json (in this folder).
 #
 # Run:  python pi_receiver.py      then open http://localhost:8500
 # The first time, Windows may ask to allow Python on the network: allow it on Private networks.
@@ -21,7 +21,7 @@ PORT = 8500
 TOKEN = "smartcabin-2026"                          # must be the same in pi_sender.py on the Pi
 SERVICE_TYPE = "_smartcabin._tcp.local."           # the mDNS name the Pi looks for
 OFFLINE_SECONDS = 15                               # a Pi is "offline" if nothing came for this long
-SAVE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "pi_status.json")
+SAVE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pi_status.json")
 # --------------------------------------------------------
 
 
@@ -283,7 +283,7 @@ def main():
     server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     zc, info = start_mdns()
     threading.Thread(target=watch_offline, daemon=True).start()
-    print("Page: http://localhost:" + str(PORT) + "   Data saved to data/pi_status.json")
+    print("Page: http://localhost:" + str(PORT) + "   Data saved to pi_status.json")
     print("Waiting for the Pi... Press Ctrl+C to stop.")
     try:
         server.serve_forever()

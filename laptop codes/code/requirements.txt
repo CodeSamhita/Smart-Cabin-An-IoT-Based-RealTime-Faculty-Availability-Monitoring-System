@@ -1,0 +1,6 @@
+# Libraries for Smart Cabin (laptop only)
+# The web demo (main.py) needs none of these. They are for the webcam headcount part.
+
+opencv-python     # read webcam images
+numpy             # image data as arrays
+ultralytics       # YOLOv8 person detector

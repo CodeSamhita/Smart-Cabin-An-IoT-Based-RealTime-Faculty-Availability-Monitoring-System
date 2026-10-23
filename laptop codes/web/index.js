@@ -1,21 +1,36 @@
 // Smart Cabin - home page: a grid of cards, one per person, with keyword search.
 
-// What is chosen with the quick select buttons ("" means all)
+// What is chosen, in order: school -> department -> faculty
+// "" means not picked yet. No cards are shown until a school and department are picked.
 var selectedSchool = "";
+var selectedDepartment = "";
+var selectedFaculty = "";   // a person id, or "" for everyone in the department
 var selectedRole = "";
 
 var ROLES = [["", "Everyone"], ["Dean", "Deans"], ["HOD", "HODs"], ["Faculty", "Faculty"]];
+
+function departmentsOf(school) {
+  // Each department in the school once
+  var departments = [];
+  var list = getPeople();
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].school === school && departments.indexOf(list[i].department) === -1) {
+      departments.push(list[i].department);
+    }
+  }
+  return departments;
+}
 
 function showButtons() {
   // Role buttons
   makeButtons("role-buttons", ROLES, selectedRole, function (value) {
     selectedRole = value;
-    showButtons();
-    showCards();
+    selectedFaculty = "";
+    showPage();
   });
 
-  // School buttons: "All schools" plus each school once
-  var schools = [["", "All schools"]];
+  // School buttons: each school once
+  var schools = [];
   var seen = [];
   var list = getPeople();
   for (var i = 0; i < list.length; i++) {
@@ -26,9 +41,61 @@ function showButtons() {
   }
   makeButtons("school-buttons", schools, selectedSchool, function (value) {
     selectedSchool = value;
-    showButtons();
-    showCards();
+    selectedDepartment = "";
+    selectedFaculty = "";
+    showPage();
   });
+
+  showDepartmentButtons();
+  showFacultyList();
+}
+
+function showDepartmentButtons() {
+  // Department buttons for the picked school
+  var departments = selectedSchool ? departmentsOf(selectedSchool) : [];
+
+  // A school with only one department (or none, like School of Law) needs no choice
+  if (departments.length === 1) {
+    selectedDepartment = departments[0];
+    departments = [];
+  }
+
+  var options = [];
+  for (var i = 0; i < departments.length; i++) {
+    options.push([departments[i], departments[i]]);
+  }
+  makeButtons("department-buttons", options, selectedDepartment, function (value) {
+    selectedDepartment = value;
+    selectedFaculty = "";
+    showPage();
+  });
+}
+
+function showFacultyList() {
+  // Drop-down of faculty names in the picked department
+  var select = document.getElementById("faculty-select");
+  select.innerHTML = "";
+  if (!selectedDepartment) {
+    select.style.display = "none";
+    return;
+  }
+  select.style.display = "";
+
+  select.appendChild(new Option("All faculty in this department", ""));
+  var list = getPeople();
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i];
+    if (p.school === selectedSchool && p.department === selectedDepartment &&
+        (!selectedRole || p.role === selectedRole)) {
+      select.appendChild(new Option(p.name + " - " + p.designation, p.id));
+    }
+  }
+  select.value = selectedFaculty;   // keep the choice when the page refreshes
+}
+
+function pickFaculty(id) {
+  selectedFaculty = id;
+  showCards();
 }
 
 function matchesSearch(person, status, words) {
@@ -76,6 +143,16 @@ function showCards() {
   var box = document.getElementById("cards");
   box.innerHTML = "";
 
+  // Stay empty until a school and a department are picked
+  if (!school) {
+    document.getElementById("result-count").textContent = "Pick a school above to see its faculty.";
+    return;
+  }
+  if (!selectedDepartment) {
+    document.getElementById("result-count").textContent = "Now pick a department.";
+    return;
+  }
+
   // Group the matching people by department
   var groups = {};
   var order = [];
@@ -85,7 +162,10 @@ function showCards() {
   for (var i = 0; i < list.length; i++) {
     var person = list[i];
     var status = getPersonStatus(person);
-    if (school && person.school !== school) {
+    if (person.school !== school || person.department !== selectedDepartment) {
+      continue;
+    }
+    if (selectedFaculty && String(person.id) !== selectedFaculty) {
       continue;
     }
     if (role && person.role !== role) {

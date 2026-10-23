@@ -1,0 +1,7 @@
+# Libraries for the ESP32-CAM headcount (runs on the laptop)
+# Install:  pip install -r requirements.txt
+
+requests          # get the JPEG snapshot from the ESP32-CAM over Wi-Fi
+opencv-python     # turn the JPEG into an image and show the window
+numpy             # image data as arrays
+ultralytics       # YOLOv8 person detector

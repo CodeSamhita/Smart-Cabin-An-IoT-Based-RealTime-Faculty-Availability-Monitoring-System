@@ -1,0 +1,63 @@
+{
+ "source": "Copied from the console output of pi_benchmark.py (full run) pasted on 2026-10-22. Medians, means and p95 are exactly as printed. The Pi saved the original as /home/pi/benchmarks/benchmark_pi_20261022_1441.json.",
+ "system": {
+  "model": "Raspberry Pi 4 Model B Rev 1.5",
+  "hostname": "pi",
+  "cores": 4,
+  "python": "3.13.5",
+  "opencv": "4.10.0",
+  "numpy": "2.2.4",
+  "ram_available_mb": 3297.8,
+  "temperature_c": 42.4,
+  "throttled": "0x0",
+  "time": "2026-10-22 14:39:36",
+  "app_file": "smartcabin_pi2.py"
+ },
+ "cpu_storage": {
+  "python_loop_1M": {"mean_ms": 200.6, "median_ms": 200.6, "p95_ms": 200.6},
+  "numpy_matmul_256": {"mean_ms": 29.0, "median_ms": 28.8, "p95_ms": 30.1},
+  "sd_write_mb_per_s": 33.8
+ },
+ "camera": {
+  "capture_fps_640x480": 30.0,
+  "capture_fps_320x240": 30.0
+ },
+ "face": {
+  "model_load_s": 1.16,
+  "ram_for_models_mb": 49.6,
+  "640x480": {
+   "detect": {"mean_ms": 90.7, "median_ms": 90.7, "p95_ms": 91.2},
+   "embed_per_face": {"mean_ms": 66.1, "median_ms": 64.9, "p95_ms": 69.8},
+   "match_20_people": {"mean_ms": 0.5, "median_ms": 0.5, "p95_ms": 0.5},
+   "jpeg_encode": {"mean_ms": 3.9, "median_ms": 3.9, "p95_ms": 3.9},
+   "whole_frame_1_face": {"mean_ms": 167.3, "median_ms": 160.5, "p95_ms": 198.8},
+   "max_fps": 6.2
+  },
+  "320x240": {
+   "detect": {"mean_ms": 25.6, "median_ms": 25.4, "p95_ms": 26.4},
+   "embed_per_face": {"mean_ms": 68.8, "median_ms": 67.1, "p95_ms": 72.8},
+   "match_20_people": {"mean_ms": 0.5, "median_ms": 0.5, "p95_ms": 0.5},
+   "jpeg_encode": {"mean_ms": 1.0, "median_ms": 1.0, "p95_ms": 1.0},
+   "whole_frame_1_face": {"mean_ms": 94.5, "median_ms": 93.0, "p95_ms": 103.8},
+   "max_fps": 10.8
+  },
+  "process_ram_mb": 292.2,
+  "ram_available_mb": 3194.6
+ },
+ "sustained": {
+  "source": "camera + sample face",
+  "fps": 5.4,
+  "fps_every_10s": [5.3, 5.4, 5.4, 5.4, 5.4, 5.4],
+  "temp_every_10s_c": [56.0, 57.5, 58.9, 56.0, 58.9, 58.4],
+  "temp_start_c": 54.5,
+  "temp_max_c": 58.9,
+  "temp_end_c": 57.5,
+  "throttled_after": "0x0"
+ },
+ "network": {"skipped": "no laptop found"},
+ "update_delay": {
+  "recommended_fps": 3,
+  "pi_page_worst_s": 1.49,
+  "laptop_page_worst_s": 4.49
+ }
+}

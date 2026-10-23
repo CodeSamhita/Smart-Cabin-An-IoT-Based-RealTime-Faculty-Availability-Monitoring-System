@@ -10,6 +10,10 @@ Measured with `pi_benchmark.py`. It times the real project code (YuNet + SFace f
 
 Both Pis: trixie 64-bit, Python 3.13.5, OpenCV 4.10.0, numpy 2.2.4, Camera v2 (imx219).
 
+![Pi Zero 2 W vs Pi 4](benchmarks/board_comparison.png)
+
+The graph is made by `compare_benchmarks.py` from `benchmarks/benchmark_pi_zero2w_20261022_1423.json` and `benchmarks/benchmark_pi4_20261022_1441.json`.
+
 ## Summary
 
 | Measure | Pi Zero 2 W | Pi 4 | Pi 4 vs Zero | Laptop (reference) |
@@ -82,7 +86,7 @@ Median values are shown. The full numbers (mean, p95) are in the JSON files on e
 ## Still to measure
 
 - [ ] **Network test on both boards.** It was skipped twice because the laptop wasn't found in 8 s.
-  - Start `python code/pi_receiver.py` on the laptop first.
+  - Start `python pi_receiver.py` (in `pi board codes/`) on the laptop first.
   - If it's running and still not found, Windows Firewall may be blocking mDNS (UDP 5353) or port 8500. Allow Python on Private networks.
 - [ ] **Zero 2W, 10-minute sustained run:** to see where the temperature settles.
 - [ ] **Zero 2W without the desktop:** boot to the console, run again, and compare FPS and free RAM.

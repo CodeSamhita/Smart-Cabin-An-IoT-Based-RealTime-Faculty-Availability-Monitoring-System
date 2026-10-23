@@ -1,8 +1,0 @@
-# Libraries for Smart Cabin
-# The web demo (main.py) needs none of these. They are for the camera and headcount part.
-
-opencv-python     # read webcam images
-numpy             # image data as arrays
-requests          # talk to an ESP32-CAM over Wi-Fi (future hardware)
-ultralytics       # YOLOv8 person detector
-zeroconf          # mDNS: pi_receiver.py announces the laptop so the Pi finds it

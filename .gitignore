@@ -10,16 +10,16 @@ venv/
 # Model weights (downloaded automatically by ultralytics)
 *.pt
 
-# Face models downloaded by codes for raspberry pi/smartcabin_pi.py, and its saved faces
-codes for raspberry pi/models/
-codes for raspberry pi/known_faces_pi.json
-codes for raspberry pi/cards_pi.json
-codes for raspberry pi/phones_pi.json
-codes for raspberry pi/settings_pi.json
+# Face models downloaded by pi board codes/smartcabin_pi.py, and its saved faces
+pi board codes/models/
+pi board codes/known_faces_pi.json
+pi board codes/cards_pi.json
+pi board codes/phones_pi.json
+pi board codes/settings_pi.json
 
-# Live data received from the Pi by code/pi_receiver.py
-data/pi_status.json
-data/pi_status.json.tmp
+# Live data received from the Pi by pi board codes/pi_receiver.py
+pi board codes/pi_status.json
+pi board codes/pi_status.json.tmp
 
-# Temporary file written by code/webpage.py
-web/data.js.tmp
+# Temporary file written by laptop codes/code/webpage.py
+laptop codes/web/data.js.tmp

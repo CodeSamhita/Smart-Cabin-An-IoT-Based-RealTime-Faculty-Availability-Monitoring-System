@@ -15,6 +15,20 @@ Template for each entry:
 
 ---
 
+## 2026-10-23 – Faculty page: school → department → faculty
+
+**Done:** the faculty status page (`web/index.html`, `web/index.js`) now starts empty instead of loading all 839 faculty. You pick a school, then a department, then optionally one name from a drop-down. Schools with only one department skip the department step. The "All schools" button was removed. Added `web/README.md` explaining how Python feeds the page and how the selection works. Added a header comment to the ESP32-CAM headcount script (`ESP32 code/Headcount ESP32-CAM.py`, earlier `code/import time.py`).
+**Tried / tested:** in the browser through a local test server: School of Engineering shows 10 department buttons; Civil Engineering shows 14 cards and 14 names; one name shows 1 card; School of Law skips the department step.
+**Also done – folders split by hardware:**
+- `laptop codes/`: needs only the laptop. `code/`, `web/`, `data/`, `yolov8n.pt` and `face recoginition/` moved in. The layout inside is unchanged, so `config.py` paths still work.
+- `pi board codes/` (was `codes for raspberry pi/`): everything that uses a Pi. `pi_receiver.py` moved here from `code/` and now saves `pi_status.json` in this folder.
+- `esp32 codes/` (was `ESP32 code/`): ESP32-CAM + laptop. Added its own `README.md` and `requirements.txt`. `requests` and `zeroconf` were removed from the laptop `requirements.txt`.
+- The two `known_faces.pkl` files were different, so the one from the repo root was kept as `laptop codes/face recoginition/known_faces_from_repo_root.pkl`.
+- Checked: dashboard modules load 839 people and write `web/data.js` from the new place; moved scripts compile.
+**Next:** commit the change. Older entries below still use the old folder names.
+
+---
+
 ## 2026-10-21 – Demo web UI with real university data, research papers, Pi face recognition
 
 ### Summary of the day
@@ -210,6 +224,26 @@ Template for each entry:
 
 ---
 
+## 2026-10-22 – Laptop webcam head count
+
+**Done:**
+- New `code/camera.py` (open webcam, read a picture, close) and `code/headcount.py` (YOLOv8n counts "person" boxes). Run with `python headcount.py`.
+- Settings added to `code/config.py`: camera index, model file (`yolov8n.pt` in the project folder), confidence 0.4, 1 count per second, 3 matching readings before a count is accepted, show window on/off.
+- Same idea as Iteration 0 (`import time.py`), but it uses the laptop webcam instead of the ESP32-CAM and is split into small modules.
+
+**Tried / tested:**
+- Installing `ultralytics` on the default Python 3.15 failed. There is no ready-made numpy for 3.15 that ultralytics accepts, so pip tried to build numpy from source, and that needs a C compiler.
+- Installed it on Python 3.12 instead (`py -3.12 -m pip install ultralytics ...`), and that worked (ultralytics 8.4.183).
+- Sample photo `bus.jpg`: counted 3 people. The photo has 4, but one is cut off at the edge and scores below the 0.4 cutoff.
+- Steady filter with the readings 1,2,2,2,3,2: it accepted 2 after three matching readings and ignored the single 3.
+- Laptop webcam (640x480), 10 pictures: seen 1,2,2,2,2,2,2,2,1,1, steady count 2. About 60 ms per picture on the CPU (the first one takes 3.5 s while the model loads).
+
+**What worked:** webcam + YOLOv8n + steady filter, fast enough on the laptop CPU.
+**What didn't / why:** Python 3.15 is too new for ultralytics / PyTorch. Run the code with `py -3.12`.
+**Next:** test with 0 to 3 people in the cabin and note the real vs counted numbers (accuracy for Review 1). Then feed the steady count into `main.py` and the dashboard.
+
+---
+
 ## 2026-10-22 – Pi system information script
 
 **Done:**
@@ -279,6 +313,12 @@ Template for each entry:
   - Pi 4 vs Zero: about 2.2× faster per frame, 2.8× sustained. The laptop is about 10× faster than the Pi 4.
   - 320x240 helps the Pi 4 much more (detection is a bigger share there).
   - **The current default `FPS = 6` is above the Pi 4's sustained 5.4**, so the loop never rests. Use 3 (max about 4).
+  - **Comparison graph:**
+    - New `codes for raspberry pi/compare_benchmarks.py` (laptop, installs matplotlib). It reads two `benchmarks/*.json`, prints a table with "x better", and saves `benchmarks/board_comparison.png`.
+    - The graph has 6 panels, each with one unit: step times, whole frame at both sizes, FPS, temperature over 60 s with an 80 °C line, update delay, and "x faster".
+    - Colours: palette blue / orange, plus stripes on the second board for print. The palette checker couldn't run (no Node on the laptop); the two colours are the palette's documented defaults.
+    - Both runs were copied from the pasted outputs into `benchmarks/benchmark_pi_zero2w_20261022_1423.json` and `benchmark_pi4_20261022_1441.json`, in the same format `pi_benchmark.py` saves.
+    - Checked the graph visually and fixed crowded FPS labels. The graph is embedded in `benchmark_results.md`.
   - Network test skipped again on the Pi 4: the laptop receiver wasn't found (receiver not running, or the firewall blocking mDNS / port 8500).
 - **Problem found: both boards have hostname `pi`**, so both are `pi.local`, and `pi_sender.py` would merge both into one card on the laptop. Fix: give them different hostnames (e.g. `cabin-pi4`, `cabin-zero`).
 

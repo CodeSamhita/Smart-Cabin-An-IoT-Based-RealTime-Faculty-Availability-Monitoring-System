@@ -22,8 +22,19 @@
 As of 21 October 2026, the project has three working parts. The full design below stays as the long-term plan.
 
 1. **Web dashboard (laptop):** shows the status of all 839 Presidency University faculty. It uses **demo statuses** for now, because it is not yet connected to a camera.
-2. **Face recognition on the laptop** (`face recoginition/`): webcam, MTCNN + FaceNet (PyTorch). Register, recognise and delete people.
-3. **Face recognition on the Raspberry Pi Zero 2W** (`codes for raspberry pi/`): one self-installing file with OpenCV YuNet + SFace (light enough for 512 MB RAM) and its own web page. **Not yet run on the real Pi.**
+2. **Face recognition on the laptop** (`laptop codes/face recoginition/`): webcam, MTCNN + FaceNet (PyTorch). Register, recognise and delete people.
+3. **Face recognition on the Raspberry Pi Zero 2W** (`pi board codes/`): one self-installing file with OpenCV YuNet + SFace (light enough for 512 MB RAM) and its own web page. **Not yet run on the real Pi.**
+
+### Folder layout
+
+The code is split by which hardware it needs:
+
+| Folder | What is in it |
+|---|---|
+| `laptop codes/` | Needs **only the laptop**: web dashboard (`code/`, `web/`, `data/`), webcam headcount (`code/headcount.py`, `code/camera.py`, `yolov8n.pt`), laptop face recognition (`face recoginition/`) |
+| `pi board codes/` | Needs a **Raspberry Pi** (with or without the laptop): code that runs on the Pi, plus the laptop side of the Pi link (`pi_receiver.py`, `compare_benchmarks.py`) |
+| `esp32 codes/` | Needs an **ESP32-CAM** and the laptop: `Headcount ESP32-CAM.py` runs on the laptop and asks the ESP32-CAM for snapshots |
+| `Documents/`, `research/` | Review slides, reference papers, paper summaries |
 
 No ESP32 is used for now. The final standalone device is decided after Review 1. Code is kept simple: small files of plain functions plus one main file.
 
@@ -38,16 +49,18 @@ No ESP32 is used for now. The final standalone device is decided after Review 1.
 Needs Python 3 only (standard library, nothing to install).
 
 ```
-cd code
+cd "laptop codes/code"
 python main.py
 ```
 
 For the camera and headcount part (not needed for the web demo), install the libraries once:
 
 ```
-cd code
+cd "laptop codes/code"
 python install_requirements.py
 ```
+
+All the paths in the two tables below are inside `laptop codes/`.
 
 `python main.py` reads the people and timetables from `data/`, writes `web/data.js` and opens `web/index.html` in your browser. Every 10 seconds 5 random people's statuses change (demo data). Press Ctrl+C to stop. You can also double-click `web/index.html` to open it without Python.
 
@@ -68,7 +81,7 @@ The system supports many HODs and faculty across departments. To add or change p
 
 | Web page | What it shows |
 |---|---|
-| `web/index.html` | Home: grid of cards grouped by department, with keyword search (e.g. "physics available", "gopal") and quick select buttons for Role (Everyone / Deans / HODs / Faculty) and School |
+| `web/index.html` | Home: starts empty. Pick a school, then a department, then (optionally) one name from a list to see the faculty cards. Keyword search and Role buttons (Everyone / Deans / HODs / Faculty) filter within the chosen department. Step-by-step explanation in [web/README.md](laptop%20codes/web/README.md) |
 | `web/programs.html` | All programmes grouped by degree (B.Tech, M.Tech, MBA, ...), with quick select buttons for level (Bachelor's / Master's / Ph.D / Diploma) and degree, plus search |
 | `web/person.html?id=f001` | One person: big status, reason, expected return, today's timetable, how we know |
 | `web/staff.html` | Staff login (pick your name, demo password `staff123`, not secure): set my status, edit my timetable, my history |
@@ -81,9 +94,9 @@ Every page has the same header, which stays at the top while scrolling, with lin
 
 | File | What it does |
 |---|---|
-| `face recoginition/face_app.py` | Laptop webcam face recognition: detect (MTCNN) → embed (FaceNet, 512 numbers) → match (cosine similarity). Keys: R register, D delete, Q quit. Faces saved in `known_faces.pkl` |
-| `face recoginition/system_check.py` | Read-only check of Python, libraries and versions before running `face_app.py` |
-| `codes for raspberry pi/smartcabin_pi.py` | Raspberry Pi version in **one file** (paste it into `nano` over SSH). Detect (YuNet) → embed (SFace, 128 numbers) → match. Installs missing libraries and downloads the models on first run. Web page on port 8000 with live video, who is "In cabin" (seen in the last 15 s), Register and Delete, plus `/status.json` |
+| `laptop codes/face recoginition/face_app.py` | Laptop webcam face recognition: detect (MTCNN) → embed (FaceNet, 512 numbers) → match (cosine similarity). Keys: R register, D delete, Q quit. Faces saved in `known_faces.pkl` |
+| `laptop codes/face recoginition/system_check.py` | Read-only check of Python, libraries and versions before running `face_app.py` |
+| `pi board codes/smartcabin_pi.py` | Raspberry Pi version in **one file** (paste it into `nano` over SSH). Detect (YuNet) → embed (SFace, 128 numbers) → match. Installs missing libraries and downloads the models on first run. Web page on port 8000 with live video, who is "In cabin" (seen in the last 15 s), Register and Delete, plus `/status.json` |
 
 Run on the Pi:
 
