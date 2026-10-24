@@ -272,6 +272,21 @@ sequenceDiagram
   - [ ] on the real Pi: hardware serial read, broadcast heard over the hotspot *(needs the Pi)*
 - **Simplification found in testing:** approving only links the cabin and removes the waiting entry. The Pi's key is made on its next hello (the same path as a linked or reset Pi), so no key ever waits in the list.
 
+### Step 10 – data science part: presentation first (requested 25 Oct 2026)
+- **What:** an animated deck, `docs/presentation/Smart_Cabin_data_science.pptx`, made by `make_ds_presentation.py` (same style and slide helpers as the "vs existing work" deck). Slides:
+  - the data the system already logs
+  - the pipeline: log → features → models → results
+  - six data-science parts at a glance
+  - three core parts in detail: **return-time prediction** (regression + survival analysis), **probabilistic status engine** (Bayesian / HMM vs rules), **sensor ablation**
+  - three extras: best time to visit, data-driven tuning, anomaly detection
+  - the data plan: snapshot logging, ground truth, synthetic data
+  - metrics
+  - timeline to Review 2
+- **Honesty:** no results exist yet. Example visuals are labelled *illustration, not real data*, and every number shown is either a target or already measured.
+- **Why:** the M.Tech Data Science contribution, for Review 1 / Review 2 and the paper.
+- **Later (separate steps, after approval):** the `evidence_log` snapshot table, the synthetic data generator, the models and an evaluation notebook.
+- **Check:** [ ] deck builds [ ] file validation passes [ ] opens in PowerPoint with animations [ ] no made-up results
+
 ## 7. Not in this build (later)
 
 - Many faculty in one cabin, HOD / department views, notifications.
