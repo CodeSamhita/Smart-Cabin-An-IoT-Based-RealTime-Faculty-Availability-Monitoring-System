@@ -4,6 +4,8 @@
 
 **File:** `Smart_Cabin_vs_existing_work.pptx` (13 slides, 16:9, animated). Re-build it with `python make_presentation.py`.
 
+**Second deck:** `Smart_Cabin_data_science.pptx` (11 slides, animated): the data-science part (return-time prediction, probabilistic status, ablation, heatmap, data plan, metrics, timeline). Re-build it with `python make_ds_presentation.py`. Charts in it are labelled illustrations; no results are claimed until the data is collected.
+
 | Slide | Content | Animation (on click) |
 |---|---|---|
 | 1 | Title + the three status colours | title, then the colours |

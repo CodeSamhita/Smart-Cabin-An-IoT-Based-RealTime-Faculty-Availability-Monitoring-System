@@ -15,6 +15,14 @@ Template for each entry:
 
 ---
 
+## 2026-10-25 – v1 archived, ESP32 dropped
+
+**Done:**
+- `pi board codes/smart cabin system/archive/v1/` holds a frozen copy of the laptop server and the Pi app (Steps 0–10, with automatic pairing). The working folders `laptop/` and `pi zero 2w/` were removed (sent to the Recycle Bin).
+- **ESP32 idea dropped.** The Raspberry Pi does everything the ESP32 boards were planned for, and it can run face recognition on the device. `esp32 codes/` was moved to `Documents/Archive - ESP32 (dropped)/`, kept only for the documentation and the report.
+
+---
+
 ## 2026-10-24 – The real product: `pi board codes/smart cabin system/`
 
 **Done:**

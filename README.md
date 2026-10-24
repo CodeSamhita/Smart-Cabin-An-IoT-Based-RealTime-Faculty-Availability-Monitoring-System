@@ -39,10 +39,9 @@ The code is split by which hardware it needs:
 |---|---|
 | `laptop codes/` | Needs **only the laptop**: web dashboard (`code/`, `web/`, `data/`), webcam headcount (`code/headcount.py`, `code/camera.py`, `yolov8n.pt`), laptop face recognition (`face recoginition/`) |
 | `pi board codes/` | Needs a **Raspberry Pi** (with or without the laptop): code that runs on the Pi, plus the laptop side of the Pi link (`pi_receiver.py`, `compare_benchmarks.py`) |
-| `esp32 codes/` | Needs an **ESP32-CAM** and the laptop: `Headcount ESP32-CAM.py` runs on the laptop and asks the ESP32-CAM for snapshots |
-| `Documents/`, `research/` | Review slides, reference papers, paper summaries |
+| `Documents/`, `research/` | Review slides, reference papers, paper summaries. `Documents/Archive - ESP32 (dropped)/` keeps the old ESP32-CAM code for the documentation only |
 
-No ESP32 is used for now. The final standalone device is decided after Review 1. Code is kept simple: small files of plain functions plus one main file.
+**The ESP32 idea was dropped on 25 Oct 2026.** The Raspberry Pi does the camera, RFID, Bluetooth and light work, and runs face recognition on the device. The ESP32 parts further down this README are kept as the history of the design. Code is kept simple: small files of plain functions plus one main file.
 
 | Review | Dates | What is expected |
 |---|---|---|

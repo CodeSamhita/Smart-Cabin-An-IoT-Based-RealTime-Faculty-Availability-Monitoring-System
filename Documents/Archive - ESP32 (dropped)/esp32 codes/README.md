@@ -1,6 +1,8 @@
-# ESP32 codes
+# ESP32 codes (archived, idea dropped 25 Oct 2026)
 
-Everything that needs an ESP32 board together with the laptop is in this folder.
+**Not used any more.** The project uses a Raspberry Pi in each cabin instead (see `pi board codes/smart cabin system/`). This folder is kept only for the documentation and the report: why the ESP32-CAM was tried and why it was dropped (it can't run face recognition, so pictures would have to leave the cabin).
+
+Everything that needed an ESP32 board together with the laptop was in this folder.
 
 | File | Runs on | What it does |
 |---|---|---|
@@ -10,7 +12,7 @@ Everything that needs an ESP32 board together with the laptop is in this folder.
 Run on the laptop:
 
 ```
-cd "esp32 codes"
+cd "Documents/Archive - ESP32 (dropped)/esp32 codes"
 pip install -r requirements.txt
 python "Headcount ESP32-CAM.py"
 ```

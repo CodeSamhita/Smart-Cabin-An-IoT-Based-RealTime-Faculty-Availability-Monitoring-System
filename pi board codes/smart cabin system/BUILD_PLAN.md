@@ -285,7 +285,7 @@ sequenceDiagram
 - **Honesty:** no results exist yet. Example visuals are labelled *illustration, not real data*, and every number shown is either a target or already measured.
 - **Why:** the M.Tech Data Science contribution, for Review 1 / Review 2 and the paper.
 - **Later (separate steps, after approval):** the `evidence_log` snapshot table, the synthetic data generator, the models and an evaluation notebook.
-- **Check:** [ ] deck builds [ ] file validation passes [ ] opens in PowerPoint with animations [ ] no made-up results
+- **Check:** [x] deck builds [x] file validation passes [x] opens in PowerPoint with animations [x] no made-up results (illustrations are labelled "not real data"; results slide shows targets only)
 
 ## 7. Not in this build (later)
 
@@ -331,3 +331,6 @@ sequenceDiagram
 - 25 Oct 2026 – documents requested:
   - `docs/device-pairing.md` explains this plan (who does what, the three links, sequence diagrams, fallbacks, security).
   - `docs/er-diagram.md` is the ER diagram of the whole database: every table, column, key and relationship, plus the Pi's own files.
+- 25 Oct 2026 – **v1 archived:** a frozen copy of `laptop/` and `pi zero 2w/` as they are now (Steps 0–10, with pairing) saved in `archive/v1/`. Work continues in the main folders. Not copied: `smart_cabin.db` (real accounts) and `__pycache__`.
+  - **Check:** [x] same file count as the main folders, minus the skipped files (laptop 31, Pi 18) [x] archived laptop code imports and Pi code compiles
+- 25 Oct 2026 – at the user's request the main `laptop/` and `pi zero 2w/` folders were removed (sent to the Windows Recycle Bin, so they can be restored; the code is also in git). `archive/v1/` is now the only copy of the code on disk. The old `smart_cabin.db` went to the Recycle Bin with them.
