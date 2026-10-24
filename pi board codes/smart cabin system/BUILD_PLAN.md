@@ -287,6 +287,30 @@ sequenceDiagram
 - **Later (separate steps, after approval):** the `evidence_log` snapshot table, the synthetic data generator, the models and an evaluation notebook.
 - **Check:** [x] deck builds [x] file validation passes [x] opens in PowerPoint with animations [x] no made-up results (illustrations are labelled "not real data"; results slide shows targets only)
 
+### Step 11 – presence confidence test (face × card × phone) (requested 25 Oct 2026)
+- **What:** a new hardware test, `pi board codes/hardware test code/10_presence_confidence.py`, with its own web page (port 8086). It reads three signals for one owner:
+  - **F, face:** the owner's face seen in the last 10 s (YuNet + SFace, faces from `known_faces.json` of test 8)
+  - **R, RFID:** the owner's card tapped in (tap = in, tap again = out; "Link my card" makes the next tap the owner's)
+  - **B, Bluetooth:** one of the owner's paired devices answered an l2ping in the last 60 s (devices from `bluetooth_devices.json` of test 9)
+- The three bits give 8 combinations, 000 to 111. Each has its own confidence (%), level (very low to very high) and meaning, from a table at the top of the file. The page highlights the current row.
+- `--sim` runs it on a laptop without hardware, with buttons to switch each signal.
+- **Why:** to see how sure the system can be from each mix of sensors before the rules in `presence.py` are fixed. It also feeds the sensor-ablation part of the data-science plan (Step 10).
+- **Outcome:** a single page that shows F R B, the confidence, and all 8 rows.
+- **Check:** [x] all 8 combinations show the right row in `--sim` [x] page works at phone width [ ] runs on the real Pi with camera, RC522 and phone
+- **Added 25 Oct 2026 (user: "no option to register a face or add a Bluetooth device"):** the page does all the setup itself, without tests 8 and 9:
+  - **Owner name** box
+  - **Register my face:** 10 photos of the one face in view, saved in `known_faces.json` under the owner's name. **Delete face** removes them.
+  - **Add a device:** the same 60 s pairing window as test 9 (open the Bluetooth screen on the phone, press **Pair**, or pick the Pi in the phone's list). It saves only the device's identity: not trusted, disconnected. Up to 5 devices, each with **Remove**. Saved in `bluetooth_devices.json`.
+  - In `--sim`, registering and pairing are simulated (kept in memory), so the page can be tried on a laptop.
+- **Check (added):** [x] register face works in `--sim` [x] add / remove device works in `--sim` (14 / 14 checks) [ ] register face on the real Pi [ ] pair a phone on the real Pi
+- **Added 25 Oct 2026 (user: "connect once, check, then disconnect; never act as an input or output device"):**
+  - **Each check** = open a link with `l2ping` (one echo, no service), then `bluetoothctl disconnect` straight away. The Pi stays connected for about a second at most.
+  - **Guard thread** (every 3 s, except during the 60 s pairing window): any device connected to the Pi that isn't being checked right now is disconnected and untrusted. This catches a phone that tries to use the Pi as a speaker, headset, keyboard or for file transfer. The page shows "Connected now" and how many connections were dropped.
+  - **On start**, every saved device is untrusted, so BlueZ asks for permission before any service connects. No agent runs outside the pairing window, so that permission is always refused.
+  - **Why:** the phone must only be *detected*, never used, and must never send audio or input to the Pi.
+- **Also in test 9** (`9_bluetooth_presence.py`, user said yes 25 Oct 2026): the same check-then-disconnect, start-up untrust and guard thread.
+- **Check (added):** [x] guard and check code paths tested with a fake `bluetoothctl` (8 / 8) [x] same for test 9 (8 / 8, page loads without errors) [ ] on the real Pi: after a check, `bluetoothctl info` says "Connected: no" [ ] on the real Pi: a phone that tries to play audio to the Pi is dropped
+
 ## 7. Not in this build (later)
 
 - Many faculty in one cabin, HOD / department views, notifications.
@@ -333,4 +357,5 @@ sequenceDiagram
   - `docs/er-diagram.md` is the ER diagram of the whole database: every table, column, key and relationship, plus the Pi's own files.
 - 25 Oct 2026 – **v1 archived:** a frozen copy of `laptop/` and `pi zero 2w/` as they are now (Steps 0–10, with pairing) saved in `archive/v1/`. Work continues in the main folders. Not copied: `smart_cabin.db` (real accounts) and `__pycache__`.
   - **Check:** [x] same file count as the main folders, minus the skipped files (laptop 31, Pi 18) [x] archived laptop code imports and Pi code compiles
+- 25 Oct 2026 – Step 11 added: presence confidence test (face × RFID × Bluetooth, 8 combinations, each with its own confidence).
 - 25 Oct 2026 – at the user's request the main `laptop/` and `pi zero 2w/` folders were removed (sent to the Windows Recycle Bin, so they can be restored; the code is also in git). `archive/v1/` is now the only copy of the code on disk. The old `smart_cabin.db` went to the Recycle Bin with them.

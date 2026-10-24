@@ -11,6 +11,12 @@
 # To check, the Pi sends an l2ping (a tiny "are you there?" at the Bluetooth link level, no service used).
 # It works while the device's Bluetooth is on, even with the screen locked.
 #
+# Only detected, never used as an input or output device:
+#   - each check connects once (l2ping) and disconnects straight after
+#   - a guard drops (and untrusts) any other connection to the Pi every GUARD_SECONDS, so a device can't
+#     use the Pi as a speaker, headset, keyboard or for file transfer
+#   - saved devices are untrusted at start, and no agent runs outside pairing, so every service is refused
+#
 # Adding a device, two ways (both in the same 60 s window):
 #   a) Pi asks: on the device open the Bluetooth settings screen (that makes it visible), then press
 #      "Pair" next to it in the list on the page, and accept on the device. Works for iPhones too.
@@ -37,6 +43,7 @@ MAX_DEVICES = 5               # per user
 PAIR_SECONDS = 60             # how long the Pi is visible and pairable
 CHECK_SECONDS = 15            # time between presence rounds
 NEAR_SECONDS = 60             # a user is "near" if one of their devices answered within this time
+GUARD_SECONDS = 3             # how often other connections to the Pi are looked for and dropped
 
 FOLDER = os.path.dirname(os.path.abspath(__file__))
 DEVICES_FILE = os.path.join(FOLDER, "bluetooth_devices.json")
@@ -44,7 +51,8 @@ MAC = re.compile(r"^([0-9A-F]{2}:){5}[0-9A-F]{2}$")
 
 lock = threading.Lock()
 state = {"message": "starting...", "adapter": "?",
-         "pairing_user": None, "pairing_until": 0, "nearby": []}   # nearby = devices found while pairing
+         "pairing_user": None, "pairing_until": 0, "nearby": [],   # nearby = devices found while pairing
+         "checking": "", "connected": [], "dropped": 0, "last_drop": ""}
 last_seen = {}                # address -> time it last answered
 
 
@@ -179,8 +187,45 @@ def pair_from_pi(user, address, name):
 
 
 def is_near(address):
-    # l2ping: a tiny "are you there?" over the Bluetooth link. No service, no data.
-    return "bytes from" in run_command(["l2ping", "-c", "1", "-t", "3", address], 8)
+    # Connect once, check, disconnect: l2ping opens a link and sends one "are you there?" (no service,
+    # no data), then the link is closed straight away instead of waiting for it to time out.
+    with lock:
+        state["checking"] = address               # the guard leaves this one link alone
+    try:
+        return "bytes from" in run_command(["l2ping", "-c", "1", "-t", "3", address], 8)
+    finally:
+        run_command(["bluetoothctl", "disconnect", address])
+        with lock:
+            state["checking"] = ""
+
+
+def connected_now():
+    # [(address, name)] connected to the Pi right now (checked one by one, so an older bluetoothctl
+    # that ignores the "Connected" filter can't cause wrong answers)
+    return [(a, n) for a, n in known_devices("Connected")
+            if "Connected: yes" in run_command(["bluetoothctl", "info", a])]
+
+
+def guard_loop():
+    # The Pi must never be used as an input or output device: drop every connection except a check
+    while True:
+        time.sleep(GUARD_SECONDS)
+        with lock:
+            pairing = state["pairing_user"] is not None
+            checking = state["checking"]
+        if pairing:                                   # pairing needs its connection for a few seconds
+            continue
+        found = connected_now()
+        for address, name in found:
+            if address == checking:
+                continue
+            run_command(["bluetoothctl", "untrust", address])
+            run_command(["bluetoothctl", "disconnect", address])
+            with lock:
+                state["dropped"] += 1
+                state["last_drop"] = name + " at " + time.strftime("%H:%M:%S")
+        with lock:
+            state["connected"] = [n for a, n in found if a == checking]
 
 
 def presence_loop():
@@ -231,6 +276,7 @@ PAGE = """<!doctype html>
 <body>
 <h1>Bluetooth Presence</h1>
 <p class="top" id="top"></p>
+<p class="small" id="guard" style="margin:-8px 0 14px"></p>
 <div id="pairing"></div>
 <p><input type="text" id="new-user" placeholder="New user, e.g. Dr. Rao"> <button onclick="addUser()">Add user</button></p>
 <div class="grid" id="users"></div>
@@ -262,6 +308,10 @@ async function refresh() {
 
   document.getElementById("top").textContent = "Pi name: " + s.pi_name + " | Bluetooth: " + s.adapter +
     " | checks every " + s.check_seconds + " s | " + s.message;
+  const g = s.guard;
+  document.getElementById("guard").textContent = "Only detected, never used: the Pi connects for each check " +
+    "(about 1 s) and disconnects. Connected now: " + (g.connected.length ? g.connected.join(", ") + " (checking)" : "none") +
+    ". Other connections dropped: " + g.dropped + (g.last_drop ? " (last: " + g.last_drop + ")" : "") + ".";
 
   const p = s.pairing;
   document.getElementById("pairing").innerHTML = !p.user ? "" :
@@ -310,7 +360,9 @@ def status():
             user_list.append({"user": user, "devices": shown, "near": any(d["near"] for d in shown)})
         pairing = {"user": state["pairing_user"], "seconds_left": max(0, round(state["pairing_until"] - now)),
                    "nearby": state["nearby"]}
+        guard = {"connected": state["connected"], "dropped": state["dropped"], "last_drop": state["last_drop"]}
         return {"users": user_list, "pairing": pairing, "message": state["message"], "adapter": state["adapter"],
+                "guard": guard,
                 "pi_name": socket.gethostname(), "max_devices": MAX_DEVICES, "check_seconds": CHECK_SECONDS}
 
 
@@ -405,8 +457,13 @@ def main():
     run_command(["bluetoothctl", "power", "on"])
     run_command(["bluetoothctl", "discoverable", "off"])     # only visible during a pairing window
     run_command(["bluetoothctl", "pairable", "off"])
+    for devices in users.values():                          # untrusted = every service needs permission,
+        for d in devices:                                   # and with no agent running it is refused
+            run_command(["bluetoothctl", "untrust", d["address"]])
+            run_command(["bluetoothctl", "disconnect", d["address"]])
 
     threading.Thread(target=presence_loop, daemon=True).start()
+    threading.Thread(target=guard_loop, daemon=True).start()
 
     server = ThreadingHTTPServer(("", PORT), Handler)
     print("Bluetooth presence page:")

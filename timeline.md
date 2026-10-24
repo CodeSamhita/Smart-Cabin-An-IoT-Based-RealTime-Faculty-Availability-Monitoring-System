@@ -20,6 +20,10 @@ Template for each entry:
 **Done:**
 - `pi board codes/smart cabin system/archive/v1/` holds a frozen copy of the laptop server and the Pi app (Steps 0–10, with automatic pairing). The working folders `laptop/` and `pi zero 2w/` were removed (sent to the Recycle Bin).
 - **ESP32 idea dropped.** The Raspberry Pi does everything the ESP32 boards were planned for, and it can run face recognition on the device. `esp32 codes/` was moved to `Documents/Archive - ESP32 (dropped)/`, kept only for the documentation and the report.
+- New hardware test `10_presence_confidence.py` (port 8086): face × RFID × Bluetooth make 8 combinations (000–111), each with its own confidence (2 % to 99 %). Tested with `--sim` on the laptop: all 8 show the right row, and the page fits a phone. **Not yet run on the real Pi.**
+  - Then added on request: **Register my face** (10 photos) and **Add a device** (Bluetooth pairing, up to 5, with Remove) on the same page, so tests 8 and 9 aren't needed first. Simulation test: 14 / 14 checks passed (register, delete, pair, 5-device limit, remove, cancel).
+  - Bluetooth made detect-only: each check connects once (l2ping) and disconnects at once; a guard thread drops and untrusts any other connection every 3 s, so the Pi is never used as an input or output device. Tested with a fake `bluetoothctl`: 8 / 8. Still to check on the real Pi.
+  - The same detect-only rule added to `9_bluetooth_presence.py`: fake `bluetoothctl` test 8 / 8, and its page loads without errors.
 
 ---
 
