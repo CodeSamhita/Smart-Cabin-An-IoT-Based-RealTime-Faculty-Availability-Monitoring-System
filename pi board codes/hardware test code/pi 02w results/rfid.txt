@@ -1,0 +1,50 @@
+RC522 RFID reader test
+
+[1] SPI turned on?
+    PASS: /dev/spidev0.0 exists
+
+[2] Libraries installed?
+    PASS: spidev, RPi.GPIO, mfrc522
+
+[3] Reader answers? (reads the chip version)
+    PASS: chip version 0x92 = NXP MFRC522 v2.0
+
+[4] SPI write + read back (tests MOSI and MISO both ways)
+    PASS: 6 of 6 values came back the same
+
+[5] Stable connection? (reads the version 500 times)
+    PASS: 500 of 500 correct, 31792 reads/s
+
+[6] RST pin works? (GPIO25 -> RST)
+    PASS: reader reset when GPIO25 went low
+
+[7] Antenna on and RF gain
+    PASS: antenna on, receiver gain 33 dB
+
+[8] Chip self-test (built into the RC522)
+    First bytes: 00 EB 66 BA 57 BF 23 95 D0 E3 0D 3D 27 89 5C DE
+    PASS: 64 of 64 bytes match the datasheet
+
+[9] Card read - tap a card or key tag (waiting 30 s)
+    FAIL: no card seen. Hold it flat on the reader. The RC522 only reads 13.56 MHz cards, not 125 kHz ones
+
+========== Summary ==========
+  PASS  SPI
+  PASS  Libraries
+  PASS  Connection
+  PASS  Write / read
+  PASS  Stability
+  PASS  RST pin
+  PASS  Antenna
+  PASS  Self-test
+  FAIL  Card read
+
+Live mode: tap cards to see their UID. Ctrl+C to stop.
+    23:51:25  UID F3 CA E9 17
+    23:51:29  UID 4C FD EC 37
+    23:51:34  UID 88 04 11 38
+    23:51:36  UID 88 04 11 39
+    23:51:38  UID 88 04 11 3A
+    23:51:41  UID 88 04 11 3B
+^C
+Stopped.

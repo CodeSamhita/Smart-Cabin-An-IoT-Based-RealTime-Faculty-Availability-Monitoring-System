@@ -12,6 +12,7 @@ Everything that uses a Raspberry Pi is in this folder: the code that runs on the
 | `benchmarks/` | – | Benchmark JSON of both boards (copied from the pasted outputs) and the comparison graph |
 | `pi_system_info.py` | Pi | System report: model, OS, uptime, CPU use / speed / temperature, RAM, SD card, power (under-voltage), Wi-Fi signal, camera, SPI, I2C, Bluetooth, top processes. `--watch 5` refreshes, `--json` gives JSON. Standard library only |
 | `pi_benchmark.py` | Pi | Benchmark using the real project code: camera FPS, face steps (detect / embed / match / JPEG) at 640x480 and 320x240, model RAM, 60 s sustained FPS + temperature + throttling, send time to the laptop (mDNS), update-delay estimate, suggested FPS. Saves `benchmarks/*.json`. Needs `smartcabin_pi.py` and `pi_sender.py` in the same folder; stop `smartcabin_pi.py` first |
+| `test_hardware.py` | Pi | Hardware test web page on port 8080: live camera picture + brightness, NeoPixel colour / "Test all" / Off buttons, RC522 status (chip version) + list of tapped cards. Same pins as `smartcabin_pi.py`. `sudo python3 test_hardware.py`, then open the address it prints. Stop `smartcabin_pi.py` first |
 | `pi_receiver.py` | Laptop | Announces the laptop by mDNS, receives from one or more Pis, page on port 8500, saves `pi_status.json` |
 
 ## Sending data from the Pi to the laptop (mDNS)

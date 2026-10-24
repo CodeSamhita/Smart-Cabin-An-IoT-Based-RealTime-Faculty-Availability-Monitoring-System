@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page_title }} - {{ site_title }}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <!-- Top bar: the same on every page. What it shows depends on who is logged in. -->
+  <header class="site-header">
+    <div class="brand"><a href="/">{{ site_title }}</a><span>{{ site_subtitle }}</span></div>
+    <nav>
+      <a href="/" class="{{ 'active' if active == 'status' }}">Status</a>
+      {% if account and account.role == 'faculty' %}
+        <a href="/me" class="{{ 'active' if active == 'me' }}">My page</a>
+      {% endif %}
+      {% if account and account.role == 'admin' %}
+        <a href="/register" class="{{ 'active' if active == 'register' }}">Register</a>
+        <a href="/admin" class="{{ 'active' if active == 'admin' }}">Cabins</a>
+      {% endif %}
+      {% if account %}
+        <button id="bell" class="link bell" onclick="toggleBell()" title="People you asked to be notified about">
+          &#128276;<span class="count hidden"></span></button>
+        <button class="link" onclick="logout()">Log out</button>
+      {% else %}
+        <a href="/login" class="{{ 'active' if active == 'login' }}">Staff login</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  {% if account %}
+  <div id="bell-menu" class="bell-menu hidden">
+    <b>Notify me when available</b>
+    <div id="bell-list" class="small">...</div>
+  </div>
+  {% endif %}
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    &#128274; Status only. No pictures leave the cabin, and none are stored.<br>
+    {{ site_title }} - {{ site_subtitle }}
+  </footer>
+
+  <script src="/static/app.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

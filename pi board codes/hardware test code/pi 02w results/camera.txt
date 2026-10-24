@@ -1,0 +1,76 @@
+Pi Camera test
+
+[1] Library installed?
+    PASS: picamera2
+
+[2] Camera connected?
+    Camera 0 : ov5647 | place: 2 | id: /base/soc/i2c0mux/i2c@1/ov5647@36
+    PASS: 1 camera(s) found
+
+[3] Camera can be opened?
+ERROR is deprecated. Returning `import logging; logging.ERROR` instead
+    PASS: camera 0 opened
+
+[4] Camera type and sensor
+    Sensor      : ov5647 = Camera Module v1 (5 MP)
+    Max size    : 0 x 0 = 0.0 MP
+    Pixel size  : 1.4 x 1.4 um
+    Rotation    : 0 degrees
+    INFO: Camera Module v1 (5 MP), 0 x 0
+
+[5] Sensor modes (size and top speed the sensor can do)
+     640 x 480   10-bit  up to  62.5 fps   SGBRG10_CSI2P
+    1296 x 972   10-bit  up to  46.3 fps   SGBRG10_CSI2P
+    1920 x 1080  10-bit  up to  32.8 fps   SGBRG10_CSI2P
+    2592 x 1944  10-bit  up to  15.6 fps   SGBRG10_CSI2P
+    INFO: 4 modes
+
+[6] Settings the camera supports
+    ExposureTime         min 130  max 3066985  default 20000
+    AnalogueGain         min 1.0  max 63.9375  default 1.0
+    FrameDurationLimits  min 63965  max 3067365  default (33333, 33333)
+    Brightness           min -1.0  max 1.0  default 0.0
+    Contrast             min 0.0  max 32.0  default 1.0
+    Saturation           min 0.0  max 32.0  default 1.0
+    Sharpness            min 0.0  max 16.0  default 1.0
+    AwbEnable            min False  max True  default None
+    AeEnable             min False  max True  default True
+    Exposure range: 130 us to 3.1 s
+    Autofocus   : no (fixed focus)
+    INFO: 28 settings, autofocus no
+
+[7] Full-resolution photo
+    Size        : 2592 x 1944
+    Took        : 0.29 s, 0.84 MB
+    Exposure    : 31462 us, gain 4.0
+    Light       : 321 lux, colour temp 3905 K
+    Brightness  : 105 (0 - 255)
+    Saved       : /home/pi/hw/test_photo_full.jpg
+    PASS: 2592 x 1944 taken in 0.29 s
+
+[8] Real speed of each sensor mode (3 s each)
+     640 x 480  10-bit :  62.1 fps of  62.5 (99%)
+    1296 x 972  10-bit :  46.1 fps of  46.3 (100%)
+    1920 x 1080 10-bit :  32.6 fps of  32.8 (99%)
+    2592 x 1944 10-bit :  15.5 fps of  15.6 (99%)
+    INFO: see the list above (90% or more = fine)
+
+[9] H.264 video bitrate (hardware encoder)
+    Hardware encoder found (/dev/video11)
+    Video 1920 x 1080 at 30 fps, 4 s each
+     5 Mbps asked : got   4.8 Mbps
+    10 Mbps asked : got   9.6 Mbps
+    17 Mbps asked : got  16.2 Mbps
+    25 Mbps asked : got  24.0 Mbps
+    PASS: works up to 25 Mbps at 1920 x 1080 (a still scene needs less, so 'got' can be lower than asked)
+
+========== Summary ==========
+  PASS  Library
+  PASS  Connection
+  PASS  Open
+  INFO  Camera type
+  INFO  Sensor modes
+  INFO  Controls
+  PASS  Photo
+  INFO  Mode speeds
+  PASS  H.264

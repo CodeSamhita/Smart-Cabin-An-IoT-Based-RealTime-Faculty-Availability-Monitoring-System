@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1 class="page-title">Hello, {{ account.name }}</h1>
+  <p class="small">What students and colleagues see about you, and the buttons to correct it.</p>
+
+  <div class="tabs"></div>
+  <div class="panels">
+    <section class="panel" data-title="My status">
+      <h2>My status now</h2>
+      <div class="big-status">
+        <div id="icon" class="big-icon grey">?</div>
+        <div class="label" id="label">...</div>
+        <p id="reason"></p>
+        <p id="until" class="small"></p>
+        <p id="manual" class="tag hidden">Set by you</p>
+      </div>
+
+      <h3>Set it by hand (if the sensors got it wrong)</h3>
+      <div class="status-buttons">
+        <button class="b-green" data-mode="available">Available</button>
+        <button class="b-yellow" data-mode="meeting">In a meeting</button>
+        <button class="b-red" data-mode="away">Not available</button>
+        <button class="b-auto" data-mode="auto">Auto (sensors)</button>
+      </div>
+      <div class="form-row" style="margin-top: 8px;">
+        <div><label>If not available: why</label>
+          <select id="reason-select">{% for r in away_reasons %}<option>{{ r }}</option>{% endfor %}</select></div>
+        <div><label>For how long</label>
+          <select id="minutes">
+            <option value="30">30 minutes</option><option value="60" selected>1 hour</option>
+            <option value="120">2 hours</option><option value="240">4 hours</option>
+            <option value="720">Rest of the day</option>
+          </select></div>
+      </div>
+      <p class="small"><b>Available</b> ends by itself when you leave the cabin. <b>In a meeting</b> ends when your visitors
+        leave (the cabin counts 1 person again) or when you leave. Both end after 1 hour at most.
+        <b>Not available</b> ends after the time you pick, or when you tap your card in.</p>
+    </section>
+
+    <section class="panel" data-title="Timetable">
+      <h2>My timetable</h2>
+      <p class="small">Used to show where you are (e.g. "In class, J block, 4th floor, Room 3") and when you're back.</p>
+      <div id="today" class="small"></div>
+      <a href="/timetable"><button>Open the timetable editor</button></a>
+    </section>
+
+    <section class="panel" data-title="My devices">
+      <h2>My cabin and devices</h2>
+      <p id="cabin" class="small"></p>
+      <h3>RFID cards</h3><div id="cards" class="small"></div>
+      <h3>Phones / laptops (Bluetooth)</h3><div id="phones" class="small"></div>
+      <h3>Face</h3><p id="face" class="small"></p>
+      <p class="small">Cards, phones and your face are added on your <b>cabin device's page</b>
+        (log in there with this username and password). Removing them here also removes them from the device.</p>
+    </section>
+
+    <section class="panel" data-title="Account">
+      <h2>Change password</h2>
+      <label>Current password</label><input type="password" id="old">
+      <label>New password</label><input type="password" id="new1">
+      <label>New password again</label><input type="password" id="new2">
+      <button id="change">Change password</button>
+      <p id="pw-msg" class="small"></p>
+    </section>
+  </div>
+{% endblock %}
+{% block scripts %}<script>const MY_ID = {{ account.id }};</script><script src="/static/me.js"></script>{% endblock %}

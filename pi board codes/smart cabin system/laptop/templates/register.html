@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1 class="page-title">Register faculty</h1>
+  <p class="small">Each faculty member gets a username and password from you. With it they open their page,
+    fill in their timetable, and set up their cabin device (card, face, phone).</p>
+
+  <div class="tabs"></div>
+  <div class="panels">
+    <section class="panel" data-title="New / edit">
+      <h2 id="form-title">New faculty member</h2>
+      <label>Full name</label><input id="f-name" placeholder="Dr. A. Rao">
+      <div class="form-row">
+        <div><label>Position</label>
+          <select id="f-position">{% for p in positions %}<option>{{ p }}</option>{% endfor %}</select></div>
+        <div><label>Designation</label><input id="f-designation" placeholder="Assistant Professor"></div>
+      </div>
+      <label>School</label><input id="f-school" placeholder="School of Engineering" list="schools">
+      <label>Department</label><input id="f-department" placeholder="Computer Science and Engineering" list="departments">
+      <datalist id="schools"></datalist><datalist id="departments"></datalist>
+      <label>E-mail</label><input id="f-email" type="email" placeholder="name@presidencyuniversity.in">
+      <div class="form-row">
+        <div><label>Username</label><input id="f-username" autocapitalize="none" placeholder="arao"></div>
+        <div><label id="password-label">Password</label><input id="f-password" type="text" placeholder="at least 6 characters"></div>
+      </div>
+      <label class="hidden" id="active-row"><input type="checkbox" id="f-active" style="width:auto"> Account active (untick to block logins)</label>
+      <button id="save">Register</button>
+      <button class="plain hidden" id="cancel">Cancel edit</button>
+      <p id="form-error" class="error"></p>
+      <p class="small">Give the username and password to the faculty member. They can change the password on their page.</p>
+    </section>
+
+    <section class="panel" data-title="Faculty list">
+      <h2>Registered faculty (<span id="count">0</span>)</h2>
+      <p class="small">Starter list: the faculty of the <b>School of Artificial Intelligence and Advanced Computing</b>
+        (Dean: Dr. Shakkeera L), from the university website. Each gets a temporary password.</p>
+      <button class="plain" id="import">Import AI School list</button>
+      <p id="import-msg" class="small"></p>
+      <div class="search"><input type="search" id="find" placeholder="Find..."></div>
+      <div id="list" style="margin-top: 8px;"></div>
+    </section>
+  </div>
+{% endblock %}
+{% block scripts %}<script src="/static/register.js"></script>{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="box" style="max-width: 380px; margin: 24px auto;">
+    {% if first_run %}
+      <h1 class="page-title">Create the admin account</h1>
+      <p class="small">First start: there is no admin yet. This page works only once.
+        The admin registers the faculty and sets up the cabins.</p>
+      <label for="name">Your name</label><input id="name" autocomplete="name">
+    {% else %}
+      <h1 class="page-title">Staff login</h1>
+      <p class="small">For faculty, HODs, Deans and the admin. Your username and password come from the admin.</p>
+    {% endif %}
+    <label for="username">Username</label><input id="username" autocomplete="username" autocapitalize="none">
+    <label for="password">Password</label><input id="password" type="password" autocomplete="current-password">
+    <button id="go" style="width: 100%; margin-top: 14px;">{{ 'Create admin' if first_run else 'Log in' }}</button>
+    <p id="error" class="error"></p>
+  </div>
+{% endblock %}
+{% block scripts %}
+<script>
+const FIRST_RUN = {{ 'true' if first_run else 'false' }};
+
+async function go() {
+  $("error").textContent = "";
+  const username = $("username").value, password = $("password").value;
+  try {
+    if (FIRST_RUN) {
+      await api("POST", "/api/setup", { username: username, password: password, name: $("name").value });
+    }
+    const me = await api("POST", "/api/login", { username: username, password: password });
+    const next = new URLSearchParams(location.search).get("next");
+    location.href = next && next.startsWith("/") ? next : (me.role === "admin" ? "/admin" : "/me");
+  } catch (e) {
+    $("error").textContent = e.message;
+  }
+}
+
+$("go").onclick = go;
+$("password").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+</script>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1 class="page-title">Cabins and devices</h1>
+
+  <div class="tabs"></div>
+  <div class="panels">
+    <section class="panel" data-title="Cabins">
+      <h2>Add a new device</h2>
+      <p class="small">Switch the Pi on (it runs <span class="mono">main.py</span>). It shows up here within a few seconds.
+        Check its PIN matches the one on the Pi's own page, pick the cabin, and press Connect. Nothing to type.</p>
+      <button id="find-devices">Add a new device</button>
+      <div id="device-list" class="hidden" style="margin-top: 8px;"></div>
+
+      <h2 style="margin-top: 18px;">Add a cabin</h2>
+      <div class="form-row">
+        <div><label>Cabin name</label><input id="c-name" placeholder="J block, 4th floor, Cabin 12"></div>
+        <div><label>Faculty member</label><select id="c-owner"></select></div>
+      </div>
+      <button id="add">Add cabin</button>
+      <p id="c-error" class="error"></p>
+
+      <h2 style="margin-top: 18px;">Cabins (<span id="count">0</span>)</h2>
+      <div id="cabins"></div>
+    </section>
+
+    <section class="panel" data-title="Connect a Pi">
+      <h2>Connect a cabin device</h2>
+      <ol class="small" style="padding-left: 18px; line-height: 1.6;">
+        <li>Put the Pi in the cabin, on the same Wi-Fi / hotspot as this laptop, and run
+          <span class="mono">sudo python3 main.py</span> on it.</li>
+        <li>On the <b>Cabins</b> tab press <b>Add a new device</b>. The Pi appears with a 4-digit PIN.</li>
+        <li>Check the PIN is the same as on the Pi's own page (<span class="mono">http://&lt;pi&gt;:8000</span>) or in its terminal,
+          pick the cabin and press <b>Connect</b>.</li>
+        <li>The faculty member then logs in on the Pi's page to link their card, register their face and pair their phone.</li>
+      </ol>
+      <p class="small"><b>If the Pi doesn't appear</b> (another network, or broadcasts blocked): press <b>New code</b> next to
+        the cabin and type that 6-digit code on the Pi's page, or run
+        <span class="mono">sudo python3 main.py --connect 123456</span> on the Pi.</p>
+      <p class="small">Connecting a new device to a cabin replaces its old one (the old token stops working).</p>
+    </section>
+
+    <section class="panel" data-title="Activity">
+      <h2>Recent activity</h2>
+      <p><a href="/api/admin/events.csv"><button class="plain">Download all as CSV</button></a></p>
+      <div id="events" class="small"></div>
+    </section>
+  </div>
+{% endblock %}
+{% block scripts %}<script src="/static/admin.js"></script>{% endblock %}

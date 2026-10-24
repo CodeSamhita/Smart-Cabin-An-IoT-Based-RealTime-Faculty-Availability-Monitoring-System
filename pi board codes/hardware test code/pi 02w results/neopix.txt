@@ -1,0 +1,61 @@
+NeoPixel LED test
+[1] Running with sudo?
+    PASS
+[2] Board supported?
+    Board: Raspberry Pi Zero 2 W Rev 1.0
+    PASS
+[3] Audio off? (it shares the PWM with GPIO18)
+    WARN: audio is on. If the colours look wrong, change it to dtparam=audio=off in
+          /boot/firmware/config.txt  (sudo nano /boot/firmware/config.txt)  and sudo reboot
+[4] LED library starts?
+    PASS: sending to GPIO18
+    Note: a WS2812 can't send anything back, so the only check from here on is your eyes.
+
+[5] Colour test: press Enter for the next colour, q + Enter to quit
+    1/8  RED     (255, 0, 0)  >
+    2/8  GREEN   (0, 255, 0)  >
+    3/8  BLUE    (0, 0, 255)  >
+    4/8  YELLOW  (255, 255, 0)  >
+    5/8  CYAN    (0, 255, 255)  >
+    6/8  MAGENTA (255, 0, 255)  >
+    7/8  WHITE   (255, 255, 255)  >
+    8/8  OFF     (0, 0, 0)  >
+    1/8  RED     (255, 0, 0)  >
+    2/8  GREEN   (0, 255, 0)  >
+    3/8  BLUE    (0, 0, 255)  >
+    4/8  YELLOW  (255, 255, 0)  >
+    5/8  CYAN    (0, 255, 255)  >
+    6/8  MAGENTA (255, 0, 255)  >
+    7/8  WHITE   (255, 255, 255)  >
+    8/8  OFF     (0, 0, 0)  >
+    1/8  RED     (255, 0, 0)  >
+    2/8  GREEN   (0, 255, 0)  >
+    3/8  BLUE    (0, 0, 255)  >
+    4/8  YELLOW  (255, 255, 0)  >
+    5/8  CYAN    (0, 255, 255)  >
+    6/8  MAGENTA (255, 0, 255)  >
+    7/8  WHITE   (255, 255, 255)  >
+    8/8  OFF     (0, 0, 0)  >
+    1/8  RED     (255, 0, 0)  >
+    2/8  GREEN   (0, 255, 0)  >
+    3/8  BLUE    (0, 0, 255)  >
+    4/8  YELLOW  (255, 255, 0)  >
+    5/8  CYAN    (0, 255, 255)  >
+    6/8  MAGENTA (255, 0, 255)  >
+    7/8  WHITE   (255, 255, 255)  >
+    8/8  OFF     (0, 0, 0)  >
+    1/8  RED     (255, 0, 0)  >
+    2/8  GREEN   (0, 255, 0)  >
+    3/8  BLUE    (0, 0, 255)  >
+    4/8  YELLOW  (255, 255, 0)  >
+    5/8  CYAN    (0, 255, 255)  >
+    6/8  MAGENTA (255, 0, 255)  >
+    7/8  WHITE   (255, 255, 255)  >
+    8/8  OFF     (0, 0, 0)  >
+    1/8  RED     (255, 0, 0)  >
+    2/8  GREEN   (0, 255, 0)  >
+    3/8  BLUE    (0, 0, 255)  >
+    4/8  YELLOW  (255, 255, 0)  >
+    5/8  CYAN    (0, 255, 255)  > q
+LED off. If it never lit: check DIN -> GPIO18 (pin 12), 5V, GND,
+and that the wire goes to the LED's DIN / IN side (not DOUT).

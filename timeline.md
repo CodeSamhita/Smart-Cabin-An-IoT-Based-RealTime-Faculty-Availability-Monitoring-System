@@ -15,6 +15,125 @@ Template for each entry:
 
 ---
 
+## 2026-10-24 – The real product: `pi board codes/smart cabin system/`
+
+**Done:**
+- **Plan first:** `BUILD_PLAN.md` covers what, why, the expected outcome and a check for every step. Each new request was written into it before building, and boxes are ticked only when verified.
+- **Laptop server** (`laptop/`, `python main.py`, installs FastAPI itself):
+  - SQLite database, hashed passwords, sessions, device tokens.
+  - Separate pages: public status (search + filters), person (more for logged-in staff + **Notify me when available**), login / first admin, **register** (admin; *Import AI School list*, Dean Dr. Shakkeera L), **admin** (cabins, 6-digit device codes, activity, CSV), **me** (status buttons, devices, password), **timetable** editor.
+  - Timetable editor: templates A / B with lunch as hour 5 or 4, 8 numbered hours, Mon–Sat grid, Block A–T / floor / room drop-downs, lab = 2 numbered hours, several timetables per person merged, with clash warnings.
+  - Status engine: buttons → silent (grey) → in (green / yellow) → away (red, where + back around), with a 10 s buffer. The "In a meeting" button ends when the headcount drops after being 2 or more.
+- **Pi app** (`pi zero 2w/`, `sudo python3 main.py`, installs everything, `--autostart`):
+  - Threads for the camera (people count + owner's face at 1296x972), RFID, Bluetooth, buttons, report and config.
+  - Presence rules: arrive after 2 face matches or a card tap (confirmed within 120 s); leave after 180 s with no face and no phone; the phone only keeps presence.
+  - Setup page on port 8000; offline fallback; simulation mode on a laptop.
+- **Docs:** README with diagrams, plus `docs/` (server, status rules, timetable, edge device, vision with grades, sensors with wiring, technology choices), 8 charts from `docs/charts/make_charts.py`, and the animated 13-slide `docs/presentation/Smart_Cabin_vs_existing_work.pptx` (9 papers: drawback → answer).
+**Tried / tested:**
+- Server: automatic test with **80 / 80 checks passing**.
+- Pi app in simulation against the real server: face register → green, 2 people → yellow, card logout → red, unknown card, pairing, offline fallback.
+- The deck opens in PowerPoint, with 2–17 animation effects per slide.
+**Found and fixed while testing:**
+- A silent device during lunch said "On a lunch break". It now shows grey, because breaks aren't "known".
+- A tea break inside a lab left a gap; the first lab hour now runs on to the second.
+- Sliding sections on a phone stopped halfway; fixed.
+**Not yet:** nothing has run on the real Pi hardware. Also not timed or tested yet: the 120 s / 180 s timers, code expiry, removing a device from `/me`, changing a password.
+**Next:** copy `pi zero 2w/` to the Pi, run it, and work through the hardware checks in BUILD_PLAN Step 6.
+
+---
+
+## 2026-10-24 – Video scripts and people counter (`pi board codes/hardware test code/`)
+
+**Done:**
+- The scripts are now numbered in the order they were made: `1_test_rfid.py`, `2_test_camera.py`, `3_test_neopixel.py`, `4_test_video_window.py`, `5_test_video_web.py`, `6_people_count_web.py`.
+- `4_test_video_window.py`: bare live video in an OpenCV window. Needs a screen: monitor, VNC or `ssh -X`.
+- `5_test_video_web.py`: live MJPEG video on a web page (port 8081) with resolution, fps, bitrate, flip and picture controls, and the real fps / Mbps.
+  - Preferred settings: 320x240, 640x480 and 1296x972, at 10–15 Mbps and 30–40 fps. Defaults are 640x480, 30 fps, 12 Mbps.
+- `6_people_count_web.py`: people counter on a web page (port 8082), with boxes, the count, ms per detection and fps.
+  - MobileNet-SSD and YOLOv8n can be switched on the page, so the two can be compared on the Pi.
+  - Same steady-count rule as the laptop's `headcount.py`: 3 readings in a row must agree.
+  - YOLOv8n needs `models/yolov8n.onnx`, exported once on the laptop (steps in the folder README).
+- `.gitignore`: the folder's `models/`, test photo and `.h264` files are ignored.
+**Tried / tested:** on the laptop with fake cameras, using OpenCV 4.10 as on the Pi.
+- `5_test_video_web.py`: video, stats, and resolution / flip changes work.
+- `6_people_count_web.py`, on a street test photo with 4 people:
+  - MobileNet-SSD found 2 (it missed the two only partly in the picture), at 22 ms per detection on the laptop.
+  - YOLOv8n (320) found 3, at 27 ms.
+  - The fallback when the YOLO file is missing works.
+- `yolov8n.onnx` (320, opset 12, 12 MB) was exported on the laptop with Python 3.12, because ultralytics can't install on Python 3.15. It is in `hardware test code/models/` (git-ignored), ready to `scp` to the Pi.
+- Found: OpenCV 5 (on the laptop's Python 3.15) has dropped Caffe models, so MobileNet-SSD needs OpenCV 4.x. The Pi has 4.10.
+**Also done – snapshot counter:**
+- `7_people_count_snapshot.py`: same detectors and page as 6, but no live video. It takes a picture, counts, shows it, waits 1 s (changeable on the page) and repeats. Port 8083.
+- Tested on the laptop with a fake camera and OpenCV 4.10: about 1 picture per second with a 1 s wait, the wait slider works, and the counts match 6 (MobileNet 2, YOLO 3).
+**Also done – photos / posters of people (in 7):**
+- Detection resolution: both models shrink the picture to 300 / 320 px, so 640x480 capture is enough. More pixels add nothing; raise YOLO's imgsz only if far-away people are missed. Picture interval: 1–2.5 s (default 1.5 s).
+- Stillness check (on/off): each box is compared with its picture from when it last moved. Under the movement threshold (default 4 / 255) for "still for" seconds (default 60) = "still", not counted. Catches posters and photos, not videos on a screen.
+- Ignore zones (on/off): drawn by dragging on the page, or made from the boxes seen in an empty room. Half a box inside a zone = "ignored". Saved in `ignore_zones.json` (git-ignored).
+- Tested on the laptop (static test photo): both people turned "still" after 5 s; "Ignore boxes seen now" made 2 zones and both turned "ignored"; drawing a zone by dragging and deleting it work.
+**Discussed and noted (in README 5.1 and Open):**
+- **Video of a person:** it is never still, so the stillness check can't catch it. A wall TV is covered by an ignore zone, but a phone or laptop held up is not. Idea for later: a "screen check" that ignores people inside a `tv` / `laptop` / `cell phone` box.
+- **PIR:** still rejected. It misses people sitting still and fires on sunlight, air and passers-by. It is only useful as a wake-up trigger.
+- **mmWave radar (HLK-LD2410, about ₹300–500):** the favoured liveness sensor. It senses breathing, can ignore the doorway by distance, and can't be fooled by photos or screens. A test script will be written when one is bought.
+**Also done – bare-bone face recognition:**
+- `8_face_recognition.py` is a web page (port 8084) with the same YuNet + SFace steps and 0.36 threshold as `smartcabin_pi.py`, nothing else.
+  - Every 1.5 s it shows a picture with a name and score on each face.
+  - Register takes 10 photos of the one face in view, 0.3 s apart, within 30 s. Registered people can be deleted.
+  - Resolution and threshold are set on the page. Faces are saved in `known_faces.json` (git-ignored).
+- **Found: faces need more pixels than bodies.** In the test photo, YuNet found no face at 320x240 or 640x480, but one at 1296x972 (59 px wide, 63 ms on the laptop). So the default for faces is 1296x972, while people counting stays at 640x480.
+- Tested on the laptop with a fake camera and OpenCV 4.10:
+  - Registered one man from a 1-face crop.
+  - In the full street photo he was named "Dr. Rao (0.60)" at 1296x972. At 640x480 no face was found.
+  - Registering refuses when two faces are in view, and waits until the models are loaded. Delete works, and names with an apostrophe work.
+**Also done – Bluetooth presence:**
+- `9_bluetooth_presence.py`: users with 0 – 5 devices each, Near / Away per user, and when each device was last seen. Web page on port 8085.
+- **Random addresses:** phones randomise their address only while advertising (Bluetooth Low Energy), and the classic address is fixed. Pairing once gives the real address and the IRK key, so nothing is typed.
+- **Pairing only saves the identity:** the device is not trusted and is disconnected straight after pairing. The NoInputNoOutput agent runs only during the 60 s window, and the Pi is not visible the rest of the time. The check is an l2ping every 15 s, with no service used.
+- Two ways to add a device: the Pi lists visible devices and the user presses Pair (for iPhones, which often won't list a Pi), or the device picks the Pi's name.
+- Tested on the laptop with a fake bluetoothctl / l2ping:
+  - Pairing from the Pi side saved "Pixel 7".
+  - Pairing from the device side saved "Rao's iPhone" for the second user.
+  - Nameless devices are hidden from the pairing list.
+  - Both users turned Near when their devices answered.
+  - Removing a device works, including names with an apostrophe.
+  - Not tested with real Bluetooth yet.
+**Next:** run 5 – 9 on the Zero 2W and Pi 4. Check real iPhone and Android pairing and l2ping with the screen locked. Tune the movement threshold with a real person sitting still and a printed photo. Check the time per picture at 1296x972 on the Zero for face recognition. Compare MobileNet-SSD with YOLOv8n (count accuracy, ms, fps) for Review 1.
+
+---
+
+## 2026-10-23 – Bare-bone tests per part (`pi board codes/hardware test code/`)
+
+**Done:** the Pi folder was split into `hardware test code/`, `pi with laptop/` (empty for now) and `Tried and working codes now on actual project/`. Three terminal scripts in `hardware test code/`, each checking the connection first, then testing step by step with PASS / FAIL / INFO:
+- `test_rfid.py`: SPI, libraries, chip version, write/read-back, 500-read stability, RST pin, antenna/gain, chip self-test, card UID + type + sector 0 memory, read rate, live mode.
+- `test_camera.py`: detected / opened, camera type, max resolution, sensor modes, controls, full-resolution photo, real fps per mode, H.264 bitrate 5–25 Mbps.
+- `test_neopixel.py`: sudo, board, audio/PWM clash, library, then one LED cycling 8 colours with Enter.
+**Tried / tested:** all three run on the **Pi Zero 2W** (outputs in `hardware test code/pi 02w results/`):
+- Camera: the Zero now has an **ov5647 = Camera Module v1 (5 MP)**, not the imx219 v2 from the benchmarks. 4 modes, each reaching 99–100 % of its rated fps (640x480 @ 62, 1296x972 @ 46, 1920x1080 @ 33, 2592x1944 @ 15.6). Full photo 2592x1944 in 0.29 s. H.264 1080p30 gave 4.8 / 9.6 / 16.2 / 24.0 Mbps for 5 / 10 / 17 / 25 asked.
+- RFID: genuine NXP chip v2.0 (0x92). All wiring checks passed: write/read-back, 500/500 stable reads, RST pin, antenna 33 dB, and the self-test matched the datasheet 64/64. Cards were read in live mode, including 7-byte-UID tags (starting `88 04 11 ...`).
+- NeoPixel: the single LED cycled all 8 colours correctly.
+**What didn't / fixed:**
+- Camera max size showed 0 x 0: the ov5647 driver doesn't report it. Now it is taken from the largest sensor mode.
+- Fixed the deprecated logging warning, and the camera place is now shown as a name.
+- RFID: the 30 s card step missed the card, while live mode saw it. The step now restarts the antenna field every second.
+- RFID: 7-byte UIDs were cut to `88` + 3 bytes. The test now reads the full UID (second cascade level).
+- NeoPixel: the audio warning is skipped on the Zero, since it has no 3.5 mm jack.
+- `smartcabin_pi.py` also keeps only the first 4 bytes, so 7-byte tags would be stored as `88` + 3 bytes there too.
+**Next:** run the fixed scripts again on the Zero, then on the Pi 4. Decide whether `smartcabin_pi.py` should read full 7-byte UIDs.
+
+---
+
+## 2026-10-23 – Hardware test script: camera, RFID, NeoPixel
+
+**Done:** RC522 RFID reader, NeoPixel LEDs and Pi Camera connected to the Pi. New `pi board codes/test_hardware.py` is a web page (port 8080) that tests all three with the same pins and libraries as `smartcabin_pi.py`:
+- Camera: live picture (one per second) and its brightness. Warns if the picture is black or the camera is busy.
+- LEDs: Red / Green / Blue / White / Off buttons, and "Test all" (each colour, then each LED one at a time).
+- RFID: checks the chip version every 2 s (shows if a wire comes loose), and lists the last 20 cards tapped.
+- Each part has an OK / PROBLEM badge with a hint.
+- (A first version was a terminal script; it was changed to the web page the same day.)
+**Tried / tested:** on the laptop with fake LEDs and RFID: the page loads, the LED buttons work, it fits a phone screen, and the camera shows PROBLEM as expected (no picamera2). Not run on the Pi yet.
+**Next:** run it on the Pi and note the results here.
+
+---
+
 ## 2026-10-23 – Faculty page: school → department → faculty
 
 **Done:** the faculty status page (`web/index.html`, `web/index.js`) now starts empty instead of loading all 839 faculty. You pick a school, then a department, then optionally one name from a drop-down. Schools with only one department skip the department step. The "All schools" button was removed. Added `web/README.md` explaining how Python feeds the page and how the selection works. Added a header comment to the ESP32-CAM headcount script (`ESP32 code/Headcount ESP32-CAM.py`, earlier `code/import time.py`).

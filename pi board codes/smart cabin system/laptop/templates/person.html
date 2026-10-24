@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+  <p><a href="/">&larr; Everyone</a></p>
+  <p id="not-found" class="box hidden">Person not found.</p>
+
+  <div id="page" class="hidden">
+    <h1 class="page-title" id="name"></h1>
+    <p class="small" id="details"></p>
+
+    <div class="tabs"></div>
+    <div class="panels">
+      <section class="panel big-status" data-title="Status">
+        <div id="icon" class="big-icon grey">?</div>
+        <div class="label" id="label"></div>
+        <p id="reason"></p>
+        <p id="until" class="small"></p>
+        <p id="manual" class="tag hidden">Set by them</p>
+        <div id="watch-box"></div>
+      </section>
+
+      <section class="panel hidden" id="today-panel" data-title="Today">
+        <h2>Today (<span id="today-name"></span>)</h2>
+        <p id="now-next" class="small"></p>
+        <table><tbody id="today"></tbody></table>
+      </section>
+
+      <section class="panel hidden" id="week-panel" data-title="Week">
+        <h2>Weekly timetable</h2>
+        <div id="week"></div>
+      </section>
+    </div>
+
+    <p id="login-hint" class="small center hidden">
+      <a href="/login?next={{ request.url.path }}">Staff login</a> to see the timetable and to be notified when they are free.
+    </p>
+  </div>
+{% endblock %}
+{% block scripts %}
+<script>const PERSON_ID = {{ person_id }};</script>
+<script src="/static/person.js"></script>
+{% endblock %}

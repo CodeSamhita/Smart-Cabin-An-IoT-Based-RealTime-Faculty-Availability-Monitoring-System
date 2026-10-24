@@ -19,6 +19,12 @@
 
 ## Current scope
 
+> **24 Oct 2026: the real product is in [`pi board codes/smart cabin system/`](pi%20board%20codes/smart%20cabin%20system/README.md).**
+> - It has a laptop server (FastAPI + SQLite) and a Raspberry Pi cabin app (camera, RFID, Bluetooth, buttons, NeoPixel).
+> - Its plan, with every step and check, is in [BUILD_PLAN.md](pi%20board%20codes/smart%20cabin%20system/BUILD_PLAN.md).
+> - The documents, charts and the animated "vs existing work" presentation are in its `docs/`.
+> - The demo parts below are kept as the earlier prototypes.
+
 As of 21 October 2026, the project has three working parts. The full design below stays as the long-term plan.
 
 1. **Web dashboard (laptop):** shows the status of all 839 Presidency University faculty. It uses **demo statuses** for now, because it is not yet connected to a camera.
@@ -289,10 +295,18 @@ This register is updated whenever we choose something. Each row says what we cho
 | Identity tap | RFID reader (RC522, 13.56 MHz) | Proposed, pending card check | Cheap, common, easy SPI library | PN532 (more card types); 125 kHz EM4100 readers if the cards are low-frequency |
 | Clock | DS3231 RTC plus NTP | Decided (RTC needed) | Accurate and temperature-compensated, keeps time through WiFi or power loss, so the schedule keeps working | ESP32 internal RTC (drifts); NTP only (needs the network); DS1307 (less accurate) |
 | Status light | WS2812B NeoPixel | Decided | One data pin, any colour, supports patterns | Plain RGB LED; LED matrix as in the Benin thesis; e-paper display |
-| BLE tag | Dedicated BLE tag or ESP32 beacon | Proposed | Phones randomise their Bluetooth addresses, so a phone is hard to recognise reliably | Phone app broadcasting a fixed ID; smartwatch |
-| Liveness sensor | Thermal array (MLX90640, AMG8833) or multizone ToF | Open, later | Confirms a warm human body or real depth | Software liveness across several snapshots; depth camera (costly) |
+| BLE tag | Paired phones / laptops (0 – 5 per user), with a dedicated BLE tag or ESP32 beacon as backup | Being tested (24 Oct 2026, `9_bluetooth_presence.py`) | Phones randomise their address only while *advertising*. Pairing once gives the fixed classic address (and the IRK key), so no typing is needed. The device is not trusted and is disconnected after pairing, then checked by l2ping | Dedicated BLE tag; phone app broadcasting a fixed ID; smartwatch |
+| Liveness sensor | mmWave radar (HLK-LD2410, about ₹300–500), favoured over thermal (MLX90640, AMG8833) or multizone ToF | Open, later | Senses breathing-level movement, so it sees a person sitting still. Reports moving and still targets with distance, so the doorway can be ignored. Not affected by sunlight or warm air, and not fooled by a photo or a video on a screen. UART or one OUT pin | Thermal array (₹2,000–5,000, warm body shape); multizone ToF (real depth); software liveness across snapshots (built: stillness check and ignore zones in `7_people_count_snapshot.py`); depth camera (costly) |
 
 **Considered and rejected:** PIR and door/hall sensors (passersby trigger them and cannot be told apart from the HOD), continuous video (privacy), phone MAC address presence (address randomisation, and the phone can be in range outside the cabin).
+
+**PIR in detail (24 Oct 2026):** a PIR senses a *change* in heat, not a person. It reads "empty" when someone sits still at a desk (the worst failure here), and "someone" from sunlight, AC or heater air, warm devices or people passing an open door. The Benin base thesis uses PIR, so this is a point of difference to explain. PIR is only useful as a *wake-up trigger* (for example, take pictures faster after motion), not as the presence decision.
+
+**Photos and videos of people (24 Oct 2026):** a camera can't tell a real person from a photo, poster or screen.
+- Built: the stillness check (catches photos and posters) and ignore zones (catches anything fixed, including a wall TV), in `7_people_count_snapshot.py`.
+- Not caught yet: a video on a phone or laptop held up to the camera.
+- Idea, not built: a "screen check". YOLOv8n already finds `tv`, `laptop` and `cell phone`, and MobileNet-SSD finds `tvmonitor`. Ignore person boxes mostly inside a screen box.
+- Hardware fix: the mmWave radar above. Identity still comes from RFID / BLE / face, so a video can only add one to the headcount, not fake the HOD.
 
 ### 5.2 Communication
 
@@ -446,6 +460,6 @@ Summaries and relevance for papers 6–10 are in [research/papers.md](research/p
 - Whether the HOD's ID card is RFID-readable, and which type.
 - Format of the real timetable (sample to be provided).
 - Camera placement and distance from the HOD's chair.
-- Whether liveness stays in the plan (the concern is fraud prevention).
+- Whether liveness stays in the plan (the concern is fraud prevention). If it does, the mmWave radar (HLK-LD2410) is favoured, and a bare test script would be written once one is bought. The software "screen check" is a free first step (see 5.1).
 - If a class is cancelled and the HOD taps in, how long should that event-triggered result hold before the timetable overrides it?
 - Final choice of software stack (backend, database, dashboard).

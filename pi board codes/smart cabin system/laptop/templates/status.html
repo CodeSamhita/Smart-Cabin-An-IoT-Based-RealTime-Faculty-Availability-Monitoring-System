@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1 class="page-title">Who is available?</h1>
+  <p class="small" id="summary">Loading...</p>
+
+  <!-- Search: any words, in any order. "physics free", "hod cse", "rao" -->
+  <div class="search">
+    <input type="search" id="search" placeholder="Search name, department, HOD, available..." autocomplete="off">
+  </div>
+
+  <div class="chips" id="status-chips"></div>
+  <div class="chips" id="position-chips"></div>
+  <div class="filters">
+    <select id="school"></select>
+    <select id="department"></select>
+  </div>
+
+  <div class="grid" id="cards"></div>
+  <p class="center small hidden" id="empty"></p>
+
+  <div class="legend">
+    <span><span class="dot green"></span>Available</span>
+    <span><span class="dot yellow"></span>In a meeting</span>
+    <span><span class="dot red"></span>Not available</span>
+    <span><span class="dot grey"></span>Unknown</span>
+  </div>
+{% endblock %}
+{% block scripts %}<script src="/static/status.js"></script>{% endblock %}

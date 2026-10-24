@@ -17,6 +17,19 @@ pi board codes/cards_pi.json
 pi board codes/phones_pi.json
 pi board codes/settings_pi.json
 
+# Models and test pictures / videos made by pi board codes/hardware test code/
+pi board codes/hardware test code/models/
+pi board codes/hardware test code/test_photo_full.jpg
+pi board codes/hardware test code/*.h264
+pi board codes/hardware test code/ignore_zones.json
+pi board codes/hardware test code/known_faces.json
+pi board codes/hardware test code/bluetooth_devices.json
+
+# Smart Cabin product: the server database, and each cabin device's own data and downloaded models
+pi board codes/smart cabin system/laptop/smart_cabin.db*
+pi board codes/smart cabin system/pi zero 2w/data/
+pi board codes/smart cabin system/pi zero 2w/models/
+
 # Live data received from the Pi by pi board codes/pi_receiver.py
 pi board codes/pi_status.json
 pi board codes/pi_status.json.tmp

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cabin device - Smart Cabin</title>
+<style>
+  /* Same look as the laptop pages, kept in this one file so the Pi needs nothing else */
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; background: #f4f5f7; color: #222; margin: 0; font-size: 15px; }
+  header { position: sticky; top: 0; background: white; border-bottom: 1px solid #ddd; padding: 10px 12px; z-index: 5;
+           display: flex; justify-content: space-between; align-items: center; }
+  header b { font-size: 18px; color: #1f3b5a; }
+  main { max-width: 1100px; margin: 0 auto; padding: 10px; }
+  .panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; align-items: start; }
+  .panel { background: white; border: 1px solid #e2e2e2; border-radius: 8px; padding: 14px; min-width: 0; }
+  h2 { font-size: 17px; margin: 0 0 10px; }
+  h3 { font-size: 15px; margin: 16px 0 6px; }
+  .small { font-size: 13px; color: #666; }
+  .light { width: 90px; height: 90px; border-radius: 50%; margin: 6px auto; background: #333; box-shadow: 0 0 22px rgba(0,0,0,.25); }
+  .light.green { background: #2e9e44; } .light.yellow { background: #e0a800; } .light.red { background: #d43c3c; }
+  .light.blue { background: #2457d6; } .light.white { background: #ddd; } .light.purple { background: #8e2bc4; }
+  .center { text-align: center; }
+  .big { font-size: 22px; font-weight: bold; margin: 6px 0; }
+  input { padding: 9px; font-size: 15px; border: 1px solid #ccc; border-radius: 6px; width: 100%; }
+  label { display: block; font-size: 13px; color: #444; margin: 8px 0 3px; }
+  button { background: #1f3b5a; color: white; border: none; padding: 9px 14px; margin: 6px 6px 0 0; border-radius: 6px; font-size: 14px; cursor: pointer; }
+  button.plain { background: white; color: #333; border: 1px solid #ccc; }
+  button.danger { background: white; color: #d43c3c; border: 1px solid #e7b4b4; }
+  .row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-top: 1px solid #f0f0f0; gap: 8px; }
+  .ok { color: #2e9e44; } .bad { color: #d43c3c; }
+  .msg { background: #eef2f6; border-radius: 6px; padding: 8px 10px; font-size: 14px; margin-top: 10px; }
+  .step { border: 1px solid #eee; border-radius: 6px; padding: 10px; margin-top: 8px; }
+  .done { color: #2e9e44; font-weight: bold; }
+  img { width: 100%; border-radius: 6px; background: #000; margin-top: 8px; }
+  .hidden { display: none !important; }
+  .tabs { display: none; }
+  @media (max-width: 760px) {
+    .tabs { display: flex; gap: 4px; position: sticky; top: 46px; background: #f4f5f7; padding: 6px 0; z-index: 4; overflow-x: auto; }
+    .tabs button { flex: none; background: white; color: #333; border: 1px solid #ccc; border-radius: 16px; margin: 0; padding: 6px 12px; }
+    .tabs button.active { background: #1f3b5a; color: white; }
+    .panels { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 8px; scrollbar-width: none; }
+    .panel { flex: 0 0 100%; scroll-snap-align: start; }
+  }
+</style>
+</head>
+<body>
+<header><b>Cabin device</b><span class="small" id="cabin"></span></header>
+<main>
+  <div class="tabs" id="tabs"></div>
+  <div class="panels" id="panels">
+
+    <section class="panel" data-title="Status">
+      <h2>What the light shows</h2>
+      <div class="center">
+        <div class="light" id="light"></div>
+        <div class="big" id="status-text">...</div>
+        <div id="reason"></div>
+        <div class="small" id="until"></div>
+      </div>
+      <h3>Right now</h3>
+      <div class="row"><span>Owner</span><b id="owner">-</b></div>
+      <div class="row"><span>Owner in the cabin</span><b id="faculty-in">-</b></div>
+      <div class="row"><span>People in the cabin</span><b id="headcount">-</b></div>
+      <div class="row"><span>Owner's phone near</span><b id="phone">-</b></div>
+      <div class="row"><span>Laptop server</span><b id="server">-</b></div>
+      <div class="msg" id="message"></div>
+    </section>
+
+    <section class="panel" data-title="Setup">
+      <!-- 1. connect this device to a cabin (once) -->
+      <div id="connect-box">
+        <h2>1. Connect to a cabin</h2>
+        <p>On the laptop, open <b>Cabins &rarr; Add a new device</b>, pick <b id="device-name"></b> with this PIN and the cabin,
+          then press Connect. This device connects by itself.</p>
+        <div class="center"><span class="small">PIN</span><div class="big" id="pin" style="font-size:40px;letter-spacing:6px">----</div></div>
+        <p class="small center" id="pairing-state"></p>
+        <p class="small center">Device ID: <span id="device-id" style="font-family:monospace"></span><br>
+          (a cabin linked to this ID connects it by itself)</p>
+        <details style="margin-top:10px;">
+          <summary class="small">Not showing on the laptop? Type a 6-digit code instead</summary>
+          <p class="small">Cabins &rarr; <b>New code</b> next to the cabin, then type it here.</p>
+          <label>6-digit code</label><input id="code" inputmode="numeric" maxlength="6">
+          <label>Laptop server address</label><input id="server-url" placeholder="http://192.168.137.1:8080">
+          <button onclick="connect()">Connect with the code</button>
+        </details>
+      </div>
+      <!-- The answer to any button on this slide (on a phone the Status slide is not visible) -->
+      <div class="msg" id="setup-msg"></div>
+
+      <!-- 2. the owner logs in -->
+      <div id="login-box" class="hidden">
+        <h2>Set up your cabin</h2>
+        <p class="small">Log in with the username and password the admin gave you.</p>
+        <label>Username</label><input id="username" autocapitalize="none">
+        <label>Password</label><input id="password" type="password">
+        <button onclick="login()">Log in</button>
+      </div>
+
+      <!-- 3. card, face, phone -->
+      <div id="setup-box" class="hidden">
+        <h2>Hello, <span id="enrol-name"></span></h2>
+        <p class="small">Setup closes in <span id="enrol-left"></span> s. <button class="plain" onclick="post('/api/logout')">Log out</button></p>
+
+        <div class="step"><b>RFID card</b> <span id="card-state" class="small"></span><br>
+          <button onclick="post('/api/card/link')">Link my card</button>
+          <span class="small" id="card-hint"></span></div>
+
+        <div class="step"><b>Face</b> <span id="face-state" class="small"></span><br>
+          <button onclick="post('/api/face/start')">Register my face</button>
+          <button class="danger" onclick="if (confirm('Delete your face data from this device?')) post('/api/face/delete')">Delete</button>
+          <div class="small">Alone in front of the camera, facing it. 10 photos, a few seconds. Kept only on this device.</div></div>
+
+        <div class="step"><b>Phone / laptop (Bluetooth)</b> <span id="phone-state" class="small"></span><br>
+          <button onclick="post('/api/phone/pair')">Add a device</button>
+          <div id="nearby"></div>
+          <div class="small">Open the <b>Bluetooth settings</b> screen on the device, then press <b>Pair</b> next to it here
+            (or pick this Pi's name on the device). Only its identity is saved: it is never used as a keyboard or speaker.</div></div>
+
+        <div class="step"><b>Photos / posters of people on the wall</b><br>
+          <button class="plain" onclick="post('/api/zones/from-picture')">Ignore what is seen now</button>
+          <button class="plain" onclick="post('/api/zones/clear')">Clear</button>
+          <div class="small">With the room empty: anything still counted as a person (a poster, a photo) is ignored from now on.</div>
+          <img id="picture" alt="camera"></div>
+      </div>
+    </section>
+
+    <section class="panel" data-title="Buttons">
+      <h2>Buttons</h2>
+      <p class="small">Same as the hardware buttons. Pressing the active one again = back to Auto. (Log in on Setup first.)</p>
+      <button style="background:#2e9e44" onclick="button('available')">Available</button>
+      <button style="background:#e0a800;color:#222" onclick="button('meeting')">In a meeting</button>
+      <button style="background:#d43c3c" onclick="button('away')">Not available</button>
+      <h3>Sensors</h3>
+      <div id="sensors" class="small"></div>
+    </section>
+
+    <section class="panel hidden" id="sim-panel" data-title="Simulation">
+      <h2>Simulation (no Pi hardware)</h2>
+      <p class="small">This is a laptop, so the hardware is simulated. The camera shows <code>data/sim_picture.jpg</code>.</p>
+      <label>Tap a card (card id)</label><input id="sim-card" value="A1B2C3D4">
+      <button onclick="simCard()">Tap card</button>
+      <h3>Owner's phone</h3>
+      <button onclick="simPhone(true)">Phone near</button>
+      <button class="plain" onclick="simPhone(false)">Phone away</button>
+    </section>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const LABELS = { green: "Available", yellow: "In a meeting", red: "Not available", grey: "Unknown", "": "Waiting..." };
+let lastPicture = 0;
+let messageAt = 0;            // keep a message from a button on screen for a few seconds
+
+async function post(url, body) {
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+  const data = await r.json().catch(() => ({}));
+  say(data.message || data.detail || ("No answer from this device (error " + r.status + ")"));
+  messageAt = Date.now();
+  refresh();
+  return data;
+}
+function say(text) {
+  // Show a message on the Status slide AND on the Setup slide (where the buttons are)
+  $("message").textContent = text;
+  $("setup-msg").textContent = text;
+}
+
+function connect() {
+  // Show something straight away: if the laptop can't be reached, the answer takes up to 8 s
+  say("Connecting to " + ($("server-url").value || "the laptop") + " ...");
+  messageAt = Date.now() + 10000;
+  post("/api/connect", { code: $("code").value.trim(), server: $("server-url").value.trim() });
+}
+function login() { post("/api/login", { username: $("username").value, password: $("password").value }); $("password").value = ""; }
+function button(name) { post("/api/button", { name: name }); }
+function simCard() { post("/api/sim/card", { uid: $("sim-card").value }); }
+function simPhone(near) { post("/api/sim/phone", { near: near }); }
+function pairDevice(address, name) { post("/api/phone/pair-device", { address: address, name: name }); }
+
+async function refresh() {
+  let s;
+  try { s = await (await fetch("/status.json")).json(); }
+  catch (e) { say("This page can't reach the cabin device. Is main.py still running on the Pi?"); return; }
+  $("cabin").textContent = s.cabin || "";
+  $("light").className = "light " + s.led;
+  $("status-text").textContent = s.server_ok ? LABELS[s.status] : (s.connected ? "Laptop not reachable" : "Not connected yet");
+  $("reason").textContent = s.server_ok ? s.reason : (s.connected ? "Light shows the device's own guess" : "");
+  $("until").textContent = s.server_ok ? s.until : "";
+  $("owner").textContent = s.owner ? s.owner.name : "-";
+  $("faculty-in").textContent = s.faculty_in ? "yes" : "no";
+  $("headcount").textContent = s.headcount;
+  $("phone").textContent = s.phone_near ? "yes" : "no";
+  $("server").innerHTML = s.server_ok ? "<span class='ok'>connected</span>" : "<span class='bad'>" + (s.connected ? "not reachable" : "not connected") + "</span>";
+  if (Date.now() - messageAt > 8000) say(s.message);
+  $("sensors").innerHTML = Object.keys(s.sensors).map(k => "<div class='row'><span>" + esc(k) + "</span><span class='" +
+    (String(s.sensors[k]).startsWith("ok") ? "ok" : "bad") + "'>" + esc(s.sensors[k]) + "</span></div>").join("");
+
+  $("connect-box").classList.toggle("hidden", s.connected);
+  $("pin").textContent = s.pin;
+  $("device-id").textContent = s.device_id;
+  $("device-name").textContent = "'" + s.device_name + "'";
+  $("pairing-state").textContent = s.pairing_server ? "Laptop found at " + s.pairing_server + ". Waiting for the admin..."
+                                                    : "Looking for the laptop on this network...";
+  if (!$("server-url").value) $("server-url").value = s.server;
+  $("login-box").classList.toggle("hidden", !s.connected || s.logged_in);
+  $("setup-box").classList.toggle("hidden", !s.logged_in);
+  $("sim-panel").classList.toggle("hidden", !s.simulate);
+  if (s.logged_in) {
+    $("enrol-name").textContent = s.enrol_name;
+    $("enrol-left").textContent = s.enrol_left;
+    $("card-hint").textContent = s.link_card ? "Tap your card now..." : (s.last_card ? "Last card read: " + s.last_card : "");
+    $("face-state").innerHTML = s.register_face ? "taking photos " + s.face_progress + " / " + s.face_samples
+      : (s.face_photos ? "<span class='done'>registered (" + s.face_photos + " photos)</span>" : "not registered");
+    $("phone-state").textContent = s.pairing ? "looking for devices..." : "";
+    $("nearby").innerHTML = s.pairing ? (s.nearby.length ? s.nearby.map(d => "<div class='row'><span>" + esc(d.name) +
+        "</span><button data-a='" + esc(d.address) + "' data-n='" + esc(d.name) + "' onclick='pairDevice(this.dataset.a, this.dataset.n)'>Pair</button></div>").join("")
+        : "<div class='small'>Looking for visible devices...</div>") : "";
+    if (Date.now() - lastPicture > 3000) { $("picture").src = "/picture.jpg?t=" + Date.now(); lastPicture = Date.now(); }
+  }
+}
+
+// Sliding sections on a phone
+const sections = [...document.querySelectorAll(".panel")];
+function buildTabs() {
+  const visible = sections.filter(s => !s.classList.contains("hidden"));
+  $("tabs").innerHTML = "";
+  visible.forEach(s => { const b = document.createElement("button"); b.textContent = s.dataset.title;
+    b.onclick = () => $("panels").scrollTo({ left: s.offsetLeft - visible[0].offsetLeft, behavior: "smooth" }); $("tabs").appendChild(b); });
+}
+$("panels").onscroll = () => {
+  const visible = sections.filter(s => !s.classList.contains("hidden"));
+  const i = visible.reduce((best, s, j) => Math.abs(s.offsetLeft - visible[0].offsetLeft - $("panels").scrollLeft) <
+    Math.abs(visible[best].offsetLeft - visible[0].offsetLeft - $("panels").scrollLeft) ? j : best, 0);
+  [...$("tabs").children].forEach((t, j) => t.classList.toggle("active", i === j));
+};
+refresh().then(() => { buildTabs(); $("panels").onscroll(); });
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>

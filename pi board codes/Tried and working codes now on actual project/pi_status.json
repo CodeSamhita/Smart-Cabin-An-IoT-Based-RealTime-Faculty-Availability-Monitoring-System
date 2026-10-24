@@ -1,0 +1,12 @@
+{
+ "pi": {
+  "received": "2026-10-22 14:58:51",
+  "message": {
+   "device": "pi",
+   "pi_page": "http://192.168.137.72:8000",
+   "sent": "2026-10-22 14:58:50",
+   "app_running": false,
+   "status": null
+  }
+ }
+}

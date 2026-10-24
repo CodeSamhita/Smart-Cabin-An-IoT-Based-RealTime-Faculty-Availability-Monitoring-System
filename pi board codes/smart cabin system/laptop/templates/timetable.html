@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1 class="page-title">Timetable: <span id="person-name">...</span></h1>
+  <p class="small">Step 1: the day's times (once). Step 2: tap the hours where you're busy. Free hours mean you're in your cabin. Step 3: Save.</p>
+
+  <!-- One tab per timetable (e.g. one per school or branch you teach for) -->
+  <div class="box">
+    <div class="chips" id="sheet-chips" style="margin-top: 0;"></div>
+    <button class="plain small-btn" id="sheet-add" style="margin-top: 8px;">+ Add timetable</button>
+    <button class="plain small-btn" id="sheet-rename" style="margin-top: 8px;">Rename</button>
+    <button class="danger small-btn" id="sheet-delete" style="margin-top: 8px;">Delete</button>
+    <p class="small" style="margin-bottom: 0;">Teaching for more than one school or branch? Add a timetable for each.
+      They are merged for your status, and hours already used in another timetable show as <i>busy</i>.</p>
+    <div id="clashes" class="warning hidden" style="margin-top: 8px;"></div>
+  </div>
+
+  <div class="tabs"></div>
+  <div class="panels stack">
+    <section class="panel" data-title="1. Day times">
+      <h2>1. Day times</h2>
+      <label>Day template</label>
+      <select id="template">
+        <option value="A">A: 1, 2, tea, 3, 4, 5 (lunch), 6, tea, 7, 8</option>
+        <option value="B">B: 1, 2, tea, 3, 4 (lunch), 5, 6, tea, 7, 8</option>
+      </select>
+      <div class="form-row">
+        <div><label>First hour starts</label><input type="time" id="day-start" value="09:00"></div>
+        <div><label>Class (min)</label><input type="number" id="len-hour" min="20" max="120"></div>
+        <div><label>Tea (min)</label><input type="number" id="len-tea" min="5" max="60"></div>
+        <div><label>Lunch hour (min)</label><input type="number" id="len-lunch" min="15" max="120"></div>
+      </div>
+      <button class="plain" id="work-out">Work out the times</button>
+      <label style="margin-top: 10px;"><input type="checkbox" id="saturday" style="width:auto"> Saturday is a working day</label>
+      <h3>The times (you can change any of them)</h3>
+      <table><tbody id="slots"></tbody></table>
+    </section>
+
+    <section class="panel" data-title="2. Grid" style="overflow-x: auto;">
+      <h2>2. Tap an hour to fill it in</h2>
+      <!-- Laptop: the whole week. Phone: one day at a time. -->
+      <div class="tt-wide"><table class="tt-grid" id="grid"></table></div>
+      <div class="tt-narrow">
+        <div class="chips" id="day-chips"></div>
+        <div id="day-list" style="margin-top: 8px;"></div>
+      </div>
+      <button id="save" style="margin-top: 12px;">Save timetable</button>
+      <p id="save-msg" class="small"></p>
+    </section>
+  </div>
+
+  <!-- The box for one hour -->
+  <div id="editor" class="modal hidden">
+    <div class="modal-box">
+      <h2 id="ed-title">Monday, Hour 1</h2>
+      <label>What is it?</label>
+      <select id="ed-activity"></select>
+      <div id="ed-details">
+        <label>Class code or name</label><input id="ed-name" placeholder="CSE301, 3rd sem A" maxlength="40">
+        <label>Where</label>
+        <div class="form-row">
+          <div><select id="ed-building"></select></div>
+          <div><select id="ed-floor"></select></div>
+          <div><select id="ed-number"></select></div>
+        </div>
+        <p id="ed-lab-note" class="small hidden">A lab takes 2 hours: this hour and the next numbered hour
+          (e.g. 1-2, 3-4, 4-5, 6-7). The lunch hour counts, tea doesn't.</p>
+      </div>
+      <button id="ed-ok">OK</button>
+      <button class="plain" id="ed-cancel">Cancel</button>
+    </div>
+  </div>
+{% endblock %}
+{% block scripts %}<script>const PERSON_ID = {{ person_id }};</script><script src="/static/timetable.js"></script>{% endblock %}
