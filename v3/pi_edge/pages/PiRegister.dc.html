@@ -1,0 +1,152 @@
+<!doctype html>
+<!-- Smart Cabin edge device - registration at the cabin (user's design): find your name, register your face, tap your
+     RFID card, save with the server. Filled with live data by piregister.js. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Cabin – Registration at cabin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+html{font-size:clamp(14px, 0.42vw + 10.6px, 22px)}
+body{margin:0}
+a{color:#2a4a7a}a:hover{color:#14243f}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div style="font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 1rem; color: #1a211e; background: #f4f5f8; min-height: 100vh">
+
+<header style="position: sticky; top: 0; z-index: 40; background: #1b2d4b; color: #ffffff; box-shadow: 0 0.125rem 0.75rem rgba(20,32,48,0.18)">
+<div style="max-width: 40rem; margin: 0 auto; padding: 0.5rem 1rem; display: flex; align-items: center; gap: 0.75rem">
+<div style="display: flex; flex-direction: column; min-width: 0">
+<span style="font-weight: 700; font-size: 1.125rem">Smart Cabin <span id="dev-code" style="font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 0.875rem; padding: 0.125rem 0.375rem; border-radius: 0.25rem; background: rgba(255,255,255,0.14)">–</span></span>
+<span id="dev-location" style="font-size: 0.75rem; color: #cdd8ea">–</span>
+</div>
+<span id="time-left" style="margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: 0.8125rem; padding: 0.25rem 0.625rem; border-radius: 999px; background: #fbecc6; color: #6b4a00; white-space: nowrap">–</span>
+</div>
+</header>
+
+<main style="max-width: 40rem; margin: 0 auto; padding: 1.25rem 1rem 3rem; display: flex; flex-direction: column; gap: 1rem">
+<h1 style="margin: 0; font-size: 1.375rem; font-weight: 700">Registration at cabin</h1>
+
+<ol id="steps" aria-label="Steps" style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(8rem, 100%), 1fr)); gap: 0.5rem"></ol>
+
+<section id="step-name" aria-labelledby="s1" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem">
+<h2 id="s1" style="margin: 0; font-size: 1.0625rem; font-weight: 700; flex: 1">Find your name</h2>
+<span id="server-badge" style="display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.25rem 0.625rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: #fbecc6; color: #6b4a00"><span id="server-dot" style="width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #d39b0b"></span><span id="server-text">Loading names from server…</span></span>
+</div>
+<label style="display: flex; align-items: center; gap: 0.5rem; min-height: 3rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; background: #ffffff">
+<input type="search" id="q" aria-label="Search your name" placeholder="Search by name" style="flex: 1; min-width: 0; border: 0; outline: none; font: inherit; font-size: 1rem; background: transparent; color: #1a211e">
+<svg viewBox="0 0 24 24" fill="none" stroke="#56625c" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="width: 1.125rem; height: 1.125rem; flex: none"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+</label>
+<p id="hint" style="margin: 0; font-size: 0.8125rem; color: #56625c">Type at least 2 letters of your name.</p>
+<div id="people" style="display: flex; flex-direction: column; gap: 0.375rem; max-height: 24rem; overflow-y: auto"></div>
+<div style="display: flex; justify-content: space-between; gap: 0.5rem; border-top: 1px solid #eef1f4; padding-top: 0.875rem">
+<a href="PiDevice.dc.html" id="cancel" style="display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 1rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; background: #ffffff; color: #1a211e; font-weight: 600; text-decoration: none">Cancel</a>
+<button type="button" id="to-face" disabled style="min-height: 2.75rem; padding: 0 1.125rem; border: 0; border-radius: 0.5rem; font: inherit; font-weight: 600; background: #dde2ea; color: #56625c; cursor: not-allowed">Next: face</button>
+</div>
+</section>
+
+<section id="step-face" hidden aria-labelledby="s2" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; border-radius: 0.5rem; background: #e6ecf5">
+<span class="pick-initials" style="width: 2rem; height: 2rem; flex: none; border-radius: 50%; background: #1b2d4b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem"></span>
+<span style="display: flex; flex-direction: column; min-width: 0"><span class="pick-name" style="font-weight: 600; font-size: 0.9375rem"></span><span class="location-text" style="font-size: 0.75rem; color: #3d5275"></span></span>
+</div>
+<h2 id="s2" style="margin: 0; font-size: 1.0625rem; font-weight: 700">Register your face</h2>
+<p style="margin: 0; font-size: 0.875rem; color: #4a5650">Look at the camera. Turn your head a little between photos. Only you should be in view.</p>
+<div style="position: relative; aspect-ratio: 4 / 3; border-radius: 0.75rem; background: #141e30; overflow: hidden; display: flex; align-items: center; justify-content: center">
+<img id="preview" alt="Live camera preview" hidden style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover">
+<span id="preview-text" style="color: #9aa5b4; font-size: 0.8125rem">Live camera preview</span>
+<span aria-hidden="true" style="position: absolute; width: 42%; aspect-ratio: 3 / 4; border: 2px dashed rgba(255,255,255,0.55); border-radius: 50%"></span>
+</div>
+<div style="display: flex; align-items: center; gap: 0.75rem">
+<div id="photo-dots" role="progressbar" aria-label="Photos taken" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" style="flex: 1; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 0.25rem"></div>
+<span id="photo-count" style="font-family: 'IBM Plex Mono', monospace; font-size: 0.8125rem; color: #3c4842; white-space: nowrap">0 / 10</span>
+</div>
+<p id="face-text" role="status" style="margin: 0; font-size: 0.875rem; font-weight: 600; color: #3d5275">Press Start camera when you are ready.</p>
+<div style="display: flex; justify-content: space-between; gap: 0.5rem; border-top: 1px solid #eef1f4; padding-top: 0.875rem">
+<button type="button" id="to-name" style="min-height: 2.75rem; padding: 0 1rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; background: #ffffff; color: #1a211e; font: inherit; font-weight: 600; cursor: pointer">Back</button>
+<button type="button" id="to-card" hidden style="min-height: 2.75rem; padding: 0 1.125rem; border: 0; border-radius: 0.5rem; background: #1b2d4b; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Next: ID card</button>
+<button type="button" id="start-face" style="min-height: 2.75rem; padding: 0 1.125rem; border: 0; border-radius: 0.5rem; background: #1b2d4b; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Start camera</button>
+</div>
+</section>
+
+<section id="step-card" hidden aria-labelledby="s3" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.75rem; border-radius: 0.5rem; background: #e6ecf5">
+<span class="pick-initials" style="width: 2rem; height: 2rem; flex: none; border-radius: 50%; background: #1b2d4b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem"></span>
+<span style="display: flex; flex-direction: column; min-width: 0; flex: 1"><span class="pick-name" style="font-weight: 600; font-size: 0.9375rem"></span><span class="location-text" style="font-size: 0.75rem; color: #3d5275"></span></span>
+<span style="font-size: 0.75rem; font-weight: 600; color: #14532d">Face ✓</span>
+</div>
+<h2 id="s3" style="margin: 0; font-size: 1.0625rem; font-weight: 700">Tap your RFID card</h2>
+<div id="card-box" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.75rem 1rem; border-radius: 0.75rem; background: #f4f5f8; color: #3d5275; border: 2px dashed #b8c1cf">
+<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 4rem; height: 4rem"><rect x="6" y="14" width="26" height="20" rx="3"></rect><path d="M12 22h8M12 27h12"></path><path d="M36 17a9 9 0 0 1 0 14"></path><path d="M40 13a15 15 0 0 1 0 22"></path></svg>
+<span id="card-title" style="font-size: 1rem; font-weight: 700">Ready for your card</span>
+<span id="card-text" style="font-size: 0.8125rem; text-align: center">Press "I am ready", then hold your ID card flat on the reader.</span>
+</div>
+<div style="display: flex; justify-content: space-between; gap: 0.5rem; border-top: 1px solid #eef1f4; padding-top: 0.875rem">
+<button type="button" id="back-face" style="min-height: 2.75rem; padding: 0 1rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; background: #ffffff; color: #1a211e; font: inherit; font-weight: 600; cursor: pointer">Back</button>
+<button type="button" id="save" hidden style="min-height: 2.75rem; padding: 0 1.125rem; border: 0; border-radius: 0.5rem; background: #1e8a4c; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Save registration</button>
+<button type="button" id="start-card" style="min-height: 2.75rem; padding: 0 1.125rem; border: 0; border-radius: 0.5rem; background: #1b2d4b; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">I am ready</button>
+</div>
+</section>
+
+<section id="step-save" hidden aria-labelledby="s5" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<div style="display: flex; align-items: center; gap: 0.75rem">
+<h2 id="s5" style="margin: 0; font-size: 1.0625rem; font-weight: 700; flex: 1">Registering with the server</h2>
+<span id="save-badge" style="font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.625rem; border-radius: 999px; background: #fbecc6; color: #6b4a00">Sending…</span>
+</div>
+<div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 0.5rem; background: #f4f5f8">
+<span class="pick-initials" style="width: 2.5rem; height: 2.5rem; flex: none; border-radius: 50%; background: #1b2d4b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem"></span>
+<div style="display: flex; flex-direction: column; min-width: 0">
+<span class="pick-name" style="font-weight: 600"></span>
+<span class="location-text" style="font-size: 0.8125rem; color: #3d5275"></span>
+<span id="save-summary" style="font-size: 0.75rem; color: #56625c"></span>
+</div>
+</div>
+<ol id="save-steps" role="status" aria-live="polite" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column"></ol>
+<div id="save-error" hidden role="alert" style="padding: 0.75rem 0.875rem; border-radius: 0.5rem; background: #f8dcd5; color: #8a2412; font-size: 0.875rem"></div>
+<div id="saved" hidden style="display: flex; flex-direction: column; gap: 1rem">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 0.375rem; padding: 1.25rem 1rem; border-radius: 0.75rem; background: #dcf1e3; color: #14532d; text-align: center">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 2.5rem; height: 2.5rem"><circle cx="12" cy="12" r="10"></circle><path d="m7.5 12.5 3 3 6-6.5"></path></svg>
+<span style="font-size: 1.0625rem; font-weight: 700">Registration complete</span>
+<span style="font-size: 0.875rem">The server has saved it. This cabin now shows your status live.</span>
+</div>
+<a href="PiDevice.dc.html" style="display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 1.125rem; border-radius: 0.5rem; background: #1b2d4b; color: #ffffff; font-weight: 600; text-decoration: none">Done</a>
+</div>
+</section>
+</main>
+
+<div id="view" hidden style="position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(20,32,48,0.55)">
+<button type="button" id="view-backdrop" tabindex="-1" aria-label="Close details" style="position: absolute; inset: 0; border: 0; padding: 0; margin: 0; background: transparent; cursor: default"></button>
+<section role="dialog" aria-modal="true" aria-labelledby="pv-name" style="position: relative; width: 100%; max-width: 26rem; max-height: calc(100vh - 2rem); overflow-y: auto; box-sizing: border-box; background: #ffffff; border-radius: 0.875rem; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 1.5rem 3.75rem rgba(20,32,48,0.3)">
+<button type="button" id="view-close" aria-label="Close" style="position: absolute; top: 0.75rem; right: 0.75rem; width: 2.75rem; height: 2.75rem; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: #f0f2f6; color: #3c4842; cursor: pointer">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="width: 1.25rem; height: 1.25rem"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+</button>
+<div style="display: flex; align-items: center; gap: 0.875rem; padding-right: 3rem">
+<span id="pv-initials" style="width: 3.5rem; height: 3.5rem; flex: none; border-radius: 50%; background: #1b2d4b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.125rem"></span>
+<div style="min-width: 0">
+<h2 id="pv-name" style="margin: 0; font-size: 1.25rem; font-weight: 700"></h2>
+<p id="pv-designation" style="margin: 0.125rem 0 0; font-size: 0.875rem; color: #56625c"></p>
+</div>
+</div>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem; font-size: 0.875rem">
+<dt style="color: #56625c">School</dt><dd id="pv-school" style="margin: 0"></dd>
+<dt style="color: #56625c">Department</dt><dd id="pv-department" style="margin: 0"></dd>
+<dt style="color: #56625c">Role</dt><dd id="pv-role" style="margin: 0"></dd>
+<dt style="color: #56625c">Staff id</dt><dd id="pv-id" style="margin: 0; font-family: 'IBM Plex Mono', monospace"></dd>
+</dl>
+<p style="margin: 0; padding: 0.75rem; border-radius: 0.5rem; background: #f4f5f8; font-size: 0.875rem; color: #3c4842">Is this you? This cabin will be linked to this person.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 0.5rem">
+<button type="button" id="not-me" style="flex: 1 1 8rem; min-height: 2.75rem; padding: 0 1rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; background: #ffffff; color: #1a211e; font: inherit; font-weight: 600; cursor: pointer">Not me</button>
+<button type="button" id="yes-me" style="flex: 2 1 10rem; min-height: 2.75rem; padding: 0 1rem; border: 0; border-radius: 0.5rem; background: #1b2d4b; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Yes, this is me</button>
+</div>
+</section>
+</div>
+</div>
+<script src="api.js"></script>
+<script src="piregister.js"></script>
+</body>
+</html>

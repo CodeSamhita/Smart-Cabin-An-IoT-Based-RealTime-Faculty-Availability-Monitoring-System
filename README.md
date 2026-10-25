@@ -19,10 +19,11 @@
 
 ## Current scope
 
-> **25 Oct 2026: the current system is [`v2/`](v2/README.md)** - a laptop server (CSV files, the user's page designs)
-> and a Raspberry Pi cabin device (camera, RC522, NeoPixel), running on the real Pi Zero 2W; a Pi 5 is chosen next.
-> - How to run it, the rules and troubleshooting: [v2/README.md](v2/README.md). The plan and every change: [v2/PLAN.md](v2/PLAN.md).
-> - Boards: [v2/docs/boards.md](v2/docs/boards.md). Decisions and ideas we postponed or dropped: [v2/docs/decisions-and-ideas.md](v2/docs/decisions-and-ideas.md).
+> **26 Oct 2026: work continues in [`v3/`](v3/README.md)**, a copy of the working v2 - a laptop server (CSV files, the
+> user's page designs) and a Raspberry Pi cabin device (camera, RC522, NeoPixel), run on the real Pi Zero 2W; a Pi 5 is chosen next.
+> - How to run it, the rules and troubleshooting: [v3/README.md](v3/README.md). The plan and every change: [v3/PLAN.md](v3/PLAN.md).
+> - Diagrams: [v3/docs/diagrams.md](v3/docs/diagrams.md). Boards: [v3/docs/boards.md](v3/docs/boards.md). Decisions and ideas we postponed or dropped: [v3/docs/decisions-and-ideas.md](v3/docs/decisions-and-ideas.md).
+> - **v2 works and is frozen** (not changed any more): [`v2/`](v2/README.md), git tag `v2-final`.
 > - Earlier versions are kept: v1 (FastAPI + SQLite) in [`pi board codes/smart cabin system/`](pi%20board%20codes/smart%20cabin%20system/README.md)
 >   with its documents, charts and presentation; the hardware tests in `pi board codes/hardware test code/`.
 > - The demo parts below are kept as the earlier prototypes.
