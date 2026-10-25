@@ -15,6 +15,18 @@ Template for each entry:
 
 ---
 
+## 2026-10-26 – diagrams, v2 frozen, v3 started
+
+**Done:** add / delete face sets and RFID cards at the device (Pi page, Advanced → Registration details). Diagrams of the
+whole v2 system in `v2/docs/diagrams.md` (system, how the files are linked, start-up, vision loop, presence rules,
+server status, discovery, registration, face sets / cards, pages, data files). **v2 is frozen** (it works): from now on
+all work happens in a copy, `v3/`. A full backup of the project was made outside the repository.
+**What didn't / why:** the latest v2 changes (camera streams, live view stream, leave / timetable rules, face sets and
+cards) are not yet run on the Pi - it was offline.
+**Next:** run v3 on the Pi, test the new rules in a real cabin.
+
+---
+
 ## 2026-10-25 (late) – after the first real test: leaving, timetable, camera, Pi 5, documents
 
 **Feedback from the real test:** card taps update at once; face → Available works; communication fine. But leaving did not switch back (3 minutes and "anyone counted" kept the person in), the live view stuttered, CPU and memory high.

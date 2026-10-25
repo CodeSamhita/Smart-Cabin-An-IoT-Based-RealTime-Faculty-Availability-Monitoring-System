@@ -5,6 +5,7 @@ Each cabin has a Raspberry Pi with a camera, an RC522 card reader and a NeoPixel
 whether the person is in (face recognition, card taps, headcount), and sends only the result to the laptop server,
 which adds the timetable and shows it.
 
+- **Diagrams** (system, how the programs are linked, flows, rules, data): [docs/diagrams.md](docs/diagrams.md)
 - Plan, rules and every change: [PLAN.md](PLAN.md)
 - Boards (Zero 2W, Pi 4, Pi 5): [docs/boards.md](docs/boards.md)
 - Decisions, and ideas we discussed but postponed or dropped: [docs/decisions-and-ideas.md](docs/decisions-and-ideas.md)
