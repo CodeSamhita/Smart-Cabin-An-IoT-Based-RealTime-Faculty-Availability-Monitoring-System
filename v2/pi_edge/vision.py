@@ -14,6 +14,7 @@ import health
 import led
 import live
 import people_count
+import person_data
 import presence
 import registration
 import settings
@@ -53,7 +54,7 @@ def loop():
     last_flash = last_face_check = last_whole_check = 0.0
     while True:
         try:
-            if registration.camera_busy():                 # face registration is using the camera
+            if registration.camera_busy() or person_data.face_busy():   # face photos are being taken
                 time.sleep(0.5)
                 continue
             temp = health.temperature()

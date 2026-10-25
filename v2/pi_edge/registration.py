@@ -40,6 +40,7 @@ class PageError(Exception):
 
 # ---------- who is registered here ----------
 def local_person():
+    # The registered person: id, name, designation, face_sets [{id, added, photos}], cards [{uid, added}]
     global person_cache
     if person_cache is None:
         try:
@@ -47,7 +48,22 @@ def local_person():
                 person_cache = json.load(f)
         except (OSError, ValueError):
             person_cache = {}
+        p = person_cache
+        if p and "cards" not in p:                         # an older file: one card, one face set
+            p["cards"] = [{"uid": p["card_id"], "added": p.get("registered", "")}] if p.get("card_id") else []
+            p["face_sets"] = ([{"id": "set1", "added": p.get("registered", ""), "photos": p.get("face_photos", 0)}]
+                              if p.get("face_photos") else [])
     return person_cache or None
+
+
+def card_ids(person=None):
+    person = person or local_person() or {}
+    return [c["uid"] for c in person.get("cards", [])]
+
+
+def face_photo_count(person=None):
+    person = person or local_person() or {}
+    return sum(s["photos"] for s in person.get("face_sets", []))
 
 
 def write_person(person):
@@ -90,8 +106,8 @@ def sync_person(server_person):
         shared.set_part("registration", False, server_person["name"] + " is registered on the server, but this device "
                         "has no face or card for them (new SD card?). Register again here.")
     else:
-        shared.set_part("registration", True, server_person["name"] + ": face photos " + str(local.get("face_photos", 0))
-                        + ", card " + ("yes" if local.get("card_id") else "no"))
+        shared.set_part("registration", True, server_person["name"] + ": face photos " + str(face_photo_count(local))
+                        + ", cards " + str(len(card_ids(local))))
 
 
 # ---------- the registration session ----------
@@ -161,58 +177,65 @@ def start_face(token):
     threading.Thread(target=take_face_photos, name="face-registration", daemon=True).start()
 
 
-def take_face_photos():
+def collect_face(say, keep_going):
+    # Takes FACE_PHOTOS photos with exactly one face in view, within 30 s. Returns the list of face vectors, or None.
+    # say(text) shows progress; keep_going() returning False stops early. Also used by person_data.py ("Add more").
     global preview_jpeg
     import cv2
+    vectors = []
     ends = time.time() + 30
     try:
-        while time.time() < ends and len(session.get("vectors", [])) < settings.FACE_PHOTOS and session:
+        while time.time() < ends and len(vectors) < settings.FACE_PHOTOS and keep_going():
             picture = camera.take_picture()
             if picture is None:
-                session["face_message"] = "The camera does not work - see the 'camera' line."
+                say("The camera does not work - see the 'camera' line.")
                 time.sleep(1)
                 continue
             small = cv2.resize(picture, (480, 360))
             preview_jpeg = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 70])[1].tobytes()   # show it at once
             if cv2.cvtColor(small, cv2.COLOR_BGR2GRAY).mean() < settings.DARK_LEVEL:
-                session["face_message"] = "Too dark to see a face. Turn the cabin light on, or face a lamp."
+                say("Too dark to see a face. Turn the cabin light on, or face a lamp.")
                 time.sleep(0.5)
                 continue
-            # Find the face on a 640x480 copy (the person is close, and it is 4x less work for a Zero 2W),
-            # then scale the face back to the full picture for its 128 numbers
-            scale = picture.shape[1] / 640
-            faces = face.find_faces(cv2.resize(picture, (640, int(picture.shape[0] / scale))))
-            faces = [f.copy() for f in faces]
-            for f in faces:
-                f[:14] *= scale
+            faces = face.find_faces(picture)
             sx = 480 / picture.shape[1]
             for f in faces:
                 x, y, w, h = [int(v * sx) for v in f[:4]]
                 cv2.rectangle(small, (x, y), (x + w, y + h), (0, 200, 0) if len(faces) == 1 else (0, 0, 220), 2)
             preview_jpeg = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 70])[1].tobytes()
             if len(faces) == 0:
-                session["face_message"] = "No face found. Face the camera, closer, with light on your face."
+                say("No face found. Face the camera, closer, with light on your face.")
             elif len(faces) > 1:
-                session["face_message"] = str(len(faces)) + " faces in view. Only you, please."
+                say(str(len(faces)) + " faces in view. Only you, please.")
             else:
-                session["vectors"].append(face.vector(picture, faces[0]))
-                session["face_message"] = "Photo %d of %d" % (len(session["vectors"]), settings.FACE_PHOTOS)
+                vectors.append(face.vector(picture, faces[0]))
+                say("Photo %d of %d" % (len(vectors), settings.FACE_PHOTOS))
             time.sleep(0.3)
-        if session and len(session["vectors"]) < settings.FACE_PHOTOS:
-            session["face_message"] = ("Only %d of %d photos in 30 s. Try again with better light, facing the camera."
-                                       % (len(session["vectors"]), settings.FACE_PHOTOS))
-            session["vectors"] = []
-        elif session:
-            session["face_message"] = "Face registered (%d photos). Now link your card, or save." % settings.FACE_PHOTOS
+        if len(vectors) < settings.FACE_PHOTOS:
+            if keep_going():
+                say("Only %d of %d photos in 30 s. Try again with better light, facing the camera."
+                    % (len(vectors), settings.FACE_PHOTOS))
+            return None
+        return vectors
     except Exception as problem:
-        shared.error("face registration", problem)
-        if session:
-            session["face_message"] = "Face registration failed: " + str(problem)
-            session["vectors"] = []
+        shared.error("face photos", problem)
+        say("Taking the face photos failed: " + str(problem))
+        return None
     finally:
-        if session:
-            session["face_busy"] = False
         preview_jpeg = b""
+
+
+def take_face_photos():
+    def say(text):
+        if session:
+            session["face_message"] = text
+
+    vectors = collect_face(say, lambda: bool(session))
+    if session:
+        session["vectors"] = vectors or []
+        session["face_busy"] = False
+        if vectors:
+            session["face_message"] = "Face registered (%d photos). Now link your card, or save." % len(vectors)
 
 
 def start_card(token):
@@ -247,25 +270,16 @@ def save(token, server_call):
     face.forget()
     if session["vectors"]:
         face.save_vectors(session["vectors"])
-    write_person({"id": person["id"], "name": person["name"], "designation": person["designation"],
-                  "card_id": session["card_id"], "face_photos": len(session["vectors"]),
-                  "registered": time.strftime("%Y-%m-%d %H:%M:%S")})
+    now = time.strftime("%Y-%m-%d %H:%M:%S")
+    write_person({"id": person["id"], "name": person["name"], "designation": person["designation"], "registered": now,
+                  "face_sets": [{"id": "set1", "added": "at setup", "photos": len(session["vectors"])}] if session["vectors"] else [],
+                  "cards": [{"uid": session["card_id"], "added": "at setup"}] if session["card_id"] else []})
     shared.update(person={"id": person["id"], "name": person["name"], "designation": person["designation"]},
                   in_cabin=False, card_in=False)
     message = answer["message"]
     end("saved")
     shared.changed.set()
     return message
-
-
-def remove(pin, server_call):
-    ok, answer = server_call("POST", "/api/device/unregister", {"pin": str(pin).strip()})
-    if not ok:
-        raise PageError(answer["message"])
-    forget_person("removed from the page with a setup PIN")
-    shared.update(person=None)
-    shared.changed.set()
-    return answer["message"]
 
 
 def end(reason):

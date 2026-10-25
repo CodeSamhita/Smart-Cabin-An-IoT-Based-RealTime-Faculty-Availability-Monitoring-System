@@ -97,7 +97,12 @@ All pages refresh every second.
 | `/login`, `/devices` | admin | every device: location, person, health, parts, setup; recent events; the server log |
 | Pi `:8000` | anyone on the network | Simple: the status. Advanced: live fields, **Live view** (camera stream at 5–10 pictures a second, with the counted people boxed, only while open), live charts (people, confidence, temperature, CPU), registration details, device details, parts |
 
-Not active yet (shown, but say so): adding / deleting extra face sets and cards, and the Maintenance buttons on the Pi page.
+**Face sets and cards** (Pi page, Advanced → Registration details): *Add more face data* (10 more photos, which must
+match the registered face), *Add another RFID card*, and *Delete* for each (at least one of each stays). Adding a card
+and deleting need the registered person at the device: face seen or a registered card tapped in the last 2 minutes.
+The server is updated each time (card ids only as hashes).
+
+Not active yet (shown, but say so): the Maintenance buttons on the Pi page.
 
 ## 6. Troubleshooting
 

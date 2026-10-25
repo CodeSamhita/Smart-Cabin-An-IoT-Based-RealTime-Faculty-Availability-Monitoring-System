@@ -21,7 +21,7 @@ state = {
     "face_seen_at": 0.0, "face_score": -1.0, "last_picture_at": 0.0, "picture_ms": 0,
     "in_cabin": False, "card_in": False, "status": "not_available", "confidence": 2,
     "led": "off", "vision_paused": "", "card_warning": "", "presence_reason": "", "page_https": False,
-    "setup_allowed": False, "setup_message": "", "registered_at": "",
+    "setup_allowed": False, "setup_message": "", "registered_at": "", "known_tap_at": 0.0,
 }
 
 

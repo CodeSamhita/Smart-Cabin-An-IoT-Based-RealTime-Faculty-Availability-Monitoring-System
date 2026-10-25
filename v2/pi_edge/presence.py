@@ -67,14 +67,15 @@ def card_tapped(card_id):
     # Returns a message for the page / log
     global card_in_at, card_confirmed, logout_at
     person = registration.local_person()
-    if not person or not person.get("card_id"):
+    if not person or not registration.card_ids(person):
         led.flash("purple")
         return "card " + card_id + " read, but no card is registered at this device"
-    if card_id != person["card_id"]:
+    if card_id not in registration.card_ids(person):
         led.flash("purple")
         log.warning("unknown card %s", card_id)
         return "unknown card " + card_id
     now = time.time()
+    shared.update(known_tap_at=now)                        # the registered person is at the device (see person_data)
     with lock:
         if shared.get("in_cabin"):
             shared.update(card_in=False)

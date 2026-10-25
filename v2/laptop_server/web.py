@@ -242,6 +242,15 @@ def api_device_register(req, query, body):
     return {"message": person["name"] + " is registered at " + device["device"] + ".", "location": device["location"]}
 
 
+@route("POST", "/api/device/credentials", "device")
+def api_device_credentials(req, query, body):
+    # The registered person added / deleted a face set or a card at the device
+    card_ids = body.get("card_ids") if isinstance(body.get("card_ids"), list) else []
+    registrations.update_credentials(req.device["device"], field(body, "person_id"), card_ids[:20],
+                                     field(body, "face_photos", False) or 0)
+    return {"message": "Saved on the server"}
+
+
 @route("POST", "/api/device/unregister", "device")
 def api_device_unregister(req, query, body):
     security.check_pin(req.device["device"], field(body, "pin"), use_it=True)

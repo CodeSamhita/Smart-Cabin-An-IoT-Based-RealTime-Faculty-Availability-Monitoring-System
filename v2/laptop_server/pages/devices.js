@@ -78,6 +78,7 @@ function cardHtml(d) {
 
 const EVENT_NAMES = { 'status': 'Status changed', 'new device': 'First seen', 'registered': 'Person registered',
                       'unregistered': 'Person removed', 'moved': 'Person moved', 'location': 'Location set',
+                      'credentials': 'Face / cards changed',
                       'setup pin': 'Setup PIN made', 'device key': 'Device key', 'refused': 'Refused', 'admin': 'Admin' };
 
 async function refresh(force) {

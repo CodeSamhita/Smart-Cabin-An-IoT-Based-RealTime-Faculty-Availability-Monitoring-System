@@ -18,6 +18,7 @@ import urllib.parse
 
 import details
 import health
+import person_data
 import registration
 import rfid
 import server_link
@@ -59,8 +60,8 @@ def state_for_page(token, with_details=False):
         "setup_allowed": s["setup_allowed"], "setup_message": s["setup_message"], "registered_at": s["registered_at"],
         "person_id": person["id"] if person else "", "designation": person.get("designation", "") if person else "",
         "school": extra.get("school", ""), "department": extra.get("department", ""),
-        "face_photos": local.get("face_photos", 0) if person else 0,
-        "card_tail": local.get("card_id", "")[-4:] if person and local.get("card_id") else "",
+        "face_photos": registration.face_photo_count(local) if person else 0,
+        "person_data": person_data.view() if person else None,
         "page_url": server_link.page_url(),
         "simulation": settings.SIMULATE, "computer": settings.COMPUTER,
         "camera_source": ("the test picture (--picture)" if settings.TEST_PICTURE_GIVEN else
@@ -184,6 +185,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
             registration.check(token)
             registration.end("cancelled on the page")
             return {"message": "Registration cancelled. Nothing was saved."}
+        if (method, path) == ("POST", "/api/person/add-face"):
+            person_data.add_face(call)
+            return {"message": "Look at the camera: taking %d more photos." % settings.FACE_PHOTOS}
+        if (method, path) == ("POST", "/api/person/add-card"):
+            person_data.add_card()
+            return {"message": "Hold the new card on the reader within %d s." % settings.CARD_WAIT_SECONDS}
+        if (method, path) == ("POST", "/api/person/delete-face"):
+            return {"message": person_data.delete_face(str(body.get("set_id", "")), call)}
+        if (method, path) == ("POST", "/api/person/delete-card"):
+            try:
+                index = int(body.get("index", -1))
+            except (TypeError, ValueError):
+                raise PageError("No such card.")
+            return {"message": person_data.delete_card(index, call)}
+        if (method, path) == ("POST", "/api/person/stop"):
+            person_data.stop()
+            return {"message": "Cancelled."}
         if (method, path) == ("POST", "/api/sim/tap"):
             if not settings.SIMULATE:
                 raise PageError("This device has a real card reader: tap the card on it.")

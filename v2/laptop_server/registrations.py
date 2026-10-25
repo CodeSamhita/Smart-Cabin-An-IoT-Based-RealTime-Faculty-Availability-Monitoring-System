@@ -40,7 +40,7 @@ def register(device, location, person_id, card_id, face_photos):
     with csv_store.lock:
         rows = csv_store.read("registrations.csv")
         for row in rows:
-            if card_hash and row["card_hash"] == card_hash and not row["to_time"] and row["person_id"] != person_id:
+            if card_hash and card_hash in row["card_hash"].split(";") and not row["to_time"] and row["person_id"] != person_id:
                 raise UserError("This card is already registered to " + row["name"] + ".")
         for row in rows:
             if not row["to_time"] and (row["device"] == device or row["person_id"] == person_id):
@@ -54,6 +54,29 @@ def register(device, location, person_id, card_id, face_photos):
     logbook.event("registered", person["name"] + " at " + device + " (" + (location or "location not set") + "), face photos: "
                   + str(face_photos) + ", card: " + ("yes" if card_id else "no"), device, person_id)
     return person
+
+
+def update_credentials(device, person_id, card_ids, face_photos):
+    # The person at this device added / deleted a face set or a card: keep the card hashes (";"-separated) and
+    # the number of face photos. A card already linked to someone else is refused.
+    hashes = [security.sha256(str(c).upper()) for c in card_ids if c]
+    with csv_store.lock:
+        rows = csv_store.read("registrations.csv")
+        mine = None
+        for row in rows:
+            if row["to_time"]:
+                continue
+            if row["device"] == device and row["person_id"] == person_id:
+                mine = row
+            elif any(h in row["card_hash"].split(";") for h in hashes):
+                raise UserError("One of these cards is already registered to " + row["name"] + ".")
+        if mine is None:
+            raise UserError("This person is not registered at this device on the server.")
+        mine["card_hash"] = ";".join(hashes)
+        mine["face_photos"] = int(face_photos or 0)
+        csv_store.write("registrations.csv", rows, COLUMNS)
+    logbook.event("credentials", mine["name"] + ": %d card(s), %d face photos" % (len(hashes), int(face_photos or 0)),
+                  device, person_id)
 
 
 def unregister(device):

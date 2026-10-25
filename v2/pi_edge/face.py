@@ -80,6 +80,28 @@ def save_vectors(vectors):
     saved = None
 
 
+def add_vectors(vectors):
+    # One more face set: its vectors go after the ones already saved (person.json says which rows are which set)
+    old = registered_vectors()
+    save_vectors(list(old) + list(vectors) if old is not None else list(vectors))
+
+
+def remove_rows(start, count):
+    # Delete one face set: rows start .. start+count-1
+    old = registered_vectors()
+    if old is not None:
+        save_vectors(list(old[:start]) + list(old[start + count:]))
+
+
+def match_score(vectors):
+    # How well new photos match the registered face: the middle value of each photo's best similarity
+    old = registered_vectors()
+    if old is None or not len(old) or not len(vectors):
+        return -1.0
+    best = sorted(float(np.max(old @ v)) for v in vectors)
+    return best[len(best) // 2]
+
+
 def forget():
     global saved
     if os.path.exists(FACE_FILE):

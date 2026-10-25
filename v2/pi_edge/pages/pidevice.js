@@ -1,8 +1,8 @@
 // Smart Cabin edge device - the device page's logic (PiDevice.dc.html).
 // Reads /api/state every second (with the device details every 10 s in the Advanced view) and fills the design.
 // The Advanced view also shows the live picture stream (/live.mjpg, only while it is open) and live charts of the last 2 minutes.
-// For now (prototype focus) adding / deleting extra face sets and cards, and the maintenance actions, only say that
-// they come later; nothing is changed on the device.
+// Registration details: add more face data, add another card, delete a face set / card (person_data.py on the Pi).
+// For now (prototype focus) the maintenance actions only say that they come later; nothing is changed on the device.
 
 const STATUS = {
   available: { label: 'Available', text: 'In the cabin, alone', bg: '#dcf1e3', fg: '#14532d', dot: '#1e8a4c', glow: 'rgba(30,138,76,0.18)' },
@@ -176,17 +176,7 @@ function draw(s) {
     $('rd-cabin').textContent = s.location || '–';
     $('rd-id').textContent = s.person_id;
     $('rd-when').textContent = s.registered_at || '–';
-    const hasFace = s.face_photos > 0, hasCard = !!s.card_tail;
-    $('face-check').style.background = hasFace ? '#1e8a4c' : '#9aa5b4';
-    $('face-check').textContent = hasFace ? '✓' : '–';
-    $('face-title').textContent = hasFace ? 'Face registered' : 'No face registered';
-    $('face-summary').textContent = hasFace ? s.face_photos + ' photos · 1 set' : 'Not registered on this device';
-    $('face-list').innerHTML = hasFace ? '<li style="display: flex; align-items: center; gap: 0.5rem; min-height: 2.25rem; padding: 0.25rem 0.25rem 0.25rem 0.5rem; border-radius: 0.375rem; background: #ffffff; font-size: 0.8125rem"><span style="flex: 1; min-width: 0">Face set 1 · ' + s.face_photos + ' photos <span style="color: #56625c">· at setup</span></span></li>' : '';
-    $('card-check').style.background = hasCard ? '#1e8a4c' : '#9aa5b4';
-    $('card-check').textContent = hasCard ? '✓' : '–';
-    $('card-title').textContent = hasCard ? 'RFID cards linked' : 'No RFID card linked';
-    $('card-summary').textContent = hasCard ? '1 card' : 'Not registered on this device';
-    $('card-list').innerHTML = hasCard ? '<li style="display: flex; align-items: center; gap: 0.5rem; min-height: 2.25rem; padding: 0.25rem 0.25rem 0.25rem 0.5rem; border-radius: 0.375rem; background: #ffffff; font-size: 0.8125rem"><span style="font-family: \'IBM Plex Mono\', monospace">•••• ' + esc(s.card_tail) + '</span><span style="flex: 1; min-width: 0; font-size: 0.75rem; color: #56625c">at setup</span></li>' : '';
+    drawPersonData(s.person_data || { face_sets: [], cards: [], adding: '', adding_message: '' });
   }
 
   // Setup state (only when nobody is registered)
@@ -217,6 +207,50 @@ function draw(s) {
   }
 }
 let shownError = '';
+
+// ---------- face sets and cards (Registration details) ----------
+let asking = '';                // 'face:<set id>' or 'card:<index>' while "Delete? Yes / No" is shown
+const ITEM = 'display: flex; align-items: center; gap: 0.5rem; min-height: 2.25rem; padding: 0.25rem 0.25rem 0.25rem 0.5rem; border-radius: 0.375rem; background: #ffffff; font-size: 0.8125rem';
+const TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 1rem; height: 1rem"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>';
+
+function deleteControls(key, label, canDelete) {
+  if (asking === key) {
+    return '<span style="font-size: 0.75rem; font-weight: 600; color: #8a2412">Delete?</span>' +
+      '<button type="button" data-yes="' + key + '" style="min-height: 1.75rem; padding: 0 0.5rem; border: 0; border-radius: 0.375rem; background: #9e2a17; color: #ffffff; font: inherit; font-size: 0.75rem; font-weight: 600; cursor: pointer">Yes</button>' +
+      '<button type="button" data-no="1" style="min-height: 1.75rem; padding: 0 0.5rem; border: 1px solid #b8c1cf; border-radius: 0.375rem; background: #ffffff; color: #1a211e; font: inherit; font-size: 0.75rem; font-weight: 600; cursor: pointer">No</button>';
+  }
+  if (!canDelete) return '';
+  return '<button type="button" data-ask="' + key + '" aria-label="' + esc(label) + '" title="Delete" style="width: 2rem; height: 2rem; flex: none; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 0.375rem; background: transparent; color: #8a2412; cursor: pointer">' + TRASH + '</button>';
+}
+
+function drawPersonData(d) {
+  const sets = d.face_sets, cards = d.cards;
+  const photos = sets.reduce((n, x) => n + x.photos, 0);
+  $('face-check').style.background = sets.length ? '#1e8a4c' : '#9aa5b4';
+  $('face-check').textContent = sets.length ? '✓' : '–';
+  $('face-title').textContent = sets.length ? 'Face registered' : 'No face registered';
+  $('face-summary').textContent = sets.length ? photos + ' photos · ' + sets.length + (sets.length === 1 ? ' set' : ' sets') : 'Not registered on this device';
+  $('face-list').innerHTML = sets.map((x, i) => '<li style="' + ITEM + '"><span style="flex: 1; min-width: 0">Face set ' + (i + 1) + ' · ' + x.photos +
+    ' photos <span style="color: #56625c">· ' + esc(x.added) + '</span></span>' + deleteControls('face:' + x.id, 'Delete face set ' + (i + 1), sets.length > 1) + '</li>').join('');
+  $('card-check').style.background = cards.length ? '#1e8a4c' : '#9aa5b4';
+  $('card-check').textContent = cards.length ? '✓' : '–';
+  $('card-title').textContent = cards.length ? 'RFID cards linked' : 'No RFID card linked';
+  $('card-summary').textContent = cards.length + (cards.length === 1 ? ' card' : ' cards');
+  $('card-list').innerHTML = cards.map((c) => '<li style="' + ITEM + '"><span style="font-family: \'IBM Plex Mono\', monospace">•••• ' + esc(c.tail) +
+    '</span><span style="flex: 1; min-width: 0; font-size: 0.75rem; color: #56625c">' + esc(c.added) + '</span>' +
+    deleteControls('card:' + c.index, 'Delete card ending ' + c.tail, cards.length > 1) + '</li>').join('');
+  $('adding').hidden = !(d.adding || d.adding_message);
+  $('adding-text').textContent = d.adding_message || (d.adding === 'face' ? 'Look at the camera… taking 10 more photos.' : 'Hold the new card on the reader until it beeps.');
+  $('stop-adding').textContent = d.adding ? 'Cancel' : 'Close';
+}
+
+async function personCall(url, body) {
+  const r = await api('POST', url, body || {});
+  if (!r.ok) showBar(r.message);
+  asking = '';
+  refresh();
+  return r;
+}
 
 function drawDetails(d) {
   $('uptime').textContent = d.uptime;
@@ -292,9 +326,18 @@ $('views').addEventListener('click', (e) => {
   if (last) draw(last);
   refresh();
 });
-$('add-face').addEventListener('click', () => { $('adding-text').textContent = 'Adding more face data: ' + LATER; $('adding').hidden = false; });
-$('add-card').addEventListener('click', () => { $('adding-text').textContent = 'Adding another RFID card: ' + LATER; $('adding').hidden = false; });
-$('stop-adding').addEventListener('click', () => { $('adding').hidden = true; });
+$('add-face').addEventListener('click', (e) => press(e.currentTarget, () => personCall('/api/person/add-face')));
+$('add-card').addEventListener('click', (e) => press(e.currentTarget, () => personCall('/api/person/add-card')));
+$('stop-adding').addEventListener('click', () => personCall('/api/person/stop'));
+$('reg-details').addEventListener('click', (e) => {
+  const ask = e.target.closest('[data-ask]'), yes = e.target.closest('[data-yes]'), no = e.target.closest('[data-no]');
+  if (ask) { asking = ask.dataset.ask; if (last) draw(last); }
+  if (no) { asking = ''; if (last) draw(last); }
+  if (yes) {
+    const [kind, id] = yes.dataset.yes.split(':');
+    personCall(kind === 'face' ? '/api/person/delete-face' : '/api/person/delete-card', kind === 'face' ? { set_id: id } : { index: Number(id) });
+  }
+});
 $('actions').addEventListener('click', (e) => { const b = e.target.closest('[data-action]'); if (b) openConfirm(b.dataset.action); });
 $('cf-input').addEventListener('input', updateConfirmButton);
 $('cf-cancel').addEventListener('click', () => { $('confirm').hidden = true; });

@@ -44,12 +44,16 @@ def make_autostart():
 
 def on_tap(card_id):
     # Every card tap goes to the registration first (if it is waiting for a card), else to presence
+    import person_data
     import presence
     import registration
+    import server_link
     import vision
     from logbook import log
     if registration.card_tapped(card_id):
         log.info("card %s taken by the registration", card_id)
+        return
+    if person_data.card_tapped(card_id, server_link.call):    # "Add another RFID card" was waiting for it
         return
     log.info("card tap: %s", presence.card_tapped(card_id))
     vision.wake(card_tap=True)

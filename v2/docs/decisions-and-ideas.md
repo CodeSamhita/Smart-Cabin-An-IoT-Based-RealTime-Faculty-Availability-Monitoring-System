@@ -34,6 +34,7 @@ reason - so the report and the paper can explain the choices, and nothing is los
 | **Pages refresh every second** | the user wants live pages |
 | **Live view on the Pi page** (no login) | the user accepted it for the prototype: faculty photos are public anyway |
 | **Raspberry Pi 5, 4 GB** | the Zero 2W works but is at its limit; Pi 5 also for future projects |
+| **More face sets and cards per person**, added / deleted at the device | the user's design; new face photos must match the registered face, and changes need the person at the device (face or registered card in the last 2 minutes) |
 
 ## Ideas discussed and postponed (may come back)
 
@@ -43,7 +44,7 @@ reason - so the report and the paper can explain the choices, and nothing is los
 | **OLED display** (0.96" SSD1306) with a one-time pairing code (and a QR code) during registration, then status and return time | hardware not fitted yet; registration works without it | I²C (GPIO2 / GPIO3), `luma.oled`, pairing codes valid 10 minutes, one use, only while not linked |
 | **Registration through the web portal**: the faculty member logs in, the server sends commands to the Pi (take 10 photos, wait for a card) | the device page works for now | a command queue the Pi checks, progress shown in the portal |
 | **Faculty logins** (username from the name, password `123` at first): see and manage their own device; admin sees all | core first | accounts from `people.csv`, a "My device" page from the PiDevice design |
-| **Adding / deleting extra face sets and cards**, **Maintenance** (restart, reboot, shut down, factory reset) | shown in the design, not active | protected by the admin or the registered person (card / face / password) |
+| **Maintenance** (restart, reboot, shut down, factory reset) | shown in the design, not active | protected by the admin or the registered person (card / face / password) |
 | **"Remove person" and "Reset key" buttons** on the Devices page | not in the user's design | two buttons + the server calls that already exist |
 | **A copy of face data on the server** (encrypted numbers, never photos) | not needed while one Pi = one cabin | restore to a replacement Pi, move with a person who changes cabin |
 | **Bluetooth presence** (the person's phone) | dropped for the first build: least reliable, most setup | the tested code from hardware test 9 |
