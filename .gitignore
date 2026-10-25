@@ -25,6 +25,9 @@ pi board codes/hardware test code/ignore_zones.json
 pi board codes/hardware test code/known_faces.json
 pi board codes/hardware test code/bluetooth_devices.json
 pi board codes/hardware test code/presence_confidence.json
+# Registered users and downloaded models of pi board codes/claude codes/ (made on the Pi)
+pi board codes/claude codes/data/
+pi board codes/claude codes/models/
 
 # Smart Cabin product: the server database, and each cabin device's own data and downloaded models
 pi board codes/smart cabin system/laptop/smart_cabin.db*

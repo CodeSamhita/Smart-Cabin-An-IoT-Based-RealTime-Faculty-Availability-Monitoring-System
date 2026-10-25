@@ -19,10 +19,12 @@
 
 ## Current scope
 
-> **24 Oct 2026: the real product is in [`pi board codes/smart cabin system/`](pi%20board%20codes/smart%20cabin%20system/README.md).**
-> - It has a laptop server (FastAPI + SQLite) and a Raspberry Pi cabin app (camera, RFID, Bluetooth, buttons, NeoPixel).
-> - Its plan, with every step and check, is in [BUILD_PLAN.md](pi%20board%20codes/smart%20cabin%20system/BUILD_PLAN.md).
-> - The documents, charts and the animated "vs existing work" presentation are in its `docs/`.
+> **25 Oct 2026: the current system is [`v2/`](v2/README.md)** - a laptop server (CSV files, the user's page designs)
+> and a Raspberry Pi cabin device (camera, RC522, NeoPixel), running on the real Pi Zero 2W; a Pi 5 is chosen next.
+> - How to run it, the rules and troubleshooting: [v2/README.md](v2/README.md). The plan and every change: [v2/PLAN.md](v2/PLAN.md).
+> - Boards: [v2/docs/boards.md](v2/docs/boards.md). Decisions and ideas we postponed or dropped: [v2/docs/decisions-and-ideas.md](v2/docs/decisions-and-ideas.md).
+> - Earlier versions are kept: v1 (FastAPI + SQLite) in [`pi board codes/smart cabin system/`](pi%20board%20codes/smart%20cabin%20system/README.md)
+>   with its documents, charts and presentation; the hardware tests in `pi board codes/hardware test code/`.
 > - The demo parts below are kept as the earlier prototypes.
 
 As of 21 October 2026, the project has three working parts. The full design below stays as the long-term plan.

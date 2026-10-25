@@ -104,6 +104,19 @@ The Pi can't make the YOLO file itself (that needs PyTorch, which is too big for
 
 Without the file, the page says so and keeps using MobileNet-SSD.
 
+## Deploying from the laptop
+
+`pi board codes/deploy_to_pi.ps1` copies every script here to `~/hw` on the Pi, stops the test that was running, starts the one you name (with sudo, in the background, so it keeps running after SSH closes) and prints its web page address:
+
+    .\deploy_to_pi.ps1 10_presence_confidence.py
+
+The saved faces, devices and zones on the Pi are never overwritten. The test runs as a systemd unit called `hwtest`, so it keeps running after SSH closes. On the Pi, `sudo journalctl -u hwtest -f` shows its output and `sudo systemctl stop hwtest` stops it. It doesn't start again after a reboot; run the deploy again.
+
+**Once, two setups** (each asks for the Pi's password one last time), run from the repository folder:
+
+    powershell -ExecutionPolicy Bypass -File ".\pi board codes\setup_pi_key.ps1"     # log in with a key
+    powershell -ExecutionPolicy Bypass -File ".\pi board codes\setup_pi_sudo.ps1"    # sudo without a password
+
 ## Wiring (GPIO number, physical pin in brackets)
 
 | RC522 | Pi |

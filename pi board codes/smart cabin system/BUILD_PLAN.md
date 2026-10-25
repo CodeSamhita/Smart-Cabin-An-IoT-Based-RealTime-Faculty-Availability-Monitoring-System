@@ -311,6 +311,22 @@ sequenceDiagram
 - **Also in test 9** (`9_bluetooth_presence.py`, user said yes 25 Oct 2026): the same check-then-disconnect, start-up untrust and guard thread.
 - **Check (added):** [x] guard and check code paths tested with a fake `bluetoothctl` (8 / 8) [x] same for test 9 (8 / 8, page loads without errors) [ ] on the real Pi: after a check, `bluetoothctl info` says "Connected: no" [ ] on the real Pi: a phone that tries to play audio to the Pi is dropped
 
+### Step 12 – RFID module in the new `v1/for pi board/` folder (requested 24 Oct 2026)
+- **What:** `v1/for pi board/RFID/main code.py` only calls four files in `RFID/Support Code/`:
+  - `test physical connection.py`: SPI on, libraries there, the reader answers, stable reads
+  - `Check sensor specs.py`: chip version and maker, antenna and gain, read speed
+  - `verify device integrity.py`: SPI write and read-back, RST pin, the chip's self-test
+  - `read tags.py`: live tag reading with the full UID (4 or 7 bytes) and card type
+- **Added 24 Oct 2026 (user: "what if any test fails?"):** each support file returns its results (PASS / FAIL / INFO per check). `main code.py` prints a summary before reading tags. If the connection fails it stops; if any integrity check fails it skips tag reading. An antenna that is off counts as a FAIL in the specs.
+  - **Check:** [x] 6 fail cases with a fake reader on the laptop [x] summary on the real Pi, all PASS
+- **Added 24 Oct 2026 (user: "user should not leave their card on reader by mistake"):** `read tags.py` warns when a card is left on the reader.
+  - Each loop restarts the antenna field before reading, so a card lying still keeps answering and its presence can be followed.
+  - A card still there after **5 s** gets "Card left on the reader, please take it off", repeated every **10 s** until it is gone. Once it has been unseen for **1 s** it counts as taken off, and the next tap shows again.
+  - A card already lying there when tag reading starts is warned about straight away.
+  - **Check:** [x] warning timing with a fake reader (fake clock, 20 % missed reads) [x] on the real Pi with a card left on (warned at once, then every 10 s; all integrity checks still passed with the card there) [ ] "taken off" seen on the real Pi
+- **Why:** a basic, split RFID module to grow the new v1 from. The logic comes from `hardware test code/1_test_rfid.py`, which already passed on the Pi.
+- **Check:** [x] all files compile on the laptop [x] runs on the real Pi (Zero 2W, `~/v1/RFID`): connection, specs and integrity all pass [ ] a tag read in live mode *(nobody tapped a card during the run)*
+
 ## 7. Not in this build (later)
 
 - Many faculty in one cabin, HOD / department views, notifications.
@@ -358,4 +374,5 @@ sequenceDiagram
 - 25 Oct 2026 – **v1 archived:** a frozen copy of `laptop/` and `pi zero 2w/` as they are now (Steps 0–10, with pairing) saved in `archive/v1/`. Work continues in the main folders. Not copied: `smart_cabin.db` (real accounts) and `__pycache__`.
   - **Check:** [x] same file count as the main folders, minus the skipped files (laptop 31, Pi 18) [x] archived laptop code imports and Pi code compiles
 - 25 Oct 2026 – Step 11 added: presence confidence test (face × RFID × Bluetooth, 8 combinations, each with its own confidence).
+- 24 Oct 2026 – **v1 has its own plan from now on:** `v1/BUILD_PATH.md` (modules A1–A7, cabin app, server, whole system, results, dates). Step 12 (RFID) stays here as the record of how it started.
 - 25 Oct 2026 – at the user's request the main `laptop/` and `pi zero 2w/` folders were removed (sent to the Windows Recycle Bin, so they can be restored; the code is also in git). `archive/v1/` is now the only copy of the code on disk. The old `smart_cabin.db` went to the Recycle Bin with them.

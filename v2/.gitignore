@@ -1,0 +1,12 @@
+# Smart Cabin v2 - files that must not go into git (passwords, keys, faces, logs, big models)
+laptop_server/data/*
+!laptop_server/data/people.csv
+!laptop_server/data/programs.csv
+!laptop_server/data/timetable.csv
+laptop_server/certificate/
+laptop_server/logs/
+pi_edge/data/
+pi_edge/logs/
+pi_edge/models/
+__pycache__/
+*.tmp

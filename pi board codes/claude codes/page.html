@@ -1,0 +1,182 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Cabin - Register</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #f4f5f7; color: #222; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 0 0 6px; }
+  .top { color: #555; margin: 0 0 14px; font-size: 14px; }
+  .wrap { max-width: 720px; }
+  .card { background: #fff; border-radius: 8px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,.12); margin-bottom: 14px; }
+  .steps { display: flex; gap: 4px; margin-bottom: 14px; }
+  .steps div { flex: 1; text-align: center; font-size: 12px; padding: 6px 2px; border-radius: 6px; background: #e4e6ea; color: #666; }
+  .steps div.now { background: #2a78d6; color: #fff; font-weight: 600; }
+  .steps div.done { background: #cfe8d6; color: #1a5c2c; }
+  .steps div.skipped { background: #f3e3c3; color: #7a5600; }
+  input[type=text] { font-size: 16px; padding: 8px; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; }
+  button { font-size: 15px; padding: 8px 14px; margin: 8px 6px 0 0; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; }
+  button:hover { background: #eee; }
+  button.main { background: #2a78d6; color: #fff; border-color: #2a78d6; }
+  button.main:hover { background: #1f63b5; }
+  button:disabled { opacity: .45; cursor: default; }
+  .small { color: #555; font-size: 13px; }
+  .status { font-size: 15px; margin: 8px 0; padding: 8px 10px; background: #f4f5f7; border-radius: 6px; }
+  .ok { color: #1a8f3c; font-weight: 600; }
+  .bad { color: #c62828; }
+  img { width: 100%; max-width: 480px; border-radius: 6px; background: #000; display: block; margin-top: 8px; }
+  .bar { height: 10px; background: #e4e6ea; border-radius: 5px; overflow: hidden; margin: 6px 0; }
+  .bar div { height: 100%; background: #2a78d6; transition: width .3s; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid #f0f0f0; font-size: 14px; }
+  .row button { margin: 0; padding: 5px 10px; font-size: 13px; }
+  .row small { color: #777; display: block; font-family: monospace; }
+  .pairbox { background: #fff8e6; border: 1px solid #f0c36d; border-radius: 8px; padding: 10px 12px; margin-top: 10px; }
+  .pairbox ol { margin: 6px 0 8px 18px; padding: 0; font-size: 14px; }
+  .msg { background: #eef4ff; border-radius: 6px; padding: 8px 10px; font-size: 14px; margin-bottom: 14px; }
+  .msg:empty { display: none; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  th { color: #555; font-size: 13px; }
+  .parts { font-size: 13px; color: #555; margin-top: 4px; }
+</style></head>
+<body>
+<div class="wrap">
+<h1>Smart Cabin - Register a user</h1>
+<p class="top" id="top"></p>
+<div class="msg" id="message"></div>
+
+<div class="card" id="new">
+  <h2>New user</h2>
+  <input type="text" id="name" placeholder="Name, e.g. Dr. Rao" maxlength="60">
+  <button class="main" onclick="start()">Start registering</button>
+  <div class="small" style="margin-top:8px">Then: face, RFID card, Bluetooth device. Each can be skipped, but at least one is needed.</div>
+  <div class="parts" id="parts"></div>
+</div>
+
+<div id="wizard" style="display:none">
+  <div class="steps" id="steps"></div>
+  <div class="card" id="panel"></div>
+</div>
+
+<div class="card">
+  <h2>Registered users</h2>
+  <div id="users"></div>
+</div>
+</div>
+
+<script>
+const esc = t => String(t).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const q = encodeURIComponent;
+const STEPS = [["face", "1 Face"], ["card", "2 Card"], ["phone", "3 Bluetooth"], ["review", "4 Save"]];
+let picture = 0, lastPanel = "";
+
+async function post(url) {
+  const r = await fetch(url, {method: "POST"});
+  if (!r.ok) alert(await r.text());
+  refresh();
+}
+function start() {
+  const name = document.getElementById("name").value.trim();
+  if (!name) return alert("Type the user's name first");
+  post("/api/start?name=" + q(name));
+}
+function part(p, name) {
+  return name + ": " + (p.ok ? "<span class='ok'>ready</span>" : "<span class='bad'>" + esc(p.text) + "</span>");
+}
+function nav(recorded, first) {
+  // Back / Skip / Next buttons under each step (no Back on the first step)
+  return "<div>" + (first ? "" : "<button onclick=\"post('/api/back')\">Back</button>") +
+         "<button onclick=\"post('/api/skip')\">Skip</button>" +
+         "<button class='main' " + (recorded ? "" : "disabled ") + "onclick=\"post('/api/next')\">Next</button>" +
+         "<button onclick=\"if (confirm('Cancel this registration? Nothing is saved.')) post('/api/cancel')\">Cancel</button></div>";
+}
+
+function facePanel(s) {
+  const f = s.face, n = s.draft.face_photos;
+  return "<h2>Face</h2><div class='small'>Only " + esc(s.draft.name) + " in view, facing the camera, well lit. " +
+    "It takes " + s.samples + " photos. Only numbers are kept, never the photos.</div>" +
+    "<div class='status'>" + (n ? "<span class='ok'>Recorded: " + n + " photos</span>" :
+      f.capturing ? "Taking photos: " + esc(f.text) : esc(f.text)) + "</div>" +
+    (f.capturing ? "<div class='bar'><div style='width:" + (100 * (parseInt(f.text.split(" ")[1]) || 0) / s.samples) + "%'></div></div>" : "") +
+    "<button class='main' " + (f.capturing || !f.ok ? "disabled " : "") + "onclick=\"post('/api/face')\">" +
+    (n ? "Record again" : "Record my face") + "</button>" +
+    (s.sim ? "" : "<img id='picture' alt='camera'>") + nav(n > 0, true);
+}
+function cardPanel(s) {
+  const c = s.card, uid = s.draft.card;
+  return "<h2>RFID card</h2><div class='small'>Press the button, then tap the card on the reader.</div>" +
+    "<div class='status'>" + (uid ? "<span class='ok'>Recorded: card " + esc(uid) + "</span>" : esc(c.text)) + "</div>" +
+    "<button class='main' " + (c.waiting || !c.ok ? "disabled " : "") + "onclick=\"post('/api/card')\">" +
+    (uid ? "Use another card" : "Tap my card") + "</button>" +
+    (s.sim && c.waiting ? "<button onclick=\"post('/api/tap')\">Pretend a tap</button>" : "") + nav(!!uid);
+}
+function phonePanel(s) {
+  const p = s.phone, devs = s.draft.devices;
+  return "<h2>Bluetooth devices <span class='small'>(" + devs.length + " / " + s.max_devices + ")</span></h2>" +
+    "<div class='small'>Phone, laptop or watch. Only detected later, never used as a speaker, keyboard or anything else.</div>" +
+    (devs.length ? devs.map(d => "<div class='row'><span>" + esc(d.name) + "<small>" + d.address + "</small></span>" +
+      "<button data-a='" + d.address + "' onclick='post(\"/api/unpair?address=\" + this.dataset.a)'>Remove</button></div>").join("")
+      : "<div class='status'>No device yet.</div>") +
+    "<button class='main' " + (p.pairing || !p.ok || devs.length >= s.max_devices ? "disabled " : "") +
+    "onclick=\"post('/api/phone')\">Add a device</button>" +
+    (!p.pairing ? "" : "<div class='pairbox'><b>Adding a device</b> (" + p.seconds_left + " s left)<ol>" +
+      "<li>On the phone, open the <b>Bluetooth settings</b> screen and keep it open.</li>" +
+      "<li>Press <b>Pair</b> next to it below and accept on the phone, <i>or</i> pick <b>" + esc(s.pi_name) +
+      "</b> in the phone's own list.</li></ol>" +
+      (p.nearby.length ? p.nearby.map(d => "<div class='row'><span>" + esc(d.name) + "<small>" + d.address + "</small></span>" +
+        "<button data-a='" + d.address + "' data-n='" + esc(d.name) + "' onclick='post(\"/api/pair?address=\" + this.dataset.a + " +
+        "\"&name=\" + q(this.dataset.n))'>Pair</button></div>").join("") : "<div class='small'>Looking for visible devices...</div>") +
+      "</div>") + nav(devs.length > 0);
+}
+function reviewPanel(s) {
+  const d = s.draft, any = d.face_photos || d.card || d.devices.length;
+  const line = (label, value) => "<tr><th>" + label + "</th><td>" + (value ? "<span class='ok'>" + esc(value) + "</span>" : "<span class='small'>skipped</span>") + "</td></tr>";
+  return "<h2>Save " + esc(d.name) + "?</h2><table>" +
+    line("Face", d.face_photos ? d.face_photos + " photos" : "") + line("RFID card", d.card) +
+    line("Bluetooth", d.devices.map(x => x.name).join(", ")) + "</table>" +
+    (any ? "" : "<div class='status bad'>Nothing recorded. Go back and register at least one.</div>") +
+    "<div><button onclick=\"post('/api/back')\">Back</button>" +
+    "<button class='main' " + (any ? "" : "disabled ") + "onclick=\"post('/api/save')\">Save user</button>" +
+    "<button onclick=\"if (confirm('Cancel this registration? Nothing is saved.')) post('/api/cancel')\">Cancel</button></div>";
+}
+
+async function refresh() {
+  let s;
+  try { s = await (await fetch("/status.json")).json(); }
+  catch (e) { document.getElementById("top").textContent = "Can't reach the Pi"; return; }
+
+  document.getElementById("top").textContent = (s.sim ? "Simulation (no hardware). " : "") + "Device: " + s.pi_name;
+  document.getElementById("message").textContent = s.message;
+  document.getElementById("parts").innerHTML = part(s.face, "Camera") + " · " + part(s.card, "RFID") + " · " + part(s.phone, "Bluetooth");
+
+  const d = s.draft;
+  document.getElementById("new").style.display = d.active ? "none" : "";
+  document.getElementById("wizard").style.display = d.active ? "" : "none";
+  if (d.active) {
+    const at = STEPS.findIndex(x => x[0] === d.step);
+    const got = {face: d.face_photos > 0, card: !!d.card, phone: d.devices.length > 0};
+    document.getElementById("steps").innerHTML = "<div class='done'>" + esc(d.name) + "</div>" + STEPS.map(([key, label], i) =>
+      "<div class='" + (i === at ? "now" : i < at ? (got[key] ? "done" : "skipped") : "") + "'>" + label + "</div>").join("");
+    const html = {face: facePanel, card: cardPanel, phone: phonePanel, review: reviewPanel}[d.step](s);
+    if (html !== lastPanel) {                              // only redraw when something changed
+      document.getElementById("panel").innerHTML = html;
+      lastPanel = html;
+    }
+    const img = document.getElementById("picture");
+    if (img) img.src = "/latest.jpg?n=" + (++picture);
+  } else {
+    lastPanel = "";
+  }
+
+  document.getElementById("users").innerHTML = s.users.length ? "<table><tr><th>Name</th><th>Face</th><th>Card</th><th>Bluetooth</th><th></th></tr>" +
+    s.users.map(u => "<tr><td>" + esc(u.name) + "<br><span class='small'>" + esc(u.registered) + "</span></td>" +
+      "<td>" + (u.face_photos ? "✔ " + u.face_photos : "–") + "</td><td>" + (u.card ? "✔<br><span class='small'>" + esc(u.card) + "</span>" : "–") + "</td>" +
+      "<td>" + (u.devices.length ? esc(u.devices.join(", ")) : "–") + "</td>" +
+      "<td><button data-id='" + u.user_id + "' data-n='" + esc(u.name) + "' onclick='if (confirm(\"Delete \" + this.dataset.n + \"?\")) " +
+      "post(\"/api/delete?user_id=\" + this.dataset.id)'>Delete</button></td></tr>").join("") + "</table>"
+    : "<div class='small'>Nobody registered yet.</div>";
+}
+
+refresh();
+setInterval(refresh, 700);
+</script>
+</body></html>

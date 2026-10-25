@@ -1,0 +1,107 @@
+<!doctype html>
+<!-- Smart Cabin - home page (user's design): choose a school, search a name, filter by role / status, see a person's
+     status and today's timetable. Filled with live data by main.js. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Cabin – Find a faculty member</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+html{font-size:clamp(14px, 0.42vw + 10.6px, 22px)}
+body{margin:0}
+a{color:#2a4a7a}a:hover{color:#14243f}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div style="font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 1rem; color: #1a211e; background: #f4f5f8; min-height: 100vh">
+
+<header style="position: sticky; top: 0; z-index: 40; background: #1b2d4b; color: #ffffff; box-shadow: 0 0.125rem 0.75rem rgba(20,32,48,0.18)">
+<div style="position: relative; max-width: 72.5rem; margin: 0 auto; padding: 0.5rem 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 0.625rem; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 1.125rem">
+Smart Cabin</a>
+<span id="live" title="Live · updated" style="margin-left: auto; display: inline-flex; align-items: center; gap: 0.375rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: #cdd8ea; white-space: nowrap"><span id="live-dot" aria-hidden="true" style="width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #5fd38d"></span><span id="live-time">–</span></span>
+<div id="tools" hidden style="flex: 1 1 100%; display: flex; align-items: center; gap: 0.5rem">
+<button type="button" id="filters-btn" aria-expanded="false" aria-haspopup="true" style="position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.25rem; padding: 0 0.75rem; border-radius: 0.5rem; font: inherit; font-size: 0.875rem; font-weight: 600; cursor: pointer; background: transparent; color: #ffffff; border: 1px solid rgba(255,255,255,0.4)">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 1rem; height: 1rem"><path d="M4 6h16M7 12h10M10 18h4"></path></svg>
+<span id="filters-label">Filters</span></button>
+<label style="position: relative; z-index: 1; flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 0.5rem; min-height: 2.25rem; padding: 0 0.625rem; border-radius: 0.5rem; background: #ffffff">
+<input type="search" id="q" aria-label="Search a name" placeholder="Search a name in all schools" style="flex: 1; min-width: 0; border: 0; outline: none; font: inherit; font-size: 0.875rem; font-weight: 400; background: transparent; color: #1a211e">
+<svg viewBox="0 0 24 24" fill="none" stroke="#56625c" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="width: 1rem; height: 1rem; flex: none"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+</label>
+</div>
+
+<button type="button" id="filters-backdrop" hidden tabindex="-1" aria-label="Close filters" style="position: fixed; inset: 0; z-index: 0; border: 0; padding: 0; margin: 0; background: transparent; cursor: default"></button>
+<div id="filters" hidden role="dialog" aria-label="Filters" style="position: absolute; z-index: 2; top: calc(100% + 0.25rem); left: 1.5rem; width: min(30rem, calc(100vw - 2rem)); box-sizing: border-box; background: #ffffff; color: #1a211e; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem; box-shadow: 0 1rem 2.5rem rgba(20,32,48,0.25)">
+<div role="group" aria-labelledby="f-role" style="display: flex; flex-direction: column; gap: 0.375rem">
+<span id="f-role" style="font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em">Role</span>
+<div id="role-options" style="display: flex; flex-wrap: wrap; gap: 0.375rem"></div>
+</div>
+<div role="group" aria-labelledby="f-status" style="display: flex; flex-direction: column; gap: 0.375rem">
+<span id="f-status" style="font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em">Status</span>
+<div id="status-options" style="display: flex; flex-wrap: wrap; gap: 0.375rem"></div>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; border-top: 1px solid #eef1f4; padding-top: 0.75rem">
+<button type="button" id="clear-filters" style="min-height: 2.25rem; padding: 0 0.5rem; border: 0; background: transparent; color: #2a4a7a; font: inherit; font-size: 0.875rem; font-weight: 600; cursor: pointer">Clear all</button>
+<button type="button" id="filters-done" style="min-height: 2.25rem; padding: 0 1rem; border: 0; border-radius: 0.5rem; background: #1b2d4b; color: #ffffff; font: inherit; font-size: 0.875rem; font-weight: 600; cursor: pointer">Done</button>
+</div>
+</div>
+</div>
+</header>
+
+<main style="max-width: 72.5rem; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; display: flex; flex-direction: column; gap: 1.5rem">
+
+<div id="failed" hidden role="status" style="padding: 0.875rem 1rem; border-radius: 0.5rem; background: #f8dcd5; color: #8a2412">Could not load people.csv. Refresh the page to try again.</div>
+
+<section id="schools" hidden aria-labelledby="pick-school" style="display: flex; flex-direction: column; gap: 1rem">
+<h1 id="pick-school" style="margin: 0; font-size: 1.625rem; font-weight: 700">Choose a school</h1>
+<div id="school-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(16.25rem, 100%), 1fr)); gap: 0.75rem"></div>
+</section>
+
+<div id="results" hidden style="display: flex; flex-direction: column; gap: 1rem">
+<div style="display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem">
+<button type="button" id="back" style="display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.75rem; margin-left: -0.5rem; padding: 0 0.5rem; border: 0; border-radius: 0.5rem; background: transparent; color: #2a4a7a; font: inherit; font-size: 0.9375rem; font-weight: 600; cursor: pointer">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 1rem; height: 1rem"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>
+All schools</button>
+<h1 id="results-title" style="margin: 0; font-size: 1.625rem; font-weight: 700"></h1>
+</div>
+<div style="display: flex; flex-direction: column; gap: 0.75rem">
+<p id="count-text" style="margin: 0; font-size: 0.875rem; color: #4a5650">Loading people.csv…</p>
+<div id="people-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(min(16.25rem, 100%), 1fr)); gap: 0.75rem"></div>
+<div id="empty" hidden style="padding: 2rem; text-align: center; background: #ffffff; border: 1px dashed #b8c1cf; border-radius: 0.75rem; color: #4a5650">No one matches. Try a shorter name or clear the filters.</div>
+</div>
+</div>
+</main>
+
+<div id="modal" hidden style="position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(20,32,27,0.55)">
+<button type="button" id="modal-backdrop" tabindex="-1" aria-label="Close details" style="position: absolute; inset: 0; border: 0; padding: 0; margin: 0; background: transparent; cursor: default"></button>
+<section role="dialog" aria-modal="true" aria-labelledby="sel-name" style="position: relative; width: 100%; max-width: 28.75rem; max-height: calc(100vh - 2rem); overflow-y: auto; box-sizing: border-box; background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.875rem; padding: 1.75rem; display: flex; flex-direction: column; gap: 1.125rem; box-shadow: 0 1.5rem 3.75rem rgba(20,32,27,0.28)">
+<button type="button" id="modal-close" aria-label="Close" style="position: absolute; top: 0.75rem; right: 0.75rem; width: 2.75rem; height: 2.75rem; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: #f0f2f6; color: #3c4842; cursor: pointer">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="width: 1.25rem; height: 1.25rem"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+</button>
+<div style="display: flex; align-items: center; gap: 0.875rem; padding-right: 3rem">
+<span id="sel-initials" style="width: 3.5rem; height: 3.5rem; flex: none; border-radius: 50%; background: #1b2d4b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.125rem"></span>
+<div style="min-width: 0">
+<h2 id="sel-name" style="margin: 0; font-size: 1.375rem; font-weight: 700"></h2>
+<p id="sel-designation" style="margin: 0.125rem 0 0; font-size: 0.875rem; color: #56625c"></p>
+</div>
+</div>
+<span id="sel-pill"><span id="sel-dot"></span><span id="sel-status"></span></span>
+<p id="sel-how" hidden style="margin: -0.625rem 0 0; font-size: 0.8125rem; color: #56625c"></p>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem; font-size: 0.875rem">
+<dt style="color: #56625c">Cabin</dt><dd id="sel-cabin" style="margin: 0"></dd>
+<dt style="color: #56625c">Last seen</dt><dd id="sel-seen" style="margin: 0; font-family: 'IBM Plex Mono', monospace">–</dd>
+</dl>
+<div style="display: flex; flex-direction: column; gap: 0.625rem">
+<h3 style="margin: 0; font-size: 0.9375rem; font-weight: 600">Today's timetable</h3>
+<div id="sel-timetable" style="display: flex; flex-direction: column; gap: 0.625rem"></div>
+</div>
+</section>
+</div>
+</div>
+<script src="api.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

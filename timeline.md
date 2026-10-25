@@ -15,6 +15,98 @@ Template for each entry:
 
 ---
 
+## 2026-10-25 (late) – after the first real test: leaving, timetable, camera, Pi 5, documents
+
+**Feedback from the real test:** card taps update at once; face → Available works; communication fine. But leaving did not switch back (3 minutes and "anyone counted" kept the person in), the live view stuttered, CPU and memory high.
+**Done:**
+- Leave rule (user's): the face decides - not seen for 2 minutes = out, even if others are counted (card-only registrations: nobody counted for 2 minutes).
+- Timetable rule (user's): a class within 5 minutes and the face not seen for 2 minutes → "Leaving for <class> at <time>".
+- Pages show how someone is in: Seen and tapped in / Seen, not tapped in / Tapped in, not seen yet.
+- Camera: 640x480 stream for headcount and live view, 1296x972 only for face checks; the live view is a continuous stream (5 / s on a Zero, 10 / s on a Pi 4 / 5) only while open.
+- Board-aware timings; Pi 5 support (NeoPixel through pi5neo on SPI1, GPIO20). Board chosen: **Pi 5, 4 GB**.
+- Documents: v2 README rewritten, `docs/boards.md`, `docs/decisions-and-ideas.md` (every idea discussed, postponed or dropped), main README points to v2.
+**Not tested:** none of today's last changes ran on the Pi (it was offline when copying); syntax-checked only.
+**Next:** copy to the Pi, check leaving after 2 minutes and the live view; order the Pi 5 (5 V 5 A supply, camera cable, active cooler).
+
+---
+
+## 2026-10-25 (evening) – v2 on the real Pi Zero 2W: registration, crashes, black box, autostart
+
+**Done:** the user's Pi designs (PiDevice, PiRegister) wired to live data; registration without a PIN (allowed while nobody is registered and the device has a location); the server announces itself (UDP 50505) so the Pi finds it by itself; all pages refresh every second; Live view (latest picture with person boxes + 2-minute charts) in the Pi's Advanced view; `blackbox.py` records the board's health every 2 s; `main.py --autostart` installs the app and the black box as boot services.
+**Tried / tested on the real Zero 2W:** RC522 (0x92), LED, camera 1296x972, MobileNet-SSD, server connection all OK; Dr. Pravinthraja registered (10 face photos + card); face → Available, card tap out / in work; live.jpg served; both services active and enabled.
+**What didn't / why:**
+- Face registration hung: the desktop + app used up the 415 MB (170 MB swapped). Fixed by booting to the console (no desktop); registration now shows the preview at once, warns when too dark, finds faces on a 640x480 copy.
+- The board / app "turned off": the kernel's **out-of-memory killer** stopped the app twice (power and heat were fine: throttled=0x0, 47 °C). Cause: the face finder was called on regions of a different size every time and rebuilt its memory each time. Now it always works on a fixed 640x640 square.
+- The SSH connection closing also killed the app (it ran inside the SSH session); now it runs as a boot service.
+**Next:** watch `app_mem_mb` in `data/blackbox.csv` over an hour to confirm the memory no longer grows; vision still takes 4–8 s per round on the Zero.
+
+---
+
+## 2026-10-25 – v2: landing page "who is available now"
+
+**Done:**
+- New landing page `laptop_server/pages/home/` at `/`: counts (Available / In a meeting / Not available / Unknown, each also a filter) and a card for everyone with a cabin device, available first, refreshed every 10 s. A card opens the person (details + today's timetable) on the search page, which moved to `/search`. New public call `/api/board` (public fields only).
+- Server `--data <folder>`: a separate data folder for trying things out.
+- **Fixed (found while testing):** a person registered with a card only could never be confirmed, so each tap-in ended after 120 s. Now confirmed when anyone is counted in the cabin.
+- **Fixed (Windows):** saving the device key failed with "Access is denied" when Windows locked the just-written file; the key was lost and the device refused for good. Saves now retry and run one at a time.
+
+**Tried / tested:** server 35 / 35 (incl. board), page addresses 22 / 22, three simulated cabins (Available, In a meeting, Not available) on the landing page at laptop and phone width (375 px, no sideways scroll), card → details.
+**What didn't / why (my mistakes, both undone):**
+- You were running the server yourself (admin made 15:12) while my test server used the same data folder; my test added a test device and 5 rows. Only those rows were removed; your admin account was not touched. Since then my tests use `--data` on a separate folder.
+- One command started the device app instead of the server, without `--no-webcam`, so it switched the webcam on for about a minute (15:33–15:35). The pictures were black, only used in memory, never saved or sent.
+
+---
+
+## 2026-10-25 – v2: pages in their own folders, Pi app runs on Windows
+
+**Done:**
+- Every page has its own folder with its HTML and its script: `laptop_server/pages/public/`, `devices/`, `login/`, `pi_edge/pages/device/`; shared `app.js` + `style.css` in `pages/common/`. Links are relative, so each HTML file also opens by itself (it then shows its layout and a note that live data needs the server). The servers serve the files at `/<folder>/<file>`; `/`, `/devices`, `/login` redirect there.
+- The Pi app notices when it is not on a Pi (Windows, Mac, PC) and runs as usual without `--sim`: missing hardware shows **NOT PRESENT** (grey, not an error); the camera is a `--picture` file, else the computer's webcam (`--no-webcam` to turn it off), else none; the card reader is the "Tap card" box; the LED colour is on the page.
+
+**Tried / tested:** page addresses 19 / 19 (server) and 13 / 13 (device), including refused `../` and hidden-file tricks; server test 33 / 33; end-to-end 29 / 29 again; the app on Windows with no Pi flags (connected, parts NOT PRESENT, software parts OK); each HTML file opened directly from disk in headless Edge (styling and scripts load, the note shows).
+**What didn't / why:** a bulk text replace in PowerShell turned every "l" into "o" in three page scripts (an array was flattened); found at once and the files were rewritten. The webcam path was not tried, so your webcam was not switched on without asking.
+**Next:** hotspot on → deploy to the Pi.
+
+---
+
+## 2026-10-24/25 – v2: the whole system from scratch (laptop server + Pi edge)
+
+**Done:**
+- Plan first: `v2/PLAN.md`. Then `v2/laptop_server/` (Python's own HTTPS server, CSV files only) and `v2/pi_edge/` (Pi app), `v2/README.md`, `v2/deploy_to_pi.ps1`, `v2/.gitignore`.
+- **Devices numbered like roll numbers:** a Pi's hardware serial → `SC-001`, `SC-002`… plus a secret key on its first hello. The location is set once on the server's Devices page (admin login), never on the Pi.
+- **Registration at the device from a phone:** setup PIN from the admin → the Pi copies the people list from the server → school / department drop-downs + type-to-search → face (10 photos, live preview) → card → save. Moving cabin keeps the old row in `registrations.csv`.
+- **On the Pi:** one picture every 5 s (1.5 s after a change), headcount (MobileNet-SSD on the Zero, YOLOv8n on a Pi 4), face only when useful, temperature guard (70 / 78 °C), white LED flash in a dark room (max once a minute), face × card confidence (2 / 35 / 70 / 90 %), presence rules (2 face checks, 120 s card confirm, 180 s leave). Bluetooth left out for now.
+- **Security:** no video feed, HTTPS (self-signed; the Pi pins the server's certificate), device keys, admin login (PBKDF2), one-time setup PINs, card ids only hashed on the server, faces only on the Pi, public page limited to 10 fields.
+- **Troubleshooting:** every button gives Working… → OK / error; 10 s request limit; red error bar for page errors; each part OK / PROBLEM with the reason; health and last error on the Devices page; `server.log` / `edge.log`.
+
+**Tried / tested (laptop, simulated Pi, 24–25 Oct):**
+- Server test: 33 / 33 (logins, wrong password, devices page needs login, device keys, location, PINs, registration, public fields only, bad requests).
+- End-to-end with a simulated Pi (camera = swapped photo files), 29 / 29, plus device stopped → Unknown after 60 s: connect, location, wrong PIN, people copy (839), face registration (no face / 2 faces refused, 10 photos), card link, save, used PIN refused, face → Available, 3 people → In a meeting, card tap out / in, unknown card ignored, 60 s logout pause, dark room, unconfirmed tap out after 120 s, leave after 180 s.
+- The pages in the browser: public grid + detail, Devices page, the device page's registration with live preview.
+
+**What didn't / fixed:**
+- OpenCV 5 (laptop Python 3.15) can't read MobileNet-SSD (Caffe) → the people count switches to YOLOv8n there. The Pi has OpenCV 4.10.
+- Two simulated devices shared one data folder → the second overwrote the first's key and deleted its face. Each simulated serial now gets its own folder.
+- Device page: a status refresh already on its way wiped the new registration key, so the steps didn't appear. Fixed (answers sent before the key changed are ignored).
+- The in-app browser refuses self-signed HTTPS, so the pages were checked with `--http` copies.
+
+**Not done yet:** nothing on the real Pi (the laptop hotspot was off). Machine learning, Bluetooth, the OLED are planned later.
+**Next:** hotspot on → `v2/deploy_to_pi.ps1` → camera, RC522, LED, dark flash and a 30-minute temperature run on the Zero 2W.
+
+---
+
+## 2026-10-24 – RFID module in the new `v1/for pi board/`
+
+**Done:** `v1/for pi board/RFID/main code.py` calls four files in `Support Code/`: test physical connection, check sensor specs, verify device integrity and read tags. The logic was split out of `1_test_rfid.py` (RC522, SPI, RST on GPIO25). Plan entry: BUILD_PLAN Step 12.
+**Tried / tested:** all 5 files compile, and `main code.py` loads all 4 support files (their names have spaces, so it loads them by path).
+- Copied to the Pi Zero 2W (`~/v1/RFID`) and run for 25 s: SPI and libraries OK, NXP MFRC522 v2.0 (0x92), 200 / 200 stable reads, antenna on at 33 dB, write / read-back 6 / 6, RST pin OK, self-test 64 / 64.
+- Added on request ("what if any test fails?"): each support file returns PASS / FAIL / INFO per check, and `main code.py` prints a summary before reading tags. A connection failure stops the run, and an integrity failure skips tag reading. Tested on the laptop with a fake reader (6 cases: all good, SPI off, no answer, antenna off, MOSI broken, RST broken), all as intended. On the Pi: summary all PASS, then tag reading started. An older copy left running on the Pi was holding GPIO25 (`GPIO not allocated`) and was stopped first.
+- Added on request ("user should not leave their card on reader by mistake"): `read tags.py` restarts the antenna field before each read, so a card lying still keeps answering. A card still there after 5 s is warned about, again every 10 s, and "taken off" shows once it has been unseen for 1 s. A card already there at the start is warned about straight away. Fake-clock test with 20 % missed reads: all 4 scenarios right, and it caught 2 bugs (a missed first read lost the start warning; 0 used as "not warned"), both fixed. On the Pi with a card (UID F3 CA E9 17) lying on the reader: all checks PASS (the RST pin and the self-test too), then "was already on the reader", a warning straight away and again every 10 s. Taking the card off was not seen during the 30 s run.
+**What didn't / why:** live tag reading started, but no card was tapped during either run on the Pi.
+**Next:** run it on the Pi and tap a card: `cd ~/v1/RFID && sudo python3 "main code.py"`.
+
+---
+
 ## 2026-10-25 – v1 archived, ESP32 dropped
 
 **Done:**
@@ -24,6 +116,8 @@ Template for each entry:
   - Then added on request: **Register my face** (10 photos) and **Add a device** (Bluetooth pairing, up to 5, with Remove) on the same page, so tests 8 and 9 aren't needed first. Simulation test: 14 / 14 checks passed (register, delete, pair, 5-device limit, remove, cancel).
   - Bluetooth made detect-only: each check connects once (l2ping) and disconnects at once; a guard thread drops and untrusts any other connection every 3 s, so the Pi is never used as an input or output device. Tested with a fake `bluetoothctl`: 8 / 8. Still to check on the real Pi.
   - The same detect-only rule added to `9_bluetooth_presence.py`: fake `bluetoothctl` test 8 / 8, and its page loads without errors.
+- **Deploying from the laptop:** `pi board codes/deploy_to_pi.ps1` copies the tests to `~/hw` and starts one as the systemd unit `hwtest`. Key login and password-free sudo were set up once. **Test 10 now runs on the real Pi** (http://192.168.137.207:8086): camera, RC522 and Bluetooth all started. Face register, card and phone pairing not tried yet.
+- **New folder `pi board codes/claude codes/`**, built step by step (plan in its `PLAN.md`). **Step 1, register a user:** name → face (10 photos → `faces/<id>.npy`) → RFID card → Bluetooth devices → save, each skippable but at least one needed. Saved in `users.csv` and `devices.csv`. Simulation 26 / 26 + 3 / 3. Deployed and running on the Pi at http://192.168.137.207:8000 (camera, RFID and Bluetooth ready). Registering on the real hardware not tried yet.
 
 ---
 
