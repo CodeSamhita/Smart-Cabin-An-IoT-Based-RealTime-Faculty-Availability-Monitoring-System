@@ -142,6 +142,6 @@ def measure():
         {"title": "Sensors", "rows": [["Camera", "Pi Camera · " + "x".join(map(str, settings.CAMERA_SIZE)) + " · one picture every "
                                        + str(settings.PICTURE_SECONDS) + " s", False],
                                       ["RFID reader", "RC522 · SPI", False],
-                                      ["Door light", "NeoPixel · GPIO " + str(settings.LED_PIN), False]]},
+                                      ["Indication light", "NeoPixel · " + ("GPIO 20 (SPI1)" if settings.IS_PI5 else "GPIO " + str(settings.LED_PIN)), False]]},
     ]
     return {"meters": meters, "groups": groups, "uptime": length(uptime_seconds()), "server_host": server.hostname or ""}

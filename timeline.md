@@ -15,6 +15,13 @@ Template for each entry:
 
 ---
 
+## 2026-10-26 – pages on a design canvas (v3)
+
+**Done:** the 6 pages (Main, Search, Login, Devices, PiDevice, PiRegister) put on a Claude design canvas, "Smart Cabin Pages", one artboard per page, same look, sample AI School data. Written in `v3/PLAN.md` first.
+**Next:** the user adds buttons, text boxes and other elements on the canvas; then the new elements are copied into the v3 `.dc.html` files and wired to the scripts and server.
+
+---
+
 ## 2026-10-26 – diagrams, v2 frozen, v3 started
 
 **Done:** add / delete face sets and RFID cards at the device (Pi page, Advanced → Registration details). Diagrams of the

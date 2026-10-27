@@ -146,7 +146,7 @@ function draw(s) {
   $('adv-pill-dot').style.background = st.dot;
   $('adv-pill-text').textContent = st.label;
   $('door-dot').style.background = LED[s.led] || LED.off;
-  $('door-text').textContent = 'Door light: ' + (s.led === 'yellow' ? 'yellow' : s.led);
+  $('door-text').textContent = 'Indication light: ' + (s.led === 'yellow' ? 'yellow' : s.led);
   $('adv-reg').hidden = !registered;
   $('adv-noreg').hidden = registered;
   $('adv-initials').textContent = initials(s.person);
@@ -189,7 +189,7 @@ function draw(s) {
   $('dev-details').hidden = !advanced;
   $('parts-box').hidden = !advanced;
   $('maintenance').hidden = !advanced;
-  const NAMES = { camera: 'Camera', rfid: 'Card reader', led: 'Door light', vision: 'Vision', 'people model': 'People model',
+  const NAMES = { camera: 'Camera', rfid: 'Card reader', led: 'Indication light', vision: 'Vision', 'people model': 'People model',
                   'face model': 'Face model', server: 'Server link', page: 'This page', registration: 'Registration' };
   $('parts').innerHTML = Object.keys(s.parts).sort().map((n) => {
     const p = s.parts[n];

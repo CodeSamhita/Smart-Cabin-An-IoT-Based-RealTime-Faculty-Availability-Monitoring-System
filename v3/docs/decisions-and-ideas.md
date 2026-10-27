@@ -52,6 +52,7 @@ reason - so the report and the paper can explain the choices, and nothing is los
 | **Machine learning** on `presence_log.csv`: learned confidence (Naive Bayes / logistic regression), steady status (hysteresis / HMM), predictions ("usually back around 11:40") | needs real logs first | logging days with ground truth |
 | **Posters and photos of people** (stillness check, ignore zones) | not in the first build | tested in hardware test 7 |
 | **Timetable editor** in the portal | the demo `timetable.csv` is used for now | a page to enter a weekly timetable |
+| **A Pi 5 as the server** instead of the laptop (always on, low power) | the laptop works for now (user, 26 Oct) | a boot service with `--no-browser`; the college Wi-Fi or a hotspot on the Pi 5; move the certificate + data folder (or clear `server_fingerprint` on each cabin Pi); an SSD or a good SD card for `presence_log.csv`; a way to create the first admin without a screen. Better on its own board than combined with a cabin device |
 | **Real push notifications**, HTTPS with a real certificate, more than one admin | prototype on a private network | for a deployment |
 
 ## Ideas dropped
