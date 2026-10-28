@@ -70,7 +70,7 @@ FACE_RECHECK_SECONDS = 30     # once the person is in, check the face only this 
 WHOLE_PICTURE_FACE_SECONDS = 15   # no person box found: look for a face in the whole picture this often
 
 DARK_LEVEL = 40               # average brightness (0 - 255) under this = the room is dark
-FLASH_EVERY_SECONDS = 60      # in a dark room, light up for a picture at most this often
+FLASH_EVERY_SECONDS = 120     # in a dark room, light up for a picture at most this often (just to check who is in)
 FLASH_SECONDS = 0.6           # how long the white light stays on before the picture
 
 # Presence rules (PLAN.md section 3)
