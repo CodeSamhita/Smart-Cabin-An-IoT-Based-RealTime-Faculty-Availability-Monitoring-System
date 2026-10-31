@@ -525,6 +525,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except UserError as error:
             logbook.log.warning("%s %s from %s -> refused: %s", method, path, self.client_address[0], error)
             self.send(400, {"ok": False, "message": str(error)})
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
+            pass                    # the browser left (or stopped reading) before the answer was sent: nothing to do
         except Exception as error:
             logbook.log.error("%s %s from %s -> SERVER ERROR\n%s", method, path, self.client_address[0],
                               traceback.format_exc())
@@ -549,13 +551,36 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return data
 
 
+class Server(http.server.ThreadingHTTPServer):
+    # The secure handshake happens in each connection's own thread, with a time limit - not while accepting
+    # connections - so one browser or Pi that connects and then says nothing can't freeze the server for everyone.
+    daemon_threads = True
+    context = None                  # the https settings, or None with --http
+    allow_reuse_address = os.name != "nt"   # on Windows this would let a second server start on the same port, unnoticed
+
+    def finish_request(self, request, client_address):
+        if self.context is None:
+            return super().finish_request(request, client_address)
+        request.settimeout(HANDSHAKE_SECONDS)
+        try:
+            request = self.context.wrap_socket(request, server_side=True)
+        except (ssl.SSLError, OSError):
+            return                  # the browser gave up (e.g. at the certificate warning) or never answered
+        try:
+            super().finish_request(request, client_address)
+        finally:
+            request.close()
+
+
+HANDSHAKE_SECONDS = 10
+
+
 def start():
-    server = http.server.ThreadingHTTPServer(("0.0.0.0", settings.PORT), Handler)
-    server.daemon_threads = True
+    server = Server(("0.0.0.0", settings.PORT), Handler)
     if settings.USE_HTTPS:
         security.make_certificate()
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         context.minimum_version = ssl.TLSVersion.TLSv1_2
         context.load_cert_chain(settings.CERT_FILE, settings.KEY_FILE)
-        server.socket = context.wrap_socket(server.socket, server_side=True)
+        server.context = context
     return server
