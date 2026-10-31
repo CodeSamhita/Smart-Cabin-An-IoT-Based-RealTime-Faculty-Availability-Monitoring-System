@@ -15,6 +15,21 @@ Template for each entry:
 
 ---
 
+## 2026-10-31 – canvas design built into v3
+
+**Done:** the canvas design (26–31 Oct) merged into v3: one login for admin and faculty (username / server id / ID card number), faculty logins made in bulk with a default password and changed at the first login, new pages AdminPerson, AdminLogins and Faculty (My cabin), Devices page with count filters, newest device and the faculty browser, period-based timetables (several per person, one in use) that the status rules now read, and the Pi sending its details with each hello. New server files `faculty.py`, `timetables.py`; new CSV files `faculty_accounts.csv`, `faculty_sessions.csv`, `timetables.csv`, `timetable_in_use.csv`, `device_details.csv`.
+**Tried / tested:** Python files compile. Not run in the browser yet; not deployed to the Pi.
+**What didn't / why:** the live camera picture and add face / card can't be done from the laptop pages (the server can't ask the Pi to act); those pages link to the device's own page instead.
+**Next:** start the server, make the faculty logins, try each page; deploy the Pi change.
+
+---
+
+## 2026-10-27 – design canvas: admin and faculty pages
+
+**Done:** on the canvas: Devices redesign (newest device, count filters, faculty browser), the admin's faculty member page, Faculty logins (default password for all), My cabin for faculty (status key, week timetable with periods, several timetables, account details, device details, maintenance), one-box login. Indication light renamed, dark-room flash every 2 minutes, "Staff id" → "Server id".
+
+---
+
 ## 2026-10-26 – pages on a design canvas (v3)
 
 **Done:** the 6 pages (Main, Search, Login, Devices, PiDevice, PiRegister) put on a Claude design canvas, "Smart Cabin Pages", one artboard per page, same look, sample AI School data. Written in `v3/PLAN.md` first.

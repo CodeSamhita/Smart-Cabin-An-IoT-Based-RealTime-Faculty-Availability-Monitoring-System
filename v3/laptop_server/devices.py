@@ -5,6 +5,7 @@
 #   set_location(): the admin writes where the device is (set once, changed only if it is moved)
 #   reset_key()   : the admin lets a device get a new key (e.g. after its SD card was rewritten)
 #   save_health() : the latest health report per device (device_health.csv)
+#   save_details(): the device's full details and face sets / cards, sent with each hello (device_details.csv)
 
 import json
 import time
@@ -17,6 +18,7 @@ from security import UserError
 DEVICE_COLUMNS = ["device", "serial", "model", "location", "key_hash", "ip", "first_seen", "last_seen"]
 HEALTH_COLUMNS = ["device", "time", "temperature", "cpu_percent", "memory_free_mb", "throttled",
                   "parts", "last_error", "page_url"]
+DETAILS_COLUMNS = ["device", "time", "details", "person_data"]
 
 
 def all_devices():
@@ -120,3 +122,24 @@ def save_health(device, health, page_url=""):
 
 def health_of(device):
     return find(csv_store.read("device_health.csv"), "device", device) or {}
+
+
+def save_details(device, details, person_data):
+    # The device's full details (details.py on the Pi) and its face sets / cards, sent with every hello
+    if not isinstance(details, dict):
+        return
+    with csv_store.lock:
+        rows = [r for r in csv_store.read("device_details.csv") if r["device"] != device]
+        rows.append({"device": device, "time": time.time(), "details": json.dumps(details)[:20000],
+                     "person_data": json.dumps(person_data if isinstance(person_data, dict) else {})[:5000]})
+        csv_store.write("device_details.csv", rows, DETAILS_COLUMNS)
+
+
+def details_of(device):
+    row = find(csv_store.read("device_details.csv"), "device", device)
+    if not row:
+        return {}, {}
+    try:
+        return json.loads(row["details"] or "{}"), json.loads(row["person_data"] or "{}")
+    except ValueError:
+        return {}, {}

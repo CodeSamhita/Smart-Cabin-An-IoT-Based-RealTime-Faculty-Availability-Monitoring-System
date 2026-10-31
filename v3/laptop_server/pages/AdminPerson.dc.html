@@ -1,0 +1,163 @@
+<!doctype html>
+<!-- Smart Cabin - the admin's page for one faculty member (user's design), AdminPerson.dc.html?id=<server id>:
+     cabin setup (device, location, setup PIN, remove registration), their faculty login, and their cabin device the way
+     the device's Advanced view shows it. Filled with live data by adminperson.js (+ persondevice.js). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Cabin – Faculty member (admin)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+html{font-size:clamp(14px, 0.42vw + 10.6px, 22px)}
+body{margin:0}
+a{color:#2a4a7a}a:hover{color:#14243f}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div style="font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 1rem; color: #1a211e; background: #f4f5f8; min-height: 100vh">
+
+<header style="background: #1b2d4b; color: #ffffff">
+<div style="max-width: 72.5rem; margin: 0 auto; padding: 0.875rem 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 0.625rem; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 1.125rem; margin-right: auto">Smart Cabin <span style="font-weight: 500; color: #cdd8ea">· Admin</span></a>
+<span style="display: inline-flex; align-items: center; gap: 0.375rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: #cdd8ea; white-space: nowrap"><span aria-hidden="true" style="width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #5fd38d"></span><span id="live-time">–</span></span>
+<span style="font-size: 0.875rem; color: #cdd8ea">Signed in as <span id="admin-name">–</span></span>
+<a href="Login.dc.html" id="logout" style="display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 0.875rem; border-radius: 0.5rem; border: 1px solid #5d7398; color: #ffffff; text-decoration: none; font-weight: 500">Log out</a>
+</div>
+</header>
+
+<main style="max-width: 72.5rem; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; display: flex; flex-direction: column; gap: 1.25rem">
+<a href="Devices.dc.html" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.75rem; margin-left: -0.5rem; padding: 0 0.5rem; border-radius: 0.5rem; color: #2a4a7a; text-decoration: none; font-size: 0.9375rem; font-weight: 600">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 1rem; height: 1rem"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>
+Devices</a>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 1rem">
+<span id="initials" style="width: 4rem; height: 4rem; flex: none; border-radius: 50%; background: #1b2d4b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.375rem"></span>
+<div style="flex: 1 1 16rem; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem">
+<h1 id="name" style="margin: 0; font-size: 1.75rem; font-weight: 700">–</h1>
+<span id="subtitle" style="font-size: 0.9375rem; color: #56625c"></span>
+</div>
+<span id="pill"></span>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start">
+<section aria-labelledby="cs" style="flex: 1 1 26rem; min-width: 0; background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<h2 id="cs" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em">Cabin setup</h2>
+<div id="setup-registered" hidden style="display: flex; flex-direction: column; gap: 1rem">
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.625rem 1rem; font-size: 0.875rem">
+<dt style="color: #56625c">Cabin device</dt><dd id="cs-device" style="margin: 0; font-family: 'IBM Plex Mono', monospace"></dd>
+<dt style="color: #56625c">Location</dt><dd id="cs-location" style="margin: 0; font-weight: 600"></dd>
+<dt style="color: #56625c">Registered</dt><dd id="cs-from" style="margin: 0; font-family: 'IBM Plex Mono', monospace"></dd>
+</dl>
+<label id="loc-box" hidden style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.875rem; font-weight: 600; color: #3c4842">Location
+<span style="display: flex; gap: 0.5rem">
+<input type="text" id="loc" placeholder="e.g. Block [x], cabin [no.]" style="flex: 1; min-width: 0; min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font: inherit; font-weight: 400; font-size: 0.9375rem">
+<button type="button" id="save-loc" style="min-height: 2.75rem; padding: 0 1rem; border-radius: 0.5rem; font: inherit; font-weight: 600; cursor: pointer; border: 0; background: #1b2d4b; color: #ffffff">Save</button></span></label>
+<div style="display: flex; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid #eef1f4; padding-top: 1rem">
+<button type="button" id="make-pin" style="min-height: 2.75rem; padding: 0 1rem; border-radius: 0.5rem; font: inherit; font-weight: 600; cursor: pointer; border: 0; background: #1b2d4b; color: #ffffff">Make setup PIN</button>
+<button type="button" id="edit-loc" style="min-height: 2.75rem; padding: 0 1rem; border-radius: 0.5rem; font: inherit; font-weight: 600; cursor: pointer; border: 1px solid #b8c1cf; background: #ffffff; color: #1a211e">Edit location</button>
+<button type="button" id="ask-remove" style="min-height: 2.75rem; padding: 0 1rem; border-radius: 0.5rem; font: inherit; font-weight: 600; cursor: pointer; border: 1px solid #e2b4aa; background: #ffffff; color: #8a2412">Remove registration</button>
+</div>
+<div id="asking" hidden style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0.75rem; border-radius: 0.5rem; background: #f8dcd5; color: #8a2412; font-size: 0.875rem; font-weight: 600">
+<span id="asking-text" style="flex: 1 1 12rem"></span>
+<button type="button" id="remove" style="min-height: 2.25rem; padding: 0 0.75rem; border: 0; border-radius: 0.375rem; background: #9e2a17; color: #ffffff; font: inherit; font-size: 0.8125rem; font-weight: 600; cursor: pointer">Yes, remove</button>
+<button type="button" id="cancel-remove" style="min-height: 2.25rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.375rem; background: #ffffff; color: #1a211e; font: inherit; font-size: 0.8125rem; font-weight: 600; cursor: pointer">No</button>
+</div>
+</div>
+<div id="setup-free" hidden style="display: flex; flex-direction: column; gap: 1rem">
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.625rem 1rem; font-size: 0.875rem">
+<dt style="color: #56625c">Cabin device</dt><dd style="margin: 0">No cabin device</dd>
+</dl>
+<label style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.875rem; font-weight: 600; color: #3c4842">Assign a cabin
+<select id="free-device" style="min-height: 2.75rem; padding: 0 0.625rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; background: #ffffff; font: inherit; font-weight: 400; font-size: 0.9375rem; color: #1a211e"></select>
+</label>
+<div style="display: flex; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid #eef1f4; padding-top: 1rem">
+<button type="button" id="make-free-pin" style="min-height: 2.75rem; padding: 0 1rem; border-radius: 0.5rem; font: inherit; font-weight: 600; cursor: pointer; border: 0; background: #1b2d4b; color: #ffffff">Make setup PIN</button>
+</div>
+</div>
+<div id="pin-box" hidden style="display: flex; flex-direction: column; gap: 0.375rem; padding: 0.875rem 1rem; border-radius: 0.625rem; background: #f4f5f8; border: 1px dashed #b8c1cf">
+<span style="font-size: 0.8125rem; color: #4a5650">Setup PIN · give this to the person at the cabin</span>
+<span id="pin" style="font-family: 'IBM Plex Mono', monospace; font-size: 1.75rem; font-weight: 500; letter-spacing: 0.2em"></span>
+<span id="pin-expires" style="font-size: 0.8125rem; color: #4a5650"></span>
+</div>
+<span id="note" hidden style="font-size: 0.8125rem"></span>
+
+<div style="display: flex; flex-direction: column; gap: 0.75rem; border-top: 1px solid #eef1f4; padding-top: 1rem">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem">
+<h3 style="margin: 0; font-size: 0.9375rem; font-weight: 700; flex: 1">Faculty login</h3>
+<span id="login-state"></span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr)); gap: 0.75rem">
+<label style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #3c4842">Username
+<input type="text" id="uname" autocomplete="off" style="min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.875rem; font-weight: 400"></label>
+<label style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #3c4842">ID card number
+<input type="text" id="card-no" inputmode="numeric" autocomplete="off" style="min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.875rem; font-weight: 400"></label>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 0.5rem">
+<button type="button" id="save-ids" style="min-height: 2.75rem; padding: 0 1rem; border-radius: 0.5rem; font: inherit; font-weight: 600; cursor: pointer; border: 0; background: #1b2d4b; color: #ffffff">Save username and ID card number</button>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem">
+<label style="flex: 1 1 12rem; display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #3c4842">Default password
+<input type="password" id="reset-pw" autocomplete="new-password" style="min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font: inherit; font-size: 0.875rem; font-weight: 400"></label>
+<button type="button" id="reset" style="min-height: 2.5rem; padding: 0 1rem; border-radius: 0.5rem; font: inherit; font-weight: 600; cursor: pointer; border: 1px solid #b8c1cf; background: #ffffff; color: #1b2d4b">Reset to the default password</button>
+</div>
+</div>
+</section>
+
+<section id="status-box" hidden aria-labelledby="st" style="flex: 1 1 26rem; min-width: 0; background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.875rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<h2 id="st" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em">Status</h2>
+<div id="status-body" style="display: flex; flex-direction: column; gap: 0.875rem"></div>
+</section>
+</div>
+
+<div id="device-sections" hidden style="display: flex; flex-direction: column; gap: 1.25rem">
+<section aria-labelledby="lv" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.875rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<h2 id="lv" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em">Recent readings</h2>
+<div id="charts" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr)); gap: 0.5rem"></div>
+</section>
+<section aria-labelledby="rd" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<h2 id="rd" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em">Registration details</h2>
+<div id="registration"></div>
+</section>
+<section aria-labelledby="dv" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem">
+<h2 id="dv" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em; flex: 1">Device details</h2>
+<span id="uptime" style="font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: #56625c"></span>
+</div>
+<div id="details" style="display: flex; flex-direction: column; gap: 1rem"></div>
+</section>
+<div style="display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: flex-start">
+<section aria-labelledby="pt" style="flex: 1 1 26rem; min-width: 0; background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.625rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<h2 id="pt" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em">Parts</h2>
+<div id="parts" style="display: flex; flex-direction: column"></div>
+</section>
+<section aria-labelledby="mt" style="flex: 1 1 26rem; min-width: 0; background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<h2 id="mt" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em">Maintenance</h2>
+<div id="working" hidden role="status" style="padding: 0.75rem; border-radius: 0.5rem; background: #fbecc6; color: #6b4a00; font-size: 0.875rem; font-weight: 600"></div>
+<div id="actions"></div>
+</section>
+</div>
+</div>
+</main>
+
+<div id="confirm" hidden style="position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(20,32,48,0.55)">
+<button type="button" id="confirm-backdrop" tabindex="-1" aria-label="Close" style="position: absolute; inset: 0; border: 0; padding: 0; margin: 0; background: transparent; cursor: default"></button>
+<section role="alertdialog" aria-modal="true" aria-labelledby="cf-t" style="position: relative; width: 100%; max-width: 24rem; box-sizing: border-box; background: #ffffff; border-radius: 0.875rem; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.875rem; box-shadow: 0 1.5rem 3.75rem rgba(20,32,48,0.3)">
+<h2 id="cf-t" style="margin: 0; font-size: 1.125rem; font-weight: 700"></h2>
+<p id="cf-detail" style="margin: 0; font-size: 0.875rem; color: #3c4842; line-height: 1.5"></p>
+<label id="cf-typed" hidden style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #3c4842">Type <span id="cf-code">the device code</span> to confirm
+<input type="text" id="cf-input" autocomplete="off" style="min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font-family: 'IBM Plex Mono', monospace; font-size: 1rem; letter-spacing: 0.1em"></label>
+<div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem">
+<button type="button" id="cf-cancel" style="min-height: 2.75rem; padding: 0 1rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; background: #ffffff; color: #1a211e; font: inherit; font-weight: 600; cursor: pointer">Cancel</button>
+<button type="button" id="cf-run" style="min-height: 2.75rem; padding: 0 1rem; border: 0; border-radius: 0.5rem; font: inherit; font-weight: 600; background: #1b2d4b; color: #ffffff; cursor: pointer"></button>
+</div>
+</section>
+</div>
+</div>
+<script src="api.js"></script>
+<script src="persondevice.js"></script>
+<script src="adminperson.js"></script>
+</body>
+</html>

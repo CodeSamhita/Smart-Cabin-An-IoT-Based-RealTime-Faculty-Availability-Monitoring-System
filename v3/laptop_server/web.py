@@ -4,7 +4,9 @@
 # "Server error: ..." so the page can show it.
 #
 #   public (no login) : /  /search  /api/people-status  /api/public  /api/person  /api/filters  /api/health
+#                       /api/login  /api/logout  /api/me
 #   admin (login)     : /devices  /api/admin/...
+#   faculty (login)   : /faculty  /api/faculty/...
 #   devices (key)     : /api/device/...   (headers X-Device-Serial and X-Device-Key)
 
 import http.server
@@ -16,20 +18,24 @@ import time
 import traceback
 import urllib.parse
 
+import csv_store
 import devices
+import faculty
 import logbook
 import people
 import registrations
 import security
 import settings
 import status
+import timetables
 from security import UserError
 
 # The pages are the user's design, in pages/ (Main.dc.html is the home page, served at / ). A page file is served
 # at /<file> (or /<folder>/<file>), the same layout as on disk, so the pages' relative links work both through the
 # server and when an HTML file is opened by itself.
 HOME_PAGE = "Main.dc.html"
-SHORT_ADDRESSES = {"/search": "/Search.dc.html", "/devices": "/Devices.dc.html", "/login": "/Login.dc.html"}
+SHORT_ADDRESSES = {"/search": "/Search.dc.html", "/devices": "/Devices.dc.html", "/login": "/Login.dc.html",
+                   "/faculty": "/Faculty.dc.html", "/logins": "/AdminLogins.dc.html"}
 PAGE_FILE_TYPES = (".html", ".js", ".css")
 # Scripts only from this server; inline styles and Google Fonts are allowed because the design uses them
 SECURITY_POLICY = ("default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
@@ -79,7 +85,157 @@ def api_person(req, query, body):
     return {"person": status.person_detail(field(query, "id"))}
 
 
+# ---------- one login for the admin and faculty ----------
+@route("POST", "/api/login")
+def api_login_any(req, query, body):
+    # One box: the admin's username, or a faculty member's username, server id or ID card number
+    name, password = field(body, "username"), field(body, "password")
+    if security.is_admin_name(name):
+        req.new_cookie = security.login(name, password)
+        logbook.event("admin", "logged in from " + req.client_address[0])
+        return {"message": "Logged in", "role": "admin", "must_change": False}
+    token, must_change = faculty.login(name, password)
+    req.new_faculty_cookie = token
+    return {"message": "Logged in", "role": "faculty", "must_change": must_change}
+
+
+@route("POST", "/api/logout")
+def api_logout_any(req, query, body):
+    if req.admin:
+        security.logout(req.cookie())
+        req.new_cookie = ""
+    if req.faculty:
+        faculty.logout(req.cookie("faculty"))
+        req.new_faculty_cookie = ""
+    return {"message": "Logged out"}
+
+
+@route("GET", "/api/me")
+def api_me_any(req, query, body):
+    account = faculty.account_of(req.faculty) if req.faculty else None
+    return {"role": "admin" if req.admin else "faculty" if req.faculty else "",
+            "username": req.admin or (account["username"] if account else ""), "person_id": req.faculty,
+            "must_change": bool(account and account["must_change"] == "yes"),
+            "admin_exists": security.admin_exists(), "from_this_laptop": req.is_local()}
+
+
+# ---------- one faculty member's page (their own, or the admin's view of them) ----------
+def person_page(person_id, for_admin):
+    person = people.get(person_id)
+    if person is None:
+        raise UserError("No such person.")
+    registration = registrations.current_for_person(person_id)
+    result = status.status_for(person, registration, csv_store.read("status_now.csv"), devices.all_devices())
+    result.update(role=person.get("role", ""), day=time.strftime("%A"),
+                  periods={str(n): list(t) for n, t in settings.PERIODS.items()}, breaks=[list(b) for b in settings.BREAKS],
+                  days=list(settings.DAYS), timetables=timetables.of_person(person_id))
+    account = faculty.account_of(person_id)
+    result["account"] = {"username": account["username"] if account else "",
+                         "id_card_number": account["id_card_number"] if account else "",
+                         "state": faculty.login_state(account)}
+    result["registration"] = None
+    if registration:
+        device = devices.find(devices.all_devices(), "device", registration["device"]) or {}
+        health = devices.health_of(registration["device"])
+        details, person_data = devices.details_of(registration["device"])
+        now = next((r for r in csv_store.read("status_now.csv") if r["person_id"] == person_id), {})
+        last = float(device.get("last_seen") or 0)
+        result["registration"] = {
+            "device": registration["device"], "location": registration["location"], "from_time": registration["from_time"],
+            "face_photos": registration["face_photos"], "cards": len([c for c in registration["card_hash"].split(";") if c]),
+            "model": device.get("model", ""), "ip": device.get("ip", ""), "page_url": health.get("page_url", ""),
+            "online": bool(last) and time.time() - last <= settings.SILENT_SECONDS,
+            "seconds_since_seen": int(time.time() - last) if last else None,
+            "in_cabin": now.get("in_cabin", ""), "confidence": now.get("confidence", ""), "headcount": now.get("headcount", ""),
+            "card_in": now.get("card", ""), "temperature": health.get("temperature", ""), "cpu_percent": health.get("cpu_percent", ""),
+            "parts": json.loads(health.get("parts") or "{}"), "details": details, "person_data": person_data}
+        if for_admin:
+            result["registration"]["recent"] = [
+                {"time": r.get("time", ""), "headcount": r.get("headcount", ""), "confidence": r.get("confidence", ""),
+                 "temperature": r.get("temperature", "")} for r in status.recent_presence(registration["device"])]
+    return result
+
+
+@route("GET", "/api/faculty/home", "faculty")
+def api_faculty_home(req, query, body):
+    return {"person": person_page(req.faculty, False)}
+
+
+@route("POST", "/api/faculty/first-password", "faculty")
+def api_first_password(req, query, body):
+    faculty.set_password(req.faculty, "", field(body, "new"), field(body, "again"), first_login=True)
+    return {"message": "Password saved."}
+
+
+@route("POST", "/api/faculty/change-password", "faculty")
+def api_change_password(req, query, body):
+    faculty.set_password(req.faculty, field(body, "current"), field(body, "new"), field(body, "again"))
+    return {"message": "Password changed."}
+
+
+@route("POST", "/api/faculty/timetable/save", "faculty")
+def api_timetable_save(req, query, body):
+    timetables.save(req.faculty, field(body, "old_name", False), field(body, "name"), body.get("week"))
+    return {"message": "Timetable saved.", "timetables": timetables.of_person(req.faculty)}
+
+
+@route("POST", "/api/faculty/timetable/use", "faculty")
+def api_timetable_use(req, query, body):
+    name = field(body, "name")
+    timetables.use(req.faculty, name)
+    return {"message": "\"" + name + "\" is now in use.", "timetables": timetables.of_person(req.faculty)}
+
+
+@route("POST", "/api/faculty/timetable/delete", "faculty")
+def api_timetable_delete(req, query, body):
+    name = field(body, "name")
+    timetables.delete(req.faculty, name)
+    return {"message": "\"" + name + "\" deleted.", "timetables": timetables.of_person(req.faculty)}
+
+
 # ---------- admin ----------
+@route("GET", "/api/admin/person", "admin")
+def api_admin_person(req, query, body):
+    return {"person": person_page(field(query, "id"), True)}
+
+
+@route("POST", "/api/admin/person/ids", "admin")
+def api_admin_person_ids(req, query, body):
+    faculty.save_names(field(body, "person_id"), field(body, "username"), field(body, "id_card_number", False))
+    return {"message": "Saved."}
+
+
+@route("POST", "/api/admin/person/reset-password", "admin")
+def api_admin_reset_password(req, query, body):
+    person_id = field(body, "person_id")
+    faculty.reset_to_default(person_id, field(body, "password"), field(body, "days", False) or 7)
+    return {"message": "Back on a default password; they must change it at the next login."}
+
+
+@route("GET", "/api/admin/logins", "admin")
+def api_admin_logins(req, query, body):
+    suggested = faculty.suggestions()
+    accounts = {a["person_id"]: a for a in faculty.accounts()}
+    rows = []
+    for p in people.all_people():
+        a = accounts.get(p["id"])
+        rows.append({"id": p["id"], "name": p["name"], "school": p["school"],
+                     "username": a["username"] if a else suggested[p["id"]],
+                     "id_card_number": a["id_card_number"] if a else "", "state": faculty.login_state(a)})
+    return {"rows": rows, "days": list(settings.DEFAULT_PASSWORD_DAYS)}
+
+
+@route("POST", "/api/admin/logins/create", "admin")
+def api_admin_logins_create(req, query, body):
+    rows = body.get("rows") if isinstance(body.get("rows"), list) else []
+    rows = [{"person_id": str(r.get("id", "")), "username": str(r.get("username", "")),
+             "id_card_number": str(r.get("id_card_number", ""))} for r in rows if isinstance(r, dict)]
+    if not rows:
+        raise UserError("No people sent.")
+    count = faculty.create_all(rows, field(body, "password"), field(body, "days"))
+    return {"message": "Logins ready for %d faculty. Each sets their own password at the first login." % count}
+
+
 @route("GET", "/api/admin/me")
 def api_me(req, query, body):
     return {"logged_in": bool(req.admin), "username": req.admin, "admin_exists": security.admin_exists(),
@@ -188,6 +344,7 @@ def api_hello(req, query, body):
     row, new_key = devices.hello(req.headers.get("X-Device-Serial", ""), field(body, "model", False),
                                  req.client_address[0], req.headers.get("X-Device-Key", ""))
     devices.save_health(row["device"], body.get("health"), field(body, "page_url", False))
+    devices.save_details(row["device"], body.get("details"), body.get("person_data"))
     answer = device_answer(row)
     answer["key"] = new_key
     answer["message"] = "Hello " + row["device"]
@@ -269,12 +426,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def is_local(self):
         return self.client_address[0] in ("127.0.0.1", "::1")
 
-    def cookie(self):
+    def cookie(self, wanted="session"):
+        # "session" = the admin's login, "faculty" = a faculty member's login
         for part in self.headers.get("Cookie", "").split(";"):
             name, _, value = part.strip().partition("=")
-            if name == "session":
+            if name == wanted:
                 return value
         return ""
+
+    def cookie_header(self, name, value, hours):
+        return (name + "=" + value + "; Path=/; HttpOnly; SameSite=Strict; Max-Age=" + str(hours * 3600 if value else 0)
+                + ("; Secure" if settings.USE_HTTPS else ""))
 
     def send(self, code, data, content_type="application/json; charset=utf-8"):
         body = data if isinstance(data, bytes) else json.dumps(data).encode()
@@ -287,9 +449,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Security-Policy", SECURITY_POLICY)
         self.send_header("Cache-Control", "no-store")
         if getattr(self, "new_cookie", None) is not None:
-            age = settings.SESSION_HOURS * 3600 if self.new_cookie else 0
-            self.send_header("Set-Cookie", "session=" + self.new_cookie + "; Path=/; HttpOnly; SameSite=Strict; Max-Age="
-                             + str(age) + ("; Secure" if settings.USE_HTTPS else ""))
+            self.send_header("Set-Cookie", self.cookie_header("session", self.new_cookie, settings.SESSION_HOURS))
+        if getattr(self, "new_faculty_cookie", None) is not None:
+            self.send_header("Set-Cookie", self.cookie_header("faculty", self.new_faculty_cookie, settings.FACULTY_SESSION_HOURS))
         self.end_headers()
         self.wfile.write(body)
 
@@ -340,9 +502,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
             query = {k: v[0] for k, v in urllib.parse.parse_qs(url.query).items()}
             body = self.read_body() if method == "POST" else {}
             self.admin = security.session_user(self.cookie())
+            self.faculty = faculty.session_person(self.cookie("faculty"))
             self.device = None
             if who == "admin" and not self.admin:
                 return self.send(401, {"ok": False, "message": "Please log in as admin first.", "login": True})
+            if who == "faculty":
+                if not self.faculty:
+                    return self.send(401, {"ok": False, "message": "Please log in first.", "login": True})
+                account = faculty.account_of(self.faculty)
+                if account and account["must_change"] == "yes" and path != "/api/faculty/first-password":
+                    return self.send(403, {"ok": False, "message": "Set your own password first.", "login": True})
             if who == "device":
                 self.device = devices.check_key(self.headers.get("X-Device-Serial"), self.headers.get("X-Device-Key"),
                                                 self.client_address[0])

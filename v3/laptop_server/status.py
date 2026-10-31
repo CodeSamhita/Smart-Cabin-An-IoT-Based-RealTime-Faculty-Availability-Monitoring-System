@@ -164,6 +164,20 @@ def everyone():
             "degree_schools": {d: sorted(s) for d, s in degree_schools.items()}}
 
 
+def recent_presence(device, count=60):
+    # The device's last `count` rows of presence_log.csv (read from the end, the file only grows)
+    import collections
+    import csv
+    path = csv_store.path("presence_log.csv")
+    try:
+        with csv_store.lock, open(path, newline="", encoding="utf-8-sig") as f:
+            header = next(csv.reader(f))
+            last = collections.deque((line for line in f if (',' + device + ',') in line), maxlen=count)
+    except (OSError, StopIteration):
+        return []
+    return [dict(zip(header, row)) for row in csv.reader(last)]
+
+
 def person_detail(person_id):
     person = people.get(person_id)
     if person is None:

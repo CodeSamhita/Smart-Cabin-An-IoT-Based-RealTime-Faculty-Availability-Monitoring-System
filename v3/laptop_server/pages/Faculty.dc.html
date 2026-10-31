@@ -1,0 +1,153 @@
+<!doctype html>
+<!-- Smart Cabin - My cabin, a faculty member's own page after logging in (user's design): status with the colour key,
+     cabin, timetables (several; one in use; edit), and in the Advanced view account details, registration, the cabin
+     device's details and maintenance. Logic in faculty.js (+ persondevice.js). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Cabin – My cabin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+html{font-size:clamp(14px, 0.42vw + 10.6px, 22px)}
+body{margin:0}
+a{color:#2a4a7a}a:hover{color:#14243f}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div style="font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 1rem; color: #1a211e; background: #f4f5f8; min-height: 100vh">
+
+<header style="background: #1b2d4b; color: #ffffff">
+<div style="max-width: 72.5rem; margin: 0 auto; padding: 0.875rem 1.5rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem">
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 0.625rem; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 1.125rem; margin-right: auto">Smart Cabin <span style="font-weight: 500; color: #cdd8ea">· Faculty</span></a>
+<span style="display: inline-flex; align-items: center; gap: 0.375rem; font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: #cdd8ea; white-space: nowrap"><span aria-hidden="true" style="width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #5fd38d"></span><span id="live-time">–</span></span>
+<span style="font-size: 0.875rem; color: #cdd8ea">Signed in as <span id="signed-in">–</span></span>
+<a href="Main.dc.html" style="color: #e2e9f5; text-decoration: none; font-weight: 500; padding: 0.625rem 0">Home</a>
+<a href="Login.dc.html" id="logout" style="display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0 0.875rem; border-radius: 0.5rem; border: 1px solid #5d7398; color: #ffffff; text-decoration: none; font-weight: 500">Log out</a>
+</div>
+</header>
+
+<main style="max-width: 72.5rem; margin: 0 auto; padding: 2rem 1.5rem 4rem; display: flex; flex-direction: column; gap: 1.25rem">
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 1rem">
+<span id="initials" style="width: 4rem; height: 4rem; flex: none; border-radius: 50%; background: #1b2d4b; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.375rem"></span>
+<div style="flex: 1 1 16rem; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem">
+<h1 id="name" style="margin: 0; font-size: 1.75rem; font-weight: 700">–</h1>
+<span id="subtitle" style="font-size: 0.9375rem; color: #56625c"></span>
+</div>
+<div id="views" role="group" aria-label="View" style="display: inline-flex; padding: 0.25rem; border-radius: 999px; background: #e6ecf5; gap: 0.25rem"></div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: stretch">
+<section aria-labelledby="st" style="flex: 1 1 22rem; min-width: 0; background: #ffffff; border: 1px solid #dde2ea; border-radius: 1rem; padding: 1.75rem 1.25rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<h2 id="st" style="align-self: stretch; text-align: left; margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em">My status</h2>
+<div id="big-ring" style="width: 7rem; height: 7rem; border-radius: 50%; display: flex; align-items: center; justify-content: center">
+<span id="big-dot" style="width: 4.25rem; height: 4.25rem; border-radius: 50%"></span>
+</div>
+<div>
+<div id="big-label" style="font-size: 1.75rem; font-weight: 700">–</div>
+<p id="big-text" style="margin: 0.25rem 0 0; font-size: 0.9375rem; color: #4a5650"></p>
+</div>
+<ul id="legend" aria-label="What the colours mean" style="align-self: stretch; margin: 0; padding: 0.875rem 0 0; list-style: none; border-top: 1px solid #eef1f4; display: flex; flex-direction: column; gap: 0.25rem; text-align: left"></ul>
+</section>
+
+<section aria-labelledby="cb" style="flex: 1 1 22rem; min-width: 0; background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.875rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<h2 id="cb" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em">My cabin</h2>
+<dl id="cabin" style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.875rem 1rem; font-size: 0.875rem"></dl>
+</section>
+</div>
+
+<section aria-labelledby="tt" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem">
+<h2 id="tt" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em; flex: 1">My timetable</h2>
+<button type="button" id="edit-tt" style="display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.5rem; padding: 0 0.875rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; background: #ffffff; color: #1b2d4b; font: inherit; font-size: 0.875rem; font-weight: 600; cursor: pointer">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="width: 1rem; height: 1rem"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path><path d="m13.5 6.5 4 4"></path></svg>Edit timetable</button>
+<button type="button" id="cancel-tt" hidden style="min-height: 2.5rem; padding: 0 0.875rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; background: #ffffff; color: #1a211e; font: inherit; font-size: 0.875rem; font-weight: 600; cursor: pointer">Cancel</button>
+<button type="button" id="save-tt" hidden style="min-height: 2.5rem; padding: 0 1rem; border: 0; border-radius: 0.5rem; background: #1b2d4b; color: #ffffff; font: inherit; font-size: 0.875rem; font-weight: 600; cursor: pointer">Save</button>
+</div>
+<div id="tabs" role="tablist" aria-label="Timetables" style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem"></div>
+<label id="name-box" hidden style="display: flex; flex-direction: column; gap: 0.375rem; max-width: 22rem; font-size: 0.8125rem; font-weight: 600; color: #3c4842">Timetable name
+<input type="text" id="tt-name" placeholder="e.g. Odd semester 2026" style="min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font: inherit; font-size: 0.875rem; font-weight: 400"></label>
+<div id="table-actions" hidden style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem">
+<button type="button" id="use-tt" style="min-height: 2.25rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; background: #ffffff; color: #1b2d4b; font: inherit; font-size: 0.8125rem; font-weight: 600; cursor: pointer">Use this timetable</button>
+<button type="button" id="delete-tt" style="min-height: 2.25rem; padding: 0 0.75rem; border: 1px solid #e2b4aa; border-radius: 0.5rem; background: #ffffff; color: #8a2412; font: inherit; font-size: 0.8125rem; font-weight: 600; cursor: pointer">Delete timetable</button>
+</div>
+<p id="tt-note" hidden role="status" style="margin: 0; font-size: 0.875rem; font-weight: 600"></p>
+<div id="tt-head" style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem"></div>
+<div id="tt-view" style="overflow-x: auto"></div>
+<div id="tt-edit" hidden style="display: flex; flex-direction: column; gap: 0.5rem"></div>
+</section>
+
+<div id="advanced" hidden style="display: flex; flex-direction: column; gap: 1.25rem">
+<section aria-labelledby="ac" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-wrap: wrap; gap: 1.5rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<div style="flex: 1 1 18rem; min-width: 0; display: flex; flex-direction: column; gap: 0.875rem">
+<h2 id="ac" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em">Account details</h2>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.625rem 1rem; font-size: 0.875rem">
+<dt style="color: #56625c">Username</dt><dd id="ac-username" style="margin: 0; font-family: 'IBM Plex Mono', monospace">–</dd>
+<dt style="color: #56625c">Server id</dt><dd id="ac-id" style="margin: 0; font-family: 'IBM Plex Mono', monospace">–</dd>
+<dt style="color: #56625c">ID card number</dt><dd id="ac-card" style="margin: 0; font-family: 'IBM Plex Mono', monospace">–</dd>
+</dl>
+</div>
+<form id="pw-form" style="flex: 1 1 18rem; min-width: 0; display: flex; flex-direction: column; gap: 0.75rem">
+<h3 style="margin: 0; font-size: 0.9375rem; font-weight: 700">Change password</h3>
+<label style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #3c4842">Current password
+<input type="password" id="pw-current" autocomplete="current-password" style="min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font: inherit; font-size: 0.9375rem; font-weight: 400"></label>
+<label style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #3c4842">New password
+<input type="password" id="pw-new" autocomplete="new-password" style="min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font: inherit; font-size: 0.9375rem; font-weight: 400"></label>
+<label style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #3c4842">New password again
+<input type="password" id="pw-again" autocomplete="new-password" style="min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font: inherit; font-size: 0.9375rem; font-weight: 400"></label>
+<button type="submit" id="pw-btn" style="align-self: flex-start; min-height: 2.75rem; padding: 0 1.125rem; border: 0; border-radius: 0.5rem; background: #1b2d4b; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Change password</button>
+<p id="pw-note" hidden role="status" style="margin: 0; font-size: 0.875rem; font-weight: 600"></p>
+</form>
+</section>
+
+<div id="device-sections" style="display: flex; flex-direction: column; gap: 1.25rem">
+<section aria-labelledby="rd" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem">
+<h2 id="rd" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em; flex: 1">My registration</h2>
+<span id="rd-when" style="font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: #56625c"></span>
+</div>
+<div id="registration"></div>
+<p style="margin: 0; font-size: 0.8125rem; color: #56625c">Face data and cards are added at your cabin: <a id="device-link" href="#" target="_blank" rel="noopener">open the device page</a> (Advanced → Registration details).</p>
+</section>
+<section aria-labelledby="dv" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem">
+<h2 id="dv" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em; flex: 1">My cabin device · <span id="dv-code"></span></h2>
+<span id="uptime" style="font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: #56625c"></span>
+</div>
+<div id="details" style="display: flex; flex-direction: column; gap: 1rem"></div>
+<div style="display: flex; flex-direction: column; gap: 0.375rem">
+<h3 style="margin: 0; font-size: 0.8125rem; font-weight: 700; color: #1b2d4b">Parts</h3>
+<div id="parts" style="display: flex; flex-direction: column"></div>
+</div>
+</section>
+<section aria-labelledby="mt" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<h2 id="mt" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #3c4842; text-transform: uppercase; letter-spacing: 0.06em">Maintenance</h2>
+<div id="working" hidden role="status" style="padding: 0.75rem; border-radius: 0.5rem; background: #fbecc6; color: #6b4a00; font-size: 0.875rem; font-weight: 600"></div>
+<div id="actions"></div>
+</section>
+</div>
+</div>
+</main>
+
+<div id="confirm" hidden style="position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(20,32,48,0.55)">
+<button type="button" id="confirm-backdrop" tabindex="-1" aria-label="Close" style="position: absolute; inset: 0; border: 0; padding: 0; margin: 0; background: transparent; cursor: default"></button>
+<section role="alertdialog" aria-modal="true" aria-labelledby="cf-t" style="position: relative; width: 100%; max-width: 24rem; box-sizing: border-box; background: #ffffff; border-radius: 0.875rem; padding: 1.5rem; display: flex; flex-direction: column; gap: 0.875rem; box-shadow: 0 1.5rem 3.75rem rgba(20,32,48,0.3)">
+<h2 id="cf-t" style="margin: 0; font-size: 1.125rem; font-weight: 700"></h2>
+<p id="cf-detail" style="margin: 0; font-size: 0.875rem; color: #3c4842; line-height: 1.5"></p>
+<label id="cf-typed" hidden style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #3c4842">Type <span id="cf-code">the device code</span> to confirm
+<input type="text" id="cf-input" autocomplete="off" style="min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font-family: 'IBM Plex Mono', monospace; font-size: 1rem; letter-spacing: 0.1em"></label>
+<div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem">
+<button type="button" id="cf-cancel" style="min-height: 2.75rem; padding: 0 1rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; background: #ffffff; color: #1a211e; font: inherit; font-weight: 600; cursor: pointer">Cancel</button>
+<button type="button" id="cf-run" style="min-height: 2.75rem; padding: 0 1rem; border: 0; border-radius: 0.5rem; font: inherit; font-weight: 600; background: #1b2d4b; color: #ffffff; cursor: pointer"></button>
+</div>
+</section>
+</div>
+</div>
+<script src="api.js"></script>
+<script src="persondevice.js"></script>
+<script src="faculty.js"></script>
+</body>
+</html>

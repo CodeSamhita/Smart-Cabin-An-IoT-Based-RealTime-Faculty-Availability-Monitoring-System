@@ -129,9 +129,25 @@ def use_answer(answer):
     shared.set_part("server", True, "connected to " + current_url())
 
 
+def server_view():
+    # For the admin's and the faculty member's pages on the server: the device's full details, and the face sets /
+    # cards without any part of a card id (card ids stay on the Pi)
+    import details
+    import person_data
+    data = person_data.view() if shared.get("person") else {}
+    return details.collect(), {"face_sets": data.get("face_sets", []),
+                               "cards": [{"added": c.get("added", "")} for c in data.get("cards", [])]}
+
+
 def hello():
+    try:
+        device_details, person_view = server_view()
+    except Exception as problem:                               # the details are extra: never stop the hello for them
+        log.warning("device details not sent: %s", problem)
+        device_details, person_view = None, None
     ok, answer = call("POST", "/api/device/hello", {"model": identity.model(), "health": health.report(),
-                                                    "page_url": page_url()})
+                                                    "page_url": page_url(), "details": device_details,
+                                                    "person_data": person_view})
     if ok:
         if answer.get("key"):
             identity.save({"key": answer["key"], "device": answer["device"]})

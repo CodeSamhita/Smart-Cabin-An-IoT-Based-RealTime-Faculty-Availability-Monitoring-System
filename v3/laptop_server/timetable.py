@@ -1,15 +1,21 @@
-# Smart Cabin laptop server - the timetable (timetable.csv: person_id, day, start, end, activity, room).
+# Smart Cabin laptop server - what a person's timetable says today.
+# The person's own timetable in use (timetables.py) comes first; people without one still use the old
+# timetable.csv (person_id, day, start, end, activity, room).
 #   today()    : a person's items for today, in time order
 #   now_item() : what the timetable says they are doing right now (or None)
 #   next_item(): their next item today (or None)
-# The room column is optional. Times are "HH:MM", days are "Monday" ... "Saturday".
+# Times are "HH:MM", days are "Monday" ... "Saturday".
 
 import time
 
 import people
+import timetables
 
 
 def today(person_id):
+    own = timetables.today(person_id)
+    if own is not None:
+        return own
     day = time.strftime("%A")
     items = [row for row in people.load("timetable.csv") if row["person_id"] == person_id and row["day"] == day]
     return sorted(items, key=lambda row: row["start"])

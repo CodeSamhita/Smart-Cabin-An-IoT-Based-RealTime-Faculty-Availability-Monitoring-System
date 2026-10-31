@@ -72,6 +72,10 @@ def create_admin(username, password):
                                           "created": time.strftime("%Y-%m-%d %H:%M:%S")}], ADMIN_COLUMNS)
 
 
+def is_admin_name(username):
+    return any(same(row["username"], username.strip()) for row in csv_store.read("admin_account.csv"))
+
+
 def login(username, password):
     # Returns a new session token, or raises UserError
     for row in csv_store.read("admin_account.csv"):
