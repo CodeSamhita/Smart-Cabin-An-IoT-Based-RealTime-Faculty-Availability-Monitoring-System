@@ -11,6 +11,7 @@
 import threading
 import time
 
+import buzzer
 import face
 import led
 import registration
@@ -138,11 +139,13 @@ def card_tapped(card_id, server_call):
     person = dict(registration.local_person() or {})
     try:
         if card_id in registration.card_ids(person):
+            buzzer.beep("refused")
             say("This card is already linked. Tap a different card.")
             return True
         person["cards"] = list(person.get("cards", [])) + [{"uid": card_id, "added": time.strftime("%d %b, %H:%M")}]
         tell_server(person, server_call)
         registration.write_person(person)
+        buzzer.beep("ok")
         led.flash("white", 0.15)
         say("Card •••• %s added." % card_id[-4:])
         log.info("card added")

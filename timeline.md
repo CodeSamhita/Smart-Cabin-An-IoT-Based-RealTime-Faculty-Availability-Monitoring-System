@@ -18,7 +18,7 @@ Template for each entry:
 ## 2026-10-31 – canvas design built into v3
 
 **Done:** the canvas design (26–31 Oct) merged into v3: one login for admin and faculty (username / server id / ID card number), faculty logins made in bulk with a default password and changed at the first login, new pages AdminPerson, AdminLogins and Faculty (My cabin), Devices page with count filters, newest device and the faculty browser, period-based timetables (several per person, one in use) that the status rules now read, and the Pi sending its details with each hello. New server files `faculty.py`, `timetables.py`; new CSV files `faculty_accounts.csv`, `faculty_sessions.csv`, `timetables.csv`, `timetable_in_use.csv`, `device_details.csv`.
-**Tried / tested:** Python files compile. Not run in the browser yet; not deployed to the Pi.
+**Tried / tested:** on a test copy of the server (port 8090, http, copied data, test admin): admin login, Devices (count filter, faculty browser), a faculty member's admin page (status, charts, registration, parts, maintenance confirm), Faculty logins for all 839 with a default password, faculty login by ID card number → set own password → My cabin, a timetable with a split lab and lunch (a class across a break refused), several timetables (use, delete; the in-use one can't be deleted), wrong current password refused. Found and fixed: a timetable saved with no entries was lost. No server errors. Not deployed to the Pi.
 **What didn't / why:** the live camera picture and add face / card can't be done from the laptop pages (the server can't ask the Pi to act); those pages link to the device's own page instead.
 **Next:** start the server, make the faculty logins, try each page; deploy the Pi change.
 

@@ -13,6 +13,7 @@
 import threading
 import time
 
+import buzzer
 import face
 import led
 import registration
@@ -68,9 +69,11 @@ def card_tapped(card_id):
     global card_in_at, card_confirmed, logout_at
     person = registration.local_person()
     if not person or not registration.card_ids(person):
+        buzzer.beep("refused")
         led.flash("purple")
         return "card " + card_id + " read, but no card is registered at this device"
     if card_id not in registration.card_ids(person):
+        buzzer.beep("refused")
         led.flash("purple")
         log.warning("unknown card %s", card_id)
         return "unknown card " + card_id
@@ -88,6 +91,7 @@ def card_tapped(card_id):
             card_confirmed = now - last_face_at < settings.FACE_RECENT_SECONDS
             set_in(True, "card tapped in")
             message = "tapped in" + ("" if card_confirmed else " - the face must confirm within %d s" % settings.CARD_CONFIRM_SECONDS)
+    buzzer.beep("ok")
     led.flash("white", 0.15)
     update()
     return message

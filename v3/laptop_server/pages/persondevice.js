@@ -10,7 +10,7 @@ const STATUS_LOOK = {
   unknown: { label: 'Unknown', text: 'The cabin device is not reporting', bg: '#e6eae8', fg: '#3a4540', dot: '#6b7570', glow: 'rgba(107,117,112,0.18)' },
   not_set_up: { label: 'Not set up', text: 'No cabin device', bg: '#ffffff', fg: '#3a4540', dot: '#8a948f', glow: 'rgba(138,148,143,0.18)' },
 };
-const PART_NAMES = { camera: 'Camera', rfid: 'Card reader', led: 'Indication light', vision: 'Vision', 'people model': 'People model',
+const PART_NAMES = { camera: 'Camera', rfid: 'Card reader', led: 'Indication light', buzzer: 'Buzzer', vision: 'Vision', 'people model': 'People model',
                      'face model': 'Face model', server: 'Server link', page: 'This page', registration: 'Registration' };
 const MAINTENANCE = [
   { title: 'Restart program', text: 'Restarts only the Smart Cabin software. Quick; nothing is lost.',

@@ -48,6 +48,9 @@ LED_SPI_DEVICE = "/dev/spidev1.0"   # NeoPixel on a Pi 5: data on GPIO20 (pin 38
 LED_COUNT = 1                 # number of NeoPixels
 LED_BRIGHTNESS = 60           # 0 - 255 for the status colours
 FLASH_BRIGHTNESS = 255        # the white light for the camera in a dark room
+BUZZER_PIN = 23               # buzzer signal on GPIO23 (pin 16), GND pin 20; a bare 5 V buzzer needs a transistor
+BUZZER_PASSIVE = False        # False = active buzzer (beeps by itself), True = passive (needs a tone)
+BUZZER_TONE = 2000            # Hz, for a passive buzzer
 
 # Camera and vision (see PLAN.md section 4)
 CAMERA_SIZE = (1296, 972)     # for face checks only: faces need the pixels (no face found at 640x480 in tests)

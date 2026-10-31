@@ -29,7 +29,11 @@ if ($LASTEXITCODE -ne 0) { Write-Host "   sudo asks for a password on the Pi: ru
 ssh @ssh $target "sudo systemctl stop hwtest smartcabin 2>/dev/null; sudo systemctl reset-failed hwtest smartcabin 2>/dev/null; sudo pkill -f '[p]ython3 .*main' ; sleep 1"
 
 Write-Host "4. Starting it (installs what is missing the first time; that can take a while) ..."
-$start = "if [ -f /etc/systemd/system/smartcabin.service ]; then sudo systemctl restart smartcabin; " +
+# A service left from an older version (e.g. ~/smartcabin_v2) is pointed at this folder first
+$start = "if [ -f /etc/systemd/system/smartcabin.service ] && ! grep -q smartcabin_v3 /etc/systemd/system/smartcabin.service; then " +
+         "cd ~/smartcabin_v3 && sudo python3 main.py --autostart; fi; " +
+         "if [ -f /etc/systemd/system/smartcabin-blackbox.service ]; then sudo systemctl restart smartcabin-blackbox; fi; " +
+         "if [ -f /etc/systemd/system/smartcabin.service ]; then sudo systemctl restart smartcabin; " +
          "else sudo systemd-run --quiet --unit=smartcabin --working-directory=`$HOME/smartcabin_v3 python3 -u `$HOME/smartcabin_v3/main.py; fi; " +
          "sleep 15; systemctl is-active --quiet smartcabin && echo RUNNING || echo STOPPED; sudo journalctl -u smartcabin -n 25 --no-pager -o cat"
 ssh @ssh $target $start

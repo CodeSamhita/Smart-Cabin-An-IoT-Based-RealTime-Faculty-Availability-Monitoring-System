@@ -1,6 +1,7 @@
 # Smart Cabin laptop server - each faculty member's own timetables (timetables.csv, timetable_in_use.csv).
 # A person may keep several named timetables; one is "in use" (the one the status rules and the public page read).
-# One row per entry: kind (class / lunch), day, first and last period (settings.PERIODS), course, room, section, batch.
+# One row per entry: kind (class / lunch), day, first and last period (settings.PERIODS), course, room, section, batch,
+# plus one row of kind "name" per timetable (so an empty timetable still exists).
 #   of_person() : all their timetables + which one is in use
 #   save()      : replace one timetable after the checks below
 #   use(), delete()
@@ -37,7 +38,7 @@ def of_person(person_id):
         if r["person_id"] != person_id:
             continue
         week = tables.setdefault(r["timetable"], {d: [] for d in settings.DAYS})
-        if r["day"] in week:
+        if r["kind"] != "name" and r["day"] in week:
             week[r["day"]].append({"kind": r["kind"], "from": int(r["period_from"]), "to": int(r["period_to"]),
                                    "course": r["course"], "room": r["room"], "section": r["section"], "batch": r["batch"]})
     return {"tables": [{"name": name, "week": week} for name, week in tables.items()], "in_use": in_use(person_id)}
@@ -97,6 +98,9 @@ def save(person_id, old_name, name, week):
         if name.lower() != old_name.lower() and name.lower() in {n.lower() for n in names}:
             raise UserError("You already have a timetable called \"" + name + "\".")
         rows = [r for r in rows if not (r["person_id"] == person_id and r["timetable"] in (old_name, name))]
+        # One "name" row per timetable, so a timetable with no entries yet still exists
+        rows.append({"person_id": person_id, "timetable": name, "day": "", "kind": "name", "period_from": "",
+                     "period_to": "", "course": "", "room": "", "section": "", "batch": ""})
         for day in settings.DAYS:
             for e in clean[day]:
                 rows.append({"person_id": person_id, "timetable": name, "day": day, "kind": e["kind"],
@@ -133,7 +137,7 @@ def today(person_id):
     day = time.strftime("%A")
     items = []
     for r in csv_store.read("timetables.csv"):
-        if r["person_id"] == person_id and r["timetable"] == name and r["day"] == day:
+        if r["person_id"] == person_id and r["timetable"] == name and r["day"] == day and r["kind"] != "name":
             start, end = settings.PERIODS[int(r["period_from"])][0], settings.PERIODS[int(r["period_to"])][1]
             if r["kind"] == "lunch":
                 items.append({"start": start, "end": end, "activity": "Lunch break", "room": "", "kind": "lunch"})

@@ -60,9 +60,11 @@ def on_tap(card_id):
 
 
 def on_card_left(card_id):
+    import buzzer
     import led
     from logbook import log
     log.warning("a card has been left on the reader")
+    buzzer.beep("warning")
     led.flash("red", 0.25, times=2)
 
 
@@ -90,6 +92,7 @@ def main():
         sys.exit("SPI (for the card reader" + (" and, on a Pi 5, the NeoPixel" if settings.IS_PI5 else "")
                  + ") was off and is now on. Restart the Pi (sudo reboot) and run this again.")
 
+    import buzzer
     import identity
     import led
     import presence
@@ -108,6 +111,7 @@ def main():
     shared.update(device=identity.load().get("device", ""))
     led.start()
     led.show("red")
+    buzzer.start()
     try:
         rfid.start()
     except Exception as problem:

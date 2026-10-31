@@ -16,6 +16,7 @@ import secrets
 import threading
 import time
 
+import buzzer
 import camera
 import face
 import identity
@@ -209,6 +210,7 @@ def collect_face(say, keep_going):
                 say(str(len(faces)) + " faces in view. Only you, please.")
             else:
                 vectors.append(face.vector(picture, faces[0]))
+                buzzer.beep("done" if len(vectors) == settings.FACE_PHOTOS else "photo")
                 say("Photo %d of %d" % (len(vectors), settings.FACE_PHOTOS))
             time.sleep(0.3)
         if len(vectors) < settings.FACE_PHOTOS:
@@ -249,6 +251,7 @@ def card_tapped(card_id):
         if not session or time.time() > session.get("card_until", 0):
             return False
         session.update(card_id=card_id, card_until=0.0, card_message="Card " + card_id + " read.")
+    buzzer.beep("ok")
     led.flash("white", 0.15)
     return True
 
