@@ -14,8 +14,10 @@
 #        server   : hello + a report every 5 s to the laptop server
 #        discovery: listens for the server's announcement, so the device finds the server by itself
 #   3. serves this device's page on port 8000 (web.py)
+#   On a Pi it also starts the black box (blackbox.py) as its own process, unless one is already running.
 
 import os
+import subprocess
 import sys
 import threading
 
@@ -68,6 +70,32 @@ def on_card_left(card_id):
     led.flash("red", 0.25, times=2)
 
 
+def already_a_service():
+    # True when this is a hand start while the app already runs as the smartcabin service
+    # (systemd gives its own programs an INVOCATION_ID, so the service itself is not stopped by this)
+    if not settings.ON_PI or settings.SIMULATE or os.environ.get("INVOCATION_ID"):
+        return False
+    return subprocess.run(["systemctl", "is-active", "--quiet", "smartcabin"]).returncode == 0
+
+
+def start_blackbox():
+    # The black box runs as its own process, so it keeps recording if this app crashes
+    from logbook import log
+    if not settings.ON_PI or settings.SIMULATE:
+        return
+    if subprocess.run(["pgrep", "-f", "blackbox.py"], capture_output=True).returncode == 0:
+        log.info("black box: already running")
+        return
+    try:
+        os.makedirs(os.path.join(settings.FOLDER, "logs"), exist_ok=True)
+        output = open(os.path.join(settings.FOLDER, "logs", "blackbox.log"), "a")
+        subprocess.Popen([sys.executable, os.path.join(settings.FOLDER, "blackbox.py")], cwd=settings.FOLDER,
+                         stdout=output, stderr=output, start_new_session=True)
+        log.info("black box: started (data/blackbox.csv)")
+    except OSError as problem:
+        log.error("black box: could not start: %s", problem)
+
+
 def start_thread(name, target, *args):
     def run():
         from logbook import log
@@ -87,6 +115,9 @@ def main():
         install.run()
         make_autostart()
         return
+    if already_a_service():
+        sys.exit("Smart Cabin is already running as a service. Stop it first:  sudo systemctl stop smartcabin\n"
+                 "(or watch it:  sudo journalctl -u smartcabin -f)")
     install.run()
     if not install.spi_ready():
         sys.exit("SPI (for the card reader" + (" and, on a Pi 5, the NeoPixel" if settings.IS_PI5 else "")
@@ -109,6 +140,7 @@ def main():
                  "device page, the camera is %s", settings.COMPUTER,
                  "the --picture file" if settings.TEST_PICTURE_GIVEN else "the webcam, if there is one" if settings.USE_WEBCAM else "off (--no-webcam)")
     shared.update(device=identity.load().get("device", ""))
+    start_blackbox()
     led.start()
     led.show("red")
     buzzer.start()

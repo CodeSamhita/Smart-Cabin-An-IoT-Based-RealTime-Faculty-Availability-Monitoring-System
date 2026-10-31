@@ -26,7 +26,15 @@ if ($LASTEXITCODE -ne 0) { Write-Host "   Copy failed."; exit 1 }
 Write-Host "3. Stopping what was running (old tests, old run) ..."
 ssh @ssh $target "sudo -n true"
 if ($LASTEXITCODE -ne 0) { Write-Host "   sudo asks for a password on the Pi: run setup_pi_sudo.ps1 once."; exit 1 }
-ssh @ssh $target "sudo systemctl stop hwtest smartcabin 2>/dev/null; sudo systemctl reset-failed hwtest smartcabin 2>/dev/null; sudo pkill -f '[p]ython3 .*main' ; sleep 1"
+ssh @ssh $target "sudo systemctl stop hwtest smartcabin smartcabin-blackbox 2>/dev/null; sudo systemctl reset-failed hwtest smartcabin 2>/dev/null; sudo pkill -f '[p]ython3 .*main' ; sudo pkill -f '[b]lackbox.py' ; sleep 1"
+
+# Start at boot turned off (sudo systemctl disable smartcabin): the code is copied, the user starts it by hand
+ssh @ssh $target "[ -f /etc/systemd/system/smartcabin.service ] && ! systemctl is-enabled --quiet smartcabin"
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "4. Start at boot is off on this Pi, so it is not started. Start everything (app + black box) yourself:"
+    Write-Host "   ssh $target    then    cd ~/smartcabin_v3 && sudo python3 main.py"
+    exit 0
+}
 
 Write-Host "4. Starting it (installs what is missing the first time; that can take a while) ..."
 # A service left from an older version (e.g. ~/smartcabin_v2) is pointed at this folder first
