@@ -202,13 +202,18 @@ function save() {
   $('confirm').hidden = false;
   if (!$('cabin').value) $('cabin').value = location_ || '';
   $('cabin').readOnly = !!location_;
+  const old = reg && reg.elsewhere && reg.elsewhere.device ? reg.elsewhere : null;   // registered at another device
+  $('replace-box').hidden = !old;
+  $('replace-text').textContent = old ? 'You are registered at ' + old.device + (old.location ? ' (cabin ' + old.location + ')' : '') + '.' : '';
+  if (old && !location_ && !$('cabin').value) $('cabin').value = old.location || '';
   badge('draft');
 }
 
 async function send() {
   $('save-error').hidden = true;
   badge('sending');
-  const r = await call('POST', '/api/register/save', { login: $('login').value, password: $('password').value, cabin: $('cabin').value });
+  const r = await call('POST', '/api/register/save', { login: $('login').value, password: $('password').value, cabin: $('cabin').value,
+                                                       replace: !$('replace-box').hidden && $('replace').checked });
   $('password').value = '';
   if (!r.ok) {
     badge('failed');

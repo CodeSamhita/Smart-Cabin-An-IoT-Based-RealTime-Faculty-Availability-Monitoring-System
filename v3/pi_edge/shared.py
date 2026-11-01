@@ -22,6 +22,7 @@ state = {
     "in_cabin": False, "card_in": False, "status": "not_available", "confidence": 2,
     "led": "off", "vision_paused": "", "card_warning": "", "presence_reason": "", "page_https": False,
     "setup_allowed": False, "setup_message": "", "registered_at": "", "known_tap_at": 0.0,
+    "deactivated": "",             # the server's message when this device was deactivated (replaced / broken)
 }
 
 

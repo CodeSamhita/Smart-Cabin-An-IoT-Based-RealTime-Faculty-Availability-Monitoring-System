@@ -20,6 +20,7 @@ const PILL = {
   online: ['Online', '#dcf1e3', '#14532d', '#1e8a4c'],
   offline: ['Not reporting', '#f8dcd5', '#8a2412', '#9e2a17'],
   nolocation: ['No location', '#fbecc6', '#6b4a00', '#d39b0b'],
+  deactivated: ['Deactivated', '#e6eae8', '#3a4540', '#6b7570'],
 };
 const STATUS = {
   available: ['Available', '#dcf1e3', '#14532d', 'background: #1e8a4c'],
@@ -44,7 +45,7 @@ function partText(part) {
   return part.ok ? 'ok' : 'problem';
 }
 
-function kindOf(d) { return !d.online ? 'offline' : (d.location ? 'online' : 'nolocation'); }
+function kindOf(d) { return d.deactivated ? 'deactivated' : !d.online ? 'offline' : (d.location ? 'online' : 'nolocation'); }
 
 function pillHtml(kind) {
   const [label, bg, fg, dotColour] = PILL[kind];
@@ -65,6 +66,13 @@ function cardHtml(d) {
     '<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem">' +
     '<span style="font-family: \'IBM Plex Mono\', monospace; font-weight: 500; font-size: 0.9375rem; padding: 0.25rem 0.625rem; border-radius: 0.375rem; background: #1b2d4b; color: #ffffff">' + esc(d.device) + '</span>' +
     '<span style="font-weight: 600; flex: 1; min-width: 0">' + esc(d.model || 'Unknown board') + '</span>' + pillHtml(kind) + '</div>';
+  if (d.deactivated) {                                     // replaced or broken: history only, until reactivated
+    return html + '<dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 1rem; font-size: 0.875rem">' +
+      field('Location', d.location || '–') + field('Deactivated', d.deactivated) + field('Last seen', ago(d.seconds_since_seen), true) + field('IP', d.ip || '–', true) + '</dl>' +
+      '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid #e6ebe8; padding-top: 1rem">' +
+      '<button type="button" data-do="reactivate" style="' + light + '">Reactivate</button></div>' +
+      (notes[d.device] ? '<span style="font-size: 0.8125rem; color: ' + (notes[d.device].ok ? '#14532d' : '#8a2412') + '">' + esc(notes[d.device].text) + '</span>' : '') + '</article>';
+  }
   if (d.location && !editing[d.device]) {
     html += '<dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 1rem; font-size: 0.875rem">' +
       field('Location', d.location) + field('Person', d.person || 'Nobody registered') +
@@ -74,6 +82,7 @@ function cardHtml(d) {
       '<button type="button" data-do="pin" style="' + dark + '">Make setup PIN</button>' +
       '<button type="button" data-do="edit" style="' + light + '">Edit location</button>' +
       (d.person_id ? '<a href="AdminPerson.dc.html?id=' + encodeURIComponent(d.person_id) + '" style="' + light + '; display: inline-flex; align-items: center; text-decoration: none">Open ' + esc(d.person) + '</a>' : '') +
+      '<button type="button" data-do="deactivate" style="' + light + '; color: #8a2412">Deactivate</button>' +
       '</div>';
   }
   if (showBox) {
@@ -100,7 +109,7 @@ const EVENT_NAMES = { 'status': 'Status changed', 'new device': 'First seen', 'r
                       'unregistered': 'Person removed', 'moved': 'Person moved', 'location': 'Location set',
                       'credentials': 'Face / cards changed', 'faculty': 'Faculty login', 'timetable': 'Timetable',
                       'setup pin': 'Setup PIN made', 'device key': 'Device key', 'refused': 'Refused', 'admin': 'Admin',
-                      'request': 'Registration request' };
+                      'request': 'Registration request', 'deactivated': 'Device deactivated', 'reactivated': 'Device reactivated' };
 
 function drawTiles(list) {
   const count = { all: list.length, online: list.filter((d) => kindOf(d) === 'online').length,
@@ -271,6 +280,11 @@ $('device-list').addEventListener('click', (e) => {
     } else if (action === 'pin') {
       r = await api('POST', '/api/admin/pin', { device });
       if (r.ok) pins[device] = { pin: r.pin, expires: Date.now() + PIN_MINUTES * 60000 };
+    } else if (action === 'deactivate') {
+      if (!confirm('Deactivate ' + device + '? The person registered there is removed and the device stops reporting, until you reactivate it.')) return;
+      r = await api('POST', '/api/admin/deactivate', { device });
+    } else if (action === 'reactivate') {
+      r = await api('POST', '/api/admin/reactivate', { device });
     }
     notes[device] = { ok: r.ok, text: r.ok && action === 'pin' ? 'PIN made. It works once.' : r.message };
     await refresh(true);

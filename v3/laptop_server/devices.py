@@ -4,6 +4,8 @@
 #   check_key()   : every later call from a Pi must carry its serial and key
 #   set_location(): the admin writes where the device is (set once, changed only if it is moved)
 #   reset_key()   : the admin lets a device get a new key (e.g. after its SD card was rewritten)
+#   deactivate()  : a device that was replaced or broke: the person is removed, its key is cleared and the server
+#                   refuses it from then on (it stays in the list as history). reactivate() undoes it (admin only).
 #   save_health() : the latest health report per device (device_health.csv)
 #   save_details(): the device's full details and face sets / cards, sent with each hello (device_details.csv)
 
@@ -15,14 +17,23 @@ import logbook
 import security
 from security import UserError
 
-DEVICE_COLUMNS = ["device", "serial", "model", "location", "key_hash", "ip", "first_seen", "last_seen"]
+DEVICE_COLUMNS = ["device", "serial", "model", "location", "key_hash", "ip", "first_seen", "last_seen", "deactivated"]
+# deactivated: "" = active, else who deactivated it and when, e.g. "by the admin on 2026-11-01 12:30"
 HEALTH_COLUMNS = ["device", "time", "temperature", "cpu_percent", "memory_free_mb", "throttled",
                   "parts", "last_error", "page_url"]
 DETAILS_COLUMNS = ["device", "time", "details", "person_data"]
 
 
 def all_devices():
-    return csv_store.read("devices.csv")
+    rows = csv_store.read("devices.csv")
+    for row in rows:
+        row["deactivated"] = row.get("deactivated") or ""        # files from before this column existed
+    return rows
+
+
+def refused_message(row):
+    return (row["device"] + " was deactivated " + row["deactivated"] + ". It no longer reports. "
+            "The admin can reactivate it on the Devices page.")
 
 
 def find(rows, field, value):
@@ -52,6 +63,8 @@ def hello(serial, model, ip, key):
                    "key_hash": security.sha256(new_key), "ip": ip, "first_seen": logbook.now_text(), "last_seen": time.time()}
             rows.append(row)
             logbook.event("new device", "serial " + serial + " registered as " + row["device"], row["device"])
+        elif row["deactivated"]:
+            raise UserError(refused_message(row))
         elif not row["key_hash"]:                         # the admin reset this device's key
             new_key = security.new_token()
             row["key_hash"] = security.sha256(new_key)
@@ -68,6 +81,8 @@ def hello(serial, model, ip, key):
 def check_key(serial, key, ip=""):
     # The device row if the serial and key match, else UserError
     row = find(all_devices(), "serial", str(serial or ""))
+    if row is not None and row["deactivated"]:
+        raise UserError(refused_message(row))
     if row is None or not row["key_hash"] or not security.same(row["key_hash"], security.sha256(key or "")):
         raise UserError("Unknown device or wrong device key. The device must say hello again.")
     return row
@@ -107,6 +122,37 @@ def reset_key(device):
         row["key_hash"] = ""
         csv_store.write("devices.csv", rows, DEVICE_COLUMNS)
     logbook.event("device key", "key reset by the admin; the device gets a new one at its next hello", device)
+
+
+def deactivate(device, by):
+    # by: "by the admin" or "by <name>, replaced by SC-003" ... The person registered there is removed.
+    import registrations
+    with csv_store.lock:
+        rows = all_devices()
+        row = find(rows, "device", device)
+        if row is None:
+            raise UserError("No device " + device)
+        if row["deactivated"]:
+            raise UserError(device + " is already deactivated.")
+        row["deactivated"] = by + " on " + logbook.now_text()[:16]
+        row["key_hash"] = ""                              # reactivated later = a new key at its next hello
+        csv_store.write("devices.csv", rows, DEVICE_COLUMNS)
+        removed = registrations.unregister(device)
+    logbook.event("deactivated", device + " deactivated " + by + (" (" + removed + " removed)" if removed else ""), device)
+    return removed
+
+
+def reactivate(device):
+    with csv_store.lock:
+        rows = all_devices()
+        row = find(rows, "device", device)
+        if row is None:
+            raise UserError("No device " + device)
+        if not row["deactivated"]:
+            raise UserError(device + " is not deactivated.")
+        row["deactivated"] = ""
+        csv_store.write("devices.csv", rows, DEVICE_COLUMNS)
+    logbook.event("reactivated", device + " reactivated by the admin; it gets a new key at its next hello", device)
 
 
 def save_health(device, health, page_url=""):

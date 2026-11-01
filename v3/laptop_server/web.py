@@ -162,6 +162,17 @@ def api_faculty_home(req, query, body):
     return {"person": person_page(req.faculty, False)}
 
 
+@route("POST", "/api/faculty/deactivate", "faculty")
+def api_faculty_deactivate(req, query, body):
+    # The faculty member's own cabin device broke or is being replaced: deactivate it, then register at the new one
+    registration = registrations.current_for_person(req.faculty)
+    if not registration:
+        raise UserError("You are not registered at any device.")
+    person = people.get(req.faculty) or {"name": req.faculty}
+    devices.deactivate(registration["device"], "by " + person["name"])
+    return {"message": registration["device"] + " is deactivated. Register at your new device (open its page)."}
+
+
 @route("POST", "/api/faculty/first-password", "faculty")
 def api_first_password(req, query, body):
     faculty.set_password(req.faculty, "", field(body, "new"), field(body, "again"), first_login=True)
@@ -277,6 +288,7 @@ def api_devices(req, query, body):
         last = float(d["last_seen"] or 0)
         result.append({"device": d["device"], "serial": d["serial"], "model": d["model"], "location": d["location"],
                        "ip": d["ip"], "first_seen": d["first_seen"], "key_set": bool(d["key_hash"]),
+                       "deactivated": d["deactivated"],
                        "seconds_since_seen": int(time.time() - last) if last else None,
                        "online": bool(last) and time.time() - last <= settings.SILENT_SECONDS,
                        "person": registration["name"] if registration else "",
@@ -311,6 +323,20 @@ def api_pin(req, query, body):
 def api_reset_key(req, query, body):
     devices.reset_key(field(body, "device"))
     return {"message": "Key reset. The device gets a new key at its next hello (within a minute)."}
+
+
+@route("POST", "/api/admin/deactivate", "admin")
+def api_admin_deactivate(req, query, body):
+    device = field(body, "device")
+    removed = devices.deactivate(device, "by the admin")
+    return {"message": device + " is deactivated" + (" and " + removed + " removed from it" if removed else "") + "."}
+
+
+@route("POST", "/api/admin/reactivate", "admin")
+def api_admin_reactivate(req, query, body):
+    device = field(body, "device")
+    devices.reactivate(device)
+    return {"message": device + " is active again. It gets a new key at its next hello; register someone there."}
 
 
 @route("POST", "/api/admin/unregister", "admin")
@@ -405,12 +431,22 @@ def api_device_people(req, query, body):
             "message": str(len(rows)) + " people"}
 
 
+@route("GET", "/api/device/where", "device")
+def api_device_where(req, query, body):
+    # Where a person picked at registration is registered now (for "Replace my old device"); public fields only
+    registration = registrations.current_for_person(str(query.get("id", "")))
+    if not registration or registration["device"] == req.device["device"]:
+        return {"device": "", "location": ""}
+    return {"device": registration["device"], "location": registration["location"]}
+
+
 @route("POST", "/api/device/register", "device")
 def api_device_register(req, query, body):
     # Registered at once when the faculty login proves who it is, else a request that waits for the admin
     state, message = setup_requests.submit(req.device, field(body, "person_id"), field(body, "card_id", False),
                                            field(body, "face_photos", False) or 0, field(body, "cabin", False),
-                                           field(body, "login", False), body.get("password", ""))
+                                           field(body, "login", False), body.get("password", ""),
+                                           replace=bool(body.get("replace")))
     row = devices.find(devices.all_devices(), "device", req.device["device"])
     return {"state": state, "message": message, "location": row["location"] if row else ""}
 

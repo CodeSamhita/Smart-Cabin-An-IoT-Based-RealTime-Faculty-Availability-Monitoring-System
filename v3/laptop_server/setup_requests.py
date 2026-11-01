@@ -3,7 +3,8 @@
 #   submit()  : the device sends the registration. It is registered at once when the login proves it is that person
 #               (their own password, not the default), they are not registered at another device and nobody is
 #               registered at this one. Otherwise it waits here as "pending" for the admin.
-#   decide()  : the admin approves (registered now) or rejects a pending request
+#   decide()  : the admin approves (registered now; a device the person had before is deactivated) or rejects
+#               a pending request
 #   pending(), latest_for_device()
 
 import time
@@ -42,8 +43,10 @@ def register_now(device_row, person_id, card_hash, face_photos, cabin):
     return registrations.register(device_row["device"], location, person_id, "", face_photos, card_hash=card_hash)
 
 
-def submit(device_row, person_id, card_id, face_photos, cabin, login, password):
+def submit(device_row, person_id, card_id, face_photos, cabin, login, password, replace=False):
     # Returns (state, message): state "registered" or "pending". Raises UserError for something to fix now.
+    # replace: the person ticked "Replace my old device": with their own login, the device they are registered at
+    # now is deactivated and they are registered here at once.
     device = device_row["device"]
     current = registrations.current_for_device(device)
     if current:
@@ -69,13 +72,20 @@ def submit(device_row, person_id, card_id, face_photos, cabin, login, password):
     else:
         reason = "no faculty login given"
     elsewhere = registrations.current_for_person(person_id)
-    if not reason and elsewhere:
+    if not reason and elsewhere and not replace:
         reason = "already registered at " + elsewhere["device"] + " (" + (elsewhere["location"] or "no location") + ")"
 
     if not reason:
+        replaced = ""
+        if elsewhere:                                     # "Replace my old device", proven by their own login
+            devices.deactivate(elsewhere["device"], "by " + person["name"] + ", replaced by " + device)
+            replaced = " " + elsewhere["device"] + " is deactivated."
+            if not cabin and not device_row["location"]:
+                cabin = elsewhere["location"]             # same cabin as before, unless they typed a new one
         register_now(device_row, person_id, card_hash, face_photos, cabin)
-        logbook.event("registered", person["name"] + " registered at " + device + " by their own login", device, person_id)
-        return "registered", person["name"] + " is registered at " + device + "."
+        logbook.event("registered", person["name"] + " registered at " + device + " by their own login"
+                      + (" (replaces " + elsewhere["device"] + ")" if elsewhere else ""), device, person_id)
+        return "registered", person["name"] + " is registered at " + device + "." + replaced
 
     with csv_store.lock:
         rows = all_requests()
@@ -103,7 +113,11 @@ def decide(request_id, approve):
             current = registrations.current_for_device(request["device"])
             if current:
                 raise UserError(current["name"] + " is already registered at " + request["device"] + ". Remove them first.")
-            register_now(device_row, request["person_id"], request["card_hash"], request["face_photos"], request["cabin"])
+            elsewhere = registrations.current_for_person(request["person_id"])
+            if elsewhere:                                 # approving = the new device replaces the old one
+                devices.deactivate(elsewhere["device"], "by the admin, replaced by " + request["device"])
+            register_now(device_row, request["person_id"], request["card_hash"], request["face_photos"],
+                         request["cabin"] or (elsewhere["location"] if elsewhere else ""))
         request["state"] = "approved" if approve else "rejected"
         request["decided"] = logbook.now_text()
         csv_store.write("setup_requests.csv", rows, COLUMNS)

@@ -19,6 +19,7 @@ import os
 import secrets
 import threading
 import time
+import urllib.parse
 
 import buzzer
 import camera
@@ -182,11 +183,14 @@ def people_list(token):
         return list(csv.DictReader(f))
 
 
-def pick(token, person_id):
+def pick(token, person_id, server_call):
     check(token)
     for p in people_list(token):
         if p["id"] == person_id:
             session["person"] = p
+            # Registered at another device already? Then the page offers "Replace my old device"
+            ok, answer = server_call("GET", "/api/device/where?id=" + urllib.parse.quote(person_id))
+            session["elsewhere"] = {"device": answer.get("device", ""), "location": answer.get("location", "")} if ok else None
             return p
     raise PageError("That person is not in the list.")
 
@@ -283,7 +287,7 @@ def card_tapped(card_id):
     return True
 
 
-def save(token, server_call, login="", password="", cabin=""):
+def save(token, server_call, login="", password="", cabin="", replace=False):
     # Returns (state, message): "registered", "pending" (the admin decides) or "waiting" (kept until the server is reachable)
     check(token)
     if not session["person"]:
@@ -296,7 +300,7 @@ def save(token, server_call, login="", password="", cabin=""):
     cabin = " ".join(str(cabin or "").split())[:60]
     ok, answer = server_call("POST", "/api/device/register", {
         "person_id": person["id"], "card_id": session["card_id"], "face_photos": len(session["vectors"]),
-        "cabin": cabin, "login": str(login or "").strip(), "password": str(password or "")})
+        "cabin": cabin, "login": str(login or "").strip(), "password": str(password or ""), "replace": bool(replace)})
     if ok:
         state = "registered" if answer.get("state") == "registered" else "pending"
         message = answer["message"]
@@ -356,7 +360,8 @@ def view(token):
         left = settings.REGISTRATION_MINUTES * 60 - (time.time() - session["started"])
         if session["card_message"].startswith("Tap") and time.time() > session["card_until"] and not session["card_id"]:
             session["card_message"] = "No card was tapped in %d s. Press 'Link my card' again." % settings.CARD_WAIT_SECONDS
-        return {"person": session["person"], "face_photos": len(session["vectors"]), "face_busy": session["face_busy"],
+        return {"person": session["person"], "elsewhere": session.get("elsewhere"),
+                "face_photos": len(session["vectors"]), "face_busy": session["face_busy"],
                 "face_message": session["face_message"], "card_id": session["card_id"],
                 "card_waiting": time.time() < session["card_until"], "card_message": session["card_message"],
                 "seconds_left": max(0, int(left))}

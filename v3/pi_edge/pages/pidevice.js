@@ -189,7 +189,8 @@ function draw(s) {
     : s.approval_name + ' · saved here, sent when the server can be reached';
   $('setup-badge-text').textContent = waiting ? 'Waiting' : 'Open';
   $('wait-code').textContent = s.device;
-  $('wait-reason').textContent = s.server_ok ? s.setup_message : 'The device cannot reach the server: ' + s.server_message;
+  $('wait-reason').textContent = s.deactivated ? s.deactivated
+    : s.server_ok ? s.setup_message : 'The device cannot reach the server: ' + s.server_message;
 
   // Advanced view: details, parts, maintenance
   $('dev-details').hidden = !advanced;

@@ -279,6 +279,16 @@ $('logout').addEventListener('click', async (e) => {
 
 setUpMaintenance(() => (home && home.registration ? home.registration.device : ''));
 
+$('deactivate').addEventListener('click', (e) => {
+  const device = home && home.registration ? home.registration.device : '';
+  if (!device || !confirm('Deactivate ' + device + '? It stops reporting your status until you register at a new device.')) return;
+  press(e.currentTarget, async () => {
+    const r = await api('POST', '/api/faculty/deactivate');
+    showBar(r.message, r.ok ? 'note' : undefined);
+    refresh();
+  });
+});
+
 async function refresh() {
   const data = await api('GET', '/api/faculty/home');
   if (!data.ok) return showBar(data.message);

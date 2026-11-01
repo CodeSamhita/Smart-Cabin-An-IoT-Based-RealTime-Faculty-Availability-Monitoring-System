@@ -59,7 +59,8 @@ def state_for_page(token, with_details=False):
         "device": s["device"] or "not numbered yet", "location": s["location"] or "",
         "server_ok": s["server_ok"], "server_message": s["server_message"], "server_url": server_link.current_url(),
         # Setup is open while nobody is registered here; the server is not needed for it (requests are sent later)
-        "setup_allowed": not (local and registration.approval(local) == "approved"),
+        "setup_allowed": not (local and registration.approval(local) == "approved") and not s["deactivated"],
+        "deactivated": s["deactivated"],
         "setup_message": s["setup_message"], "registered_at": s["registered_at"],
         "approval": registration.approval(local) if local else "", "approval_name": local.get("name", ""),
         "person_id": person["id"] if person else "", "designation": person.get("designation", "") if person else "",
@@ -177,7 +178,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             people = registration.people_list(token)
             return {"people": people, "message": str(len(people)) + " people"}
         if (method, path) == ("POST", "/api/register/pick"):
-            p = registration.pick(token, body.get("person_id", ""))
+            p = registration.pick(token, body.get("person_id", ""), call)
             return {"message": "Selected: " + p["name"] + ". Now register your face."}
         if (method, path) == ("POST", "/api/register/face"):
             registration.start_face(token)
@@ -187,7 +188,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return {"message": "Tap your card on the reader within %d s." % settings.CARD_WAIT_SECONDS}
         if (method, path) == ("POST", "/api/register/save"):
             state, message = registration.save(token, call, body.get("login", ""), body.get("password", ""),
-                                               body.get("cabin", ""))
+                                               body.get("cabin", ""), bool(body.get("replace")))
             return {"state": state, "message": message}
         if (method, path) == ("POST", "/api/register/cancel"):
             registration.check(token)

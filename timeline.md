@@ -15,6 +15,19 @@ Template for each entry:
 
 ---
 
+## 2026-11-01 – self-registration, Wi-Fi, device replacement, README
+
+**Done:** camera colours fixed (wrong YUV conversion). Registration at the device without the admin (own faculty
+login → registered at once, else a request the admin approves / rejects). Wi-Fi networks on the Pi page (laptop hotspot
+first, campus Wi-Fi as well); the Pi is `smartcabin.local`. Device replacement (deactivate / reactivate; "Replace my
+old device" at the new Pi). Start at boot on again. Full `v3/README.md` (v1 → v2 → v3, diagrams, future plans).
+**Tried / tested:** request and replacement rules on copies of the data; on SC-003 (Pi 4): `smartcabin.local`, https
+without a port, Wi-Fi add / remove, registration start, live picture colours.
+**Not tried yet:** a full self-registration with face and card, a real device replacement, campus Wi-Fi switching.
+**Next:** run those three on the real Pis.
+
+---
+
 ## 2026-10-31 – canvas design built into v3
 
 **Done:** the canvas design (26–31 Oct) merged into v3: one login for admin and faculty (username / server id / ID card number), faculty logins made in bulk with a default password and changed at the first login, new pages AdminPerson, AdminLogins and Faculty (My cabin), Devices page with count filters, newest device and the faculty browser, period-based timetables (several per person, one in use) that the status rules now read, and the Pi sending its details with each hello. New server files `faculty.py`, `timetables.py`; new CSV files `faculty_accounts.csv`, `faculty_sessions.csv`, `timetables.csv`, `timetable_in_use.csv`, `device_details.csv`.

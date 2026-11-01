@@ -122,8 +122,19 @@ def page_url():
     return ("https" if shared.get("page_https") else "http") + "://" + my_address() + ":" + str(settings.PAGE_PORT)
 
 
+def refused(answer):
+    # The server refused us. Deactivated (replaced / broken): forget the person, the page says why.
+    shared.update(server_ok=False, server_message=answer["message"])
+    shared.set_part("server", False, answer["message"])
+    if "deactivated" in answer["message"].lower():
+        shared.update(deactivated=answer["message"], person=None)
+        if registration.local_person():
+            registration.forget_person("this device was deactivated on the server")
+
+
 def use_answer(answer):
     # The server tells us our number, location and who is registered here
+    shared.update(deactivated="")
     shared.update(device=answer.get("device", ""), location=answer.get("location", ""),
                   server_ok=True, server_message="connected", setup_allowed=bool(answer.get("setup_allowed")),
                   setup_message=answer.get("setup_message", ""), registered_at=answer.get("registered_at", ""))
@@ -157,8 +168,7 @@ def hello():
             log.info("the server registered this device as %s and gave it a key", answer["device"])
         use_answer(answer)
     else:
-        shared.update(server_ok=False, server_message=answer["message"])
-        shared.set_part("server", False, answer["message"])
+        refused(answer)
     return ok
 
 
@@ -174,8 +184,7 @@ def report():
     if ok:
         use_answer(answer)
     else:
-        shared.update(server_ok=False, server_message=answer["message"])
-        shared.set_part("server", False, answer["message"])
+        refused(answer)
         if "device key" in answer["message"].lower():
             hello()                                            # the server forgot us or reset our key
     return ok
