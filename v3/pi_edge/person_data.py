@@ -11,9 +11,8 @@
 import threading
 import time
 
-import buzzer
 import face
-import led
+import notify
 import registration
 import settings
 import shared
@@ -78,6 +77,7 @@ def take_more_photos(server_call):
         score = face.match_score(vectors)
         if score < settings.FACE_THRESHOLD:
             say("These photos don't match the registered face (score %.2f), so they were not added." % score)
+            notify.event("refused")
             return
         person = dict(registration.local_person())
         sets = list(person.get("face_sets", []))
@@ -88,6 +88,7 @@ def take_more_photos(server_call):
         face.add_vectors(vectors)
         registration.write_person(person)
         say("Added %d more photos (face set %d, match %.2f)." % (len(vectors), len(sets), score))
+        notify.event("changed")
         log.info("face set added (%d photos, match %.2f)", len(vectors), score)
     except PageError as problem:
         say(str(problem))
@@ -113,6 +114,7 @@ def delete_face(set_id, server_call):
             face.remove_rows(start, s["photos"])
             registration.write_person(person)
             log.info("face set %s deleted", set_id)
+            notify.event("changed")
             return "Face set deleted."
         start += s["photos"]
     raise PageError("No such face set.")
@@ -139,14 +141,13 @@ def card_tapped(card_id, server_call):
     person = dict(registration.local_person() or {})
     try:
         if card_id in registration.card_ids(person):
-            buzzer.beep("refused")
+            notify.event("refused")
             say("This card is already linked. Tap a different card.")
             return True
         person["cards"] = list(person.get("cards", [])) + [{"uid": card_id, "added": time.strftime("%d %b, %H:%M")}]
         tell_server(person, server_call)
         registration.write_person(person)
-        buzzer.beep("ok")
-        led.flash("white", 0.15)
+        notify.event("card linked")
         say("Card •••• %s added." % card_id[-4:])
         log.info("card added")
     except PageError as problem:
@@ -168,6 +169,7 @@ def delete_card(index, server_call):
     tell_server(person, server_call)
     registration.write_person(person)
     log.info("card deleted")
+    notify.event("changed")
     return "Card deleted."
 
 

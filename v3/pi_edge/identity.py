@@ -3,6 +3,11 @@
 #   model()   : "Raspberry Pi Zero 2 W Rev 1.0", "Raspberry Pi 4 Model B ..." or "Laptop (simulation)"
 #   load() / save() : data/device.json = the device number and secret key from the server, and the
 #                     fingerprint of the server's certificate (remembered the first time)
+#   boot_info() : smartcabin.txt, written on the SD card's boot partition after flashing (the part Windows can open):
+#                 which cabin this device is for, and who (optional), so nothing has to be typed at the device.
+#                     cabin = LSC02
+#                     person = f805
+#                     server = https://192.168.137.1:8080      (optional: where to look first)
 
 import json
 import os
@@ -13,7 +18,30 @@ import time
 import settings
 
 DEVICE_FILE = os.path.join(settings.DATA_FOLDER, "device.json")
+BOOT_FILES = ["/boot/firmware/smartcabin.txt", "/boot/smartcabin.txt",       # the SD card's boot partition
+              os.path.join(settings.FOLDER, "smartcabin.txt")]               # or next to main.py (e.g. on Windows)
 save_lock = threading.Lock()
+
+
+def boot_info():
+    # {"cabin", "person", "server"} from the first smartcabin.txt found (empty values if there is none)
+    info = {"cabin": "", "person": "", "server": "", "file": ""}
+    for path in BOOT_FILES:
+        try:
+            with open(path, encoding="utf-8-sig") as f:
+                lines = f.read().splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            line = line.split(" #", 1)[0]                  # a note after " #" is ignored
+            if "=" in line and not line.lstrip().startswith("#"):
+                key, value = line.split("=", 1)
+                key = key.strip().lower()
+                if key in info:
+                    info[key] = " ".join(value.split())[:80]
+        info["file"] = path
+        break
+    return info
 
 
 def serial():

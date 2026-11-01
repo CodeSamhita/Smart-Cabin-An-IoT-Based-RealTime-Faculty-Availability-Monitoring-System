@@ -13,6 +13,7 @@ import face
 import health
 import led
 import live
+import notify
 import people_count
 import person_data
 import presence
@@ -62,6 +63,7 @@ def loop():
             if temp is not None and (temp >= settings.HOT_TEMPERATURE or (paused and temp >= settings.WARM_TEMPERATURE)):
                 if not paused:
                     log.warning("vision paused: %.1f °C", temp)
+                    notify.event("hot")
                 shared.update(vision_paused="paused to cool down (%.1f °C)" % temp)
                 shared.set_part("vision", False, "paused to cool down at %.1f °C" % temp)
                 time.sleep(10)
@@ -97,9 +99,9 @@ def loop():
             if face.registered_vectors() is not None:
                 now = time.time()
                 in_cabin = shared.get("in_cabin")
-                needed = (not in_cabin or (shared.get("card_in") and not presence.card_confirmed)
-                          or now - last_face_check >= settings.FACE_RECHECK_SECONDS)
-                wanted = needed and (boxes or now - last_whole_check >= settings.WHOLE_PICTURE_FACE_SECONDS)
+                tap_waiting = presence.checking()                  # a card tap: look for the face on every picture
+                needed = not in_cabin or tap_waiting or now - last_face_check >= settings.FACE_RECHECK_SECONDS
+                wanted = needed and (boxes or tap_waiting or now - last_whole_check >= settings.WHOLE_PICTURE_FACE_SECONDS)
                 big = camera.take_picture() if wanted and (not dark or lit_room) else None    # 1296x972, only now
                 if big is not None and boxes:
                     score = face.best_score(big, face_regions(boxes, big.shape[1] / small.shape[1]))

@@ -23,6 +23,7 @@ state = {
     "led": "off", "vision_paused": "", "card_warning": "", "presence_reason": "", "page_https": False,
     "setup_allowed": False, "setup_message": "", "registered_at": "", "known_tap_at": 0.0,
     "deactivated": "",             # the server's message when this device was deactivated (replaced / broken)
+    "checking_until": 0.0,         # after a card tap: looking for the face until this time (0 = not looking)
 }
 
 

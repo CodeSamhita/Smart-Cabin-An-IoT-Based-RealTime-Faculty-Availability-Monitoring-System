@@ -1,8 +1,10 @@
 # Smart Cabin laptop server - registration requests from the devices (setup_requests.csv).
-# A faculty member registers at a device without waiting for the admin: name, card, face, and their faculty login.
-#   submit()  : the device sends the registration. It is registered at once when the login proves it is that person
-#               (their own password, not the default), they are not registered at another device and nobody is
-#               registered at this one. Otherwise it waits here as "pending" for the admin.
+# A faculty member registers at a device without waiting for the admin: name, face, card, cabin.
+#   submit()  : the device sends the registration. The server checks it against its records: the name is in the
+#               people list, nobody is registered at this device and the person is not registered at another one
+#               -> registered at once, after the person confirmed the details shown (name, school, cabin ...).
+#               Otherwise (registered elsewhere, "Replace my old device" ticked, or "these details are wrong" with a
+#               note) it waits here as "pending" for the admin. The cabin is never typed: see cabin_for().
 #   decide()  : the admin approves (registered now; a device the person had before is deactivated) or rejects
 #               a pending request
 #   pending(), latest_for_device()
@@ -11,7 +13,6 @@ import time
 
 import csv_store
 import devices
-import faculty
 import logbook
 import people
 import registrations
@@ -34,8 +35,19 @@ def pending():
     return [r for r in all_requests() if r["state"] == "pending"]
 
 
+def cabin_for(device_row, person):
+    # The cabin comes from the server, never typed at the device: the device's location (set by the admin), else the
+    # person's cabin in people.csv, else where they are registered now
+    if device_row["location"]:
+        return device_row["location"]
+    if person.get("cabin"):
+        return person["cabin"]
+    elsewhere = registrations.current_for_person(person["id"])
+    return elsewhere["location"] if elsewhere else ""
+
+
 def register_now(device_row, person_id, card_hash, face_photos, cabin):
-    # Links the person to the device; the cabin they typed becomes the device's location if it has none yet
+    # Links the person to the device; the cabin becomes the device's location if it has none yet
     location = device_row["location"]
     if not location and cabin:
         devices.set_location(device_row["device"], cabin)
@@ -43,10 +55,10 @@ def register_now(device_row, person_id, card_hash, face_photos, cabin):
     return registrations.register(device_row["device"], location, person_id, "", face_photos, card_hash=card_hash)
 
 
-def submit(device_row, person_id, card_id, face_photos, cabin, login, password, replace=False):
+def submit(device_row, person_id, card_id, face_photos, replace=False, update_note=""):
     # Returns (state, message): state "registered" or "pending". Raises UserError for something to fix now.
-    # replace: the person ticked "Replace my old device": with their own login, the device they are registered at
-    # now is deactivated and they are registered here at once.
+    # replace: the person ticked "Replace my old device": the admin confirms it (approving deactivates the old device).
+    # update_note: the person said the details shown are wrong and what to change: the admin updates them, then approves.
     device = device_row["device"]
     current = registrations.current_for_device(device)
     if current:
@@ -57,35 +69,21 @@ def submit(device_row, person_id, card_id, face_photos, cabin, login, password, 
     face_photos = int(face_photos or 0)
     if not card_id and face_photos <= 0:
         raise UserError("Register at least the face or a card.")
-    cabin = " ".join(str(cabin or "").split())[:60]
+    cabin = cabin_for(device_row, person)
     card_hash = security.sha256(str(card_id).upper()) if card_id else ""
+    update_note = " ".join(str(update_note or "").split())[:200]
 
-    reason = ""
-    if login or password:
-        account = faculty.check(login, password)
-        if account is None:
-            raise UserError("Wrong username or password.")
-        if account["person_id"] != person_id:
-            raise UserError("This login belongs to someone else, not " + person["name"] + ".")
-        if account["must_change"] == "yes":
-            reason = "logged in with the default password (not changed yet)"
-    else:
-        reason = "no faculty login given"
     elsewhere = registrations.current_for_person(person_id)
-    if not reason and elsewhere and not replace:
-        reason = "already registered at " + elsewhere["device"] + " (" + (elsewhere["location"] or "no location") + ")"
-
-    if not reason:
-        replaced = ""
-        if elsewhere:                                     # "Replace my old device", proven by their own login
-            devices.deactivate(elsewhere["device"], "by " + person["name"] + ", replaced by " + device)
-            replaced = " " + elsewhere["device"] + " is deactivated."
-            if not cabin and not device_row["location"]:
-                cabin = elsewhere["location"]             # same cabin as before, unless they typed a new one
+    if not elsewhere and not update_note:                 # the records agree and the person confirmed them
         register_now(device_row, person_id, card_hash, face_photos, cabin)
-        logbook.event("registered", person["name"] + " registered at " + device + " by their own login"
-                      + (" (replaces " + elsewhere["device"] + ")" if elsewhere else ""), device, person_id)
-        return "registered", person["name"] + " is registered at " + device + "." + replaced
+        logbook.event("registered", person["name"] + " registered at " + device + " (details confirmed at the device)",
+                      device, person_id)
+        return "registered", person["name"] + " is registered at " + device + "."
+    if update_note:
+        reason = "asks to update the details: " + update_note
+    else:
+        reason = ("wants to replace " if replace else "already registered at ") + elsewhere["device"] + \
+                 " (" + (elsewhere["location"] or "no location") + ")"
 
     with csv_store.lock:
         rows = all_requests()
@@ -116,8 +114,10 @@ def decide(request_id, approve):
             elsewhere = registrations.current_for_person(request["person_id"])
             if elsewhere:                                 # approving = the new device replaces the old one
                 devices.deactivate(elsewhere["device"], "by the admin, replaced by " + request["device"])
-            register_now(device_row, request["person_id"], request["card_hash"], request["face_photos"],
-                         request["cabin"] or (elsewhere["location"] if elsewhere else ""))
+            person = people.get(request["person_id"]) or {"id": request["person_id"]}
+            fresh = devices.find(devices.all_devices(), "device", request["device"])       # the admin may have fixed it
+            register_now(fresh, request["person_id"], request["card_hash"], request["face_photos"],
+                         cabin_for(fresh, person) or request["cabin"])
         request["state"] = "approved" if approve else "rejected"
         request["decided"] = logbook.now_text()
         csv_store.write("setup_requests.csv", rows, COLUMNS)

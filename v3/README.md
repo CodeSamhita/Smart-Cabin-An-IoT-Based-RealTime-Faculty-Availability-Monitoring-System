@@ -88,7 +88,7 @@ works; v3 started as a copy.
 | **Logins** | One login box for admin and faculty (username, server id or ID card number). Faculty logins made in bulk with a default password, changed at the first login. |
 | **Pages** | Devices page with count filters, newest device, faculty browser; new **AdminPerson**, **AdminLogins**, **Faculty (My cabin)** pages. |
 | **Timetables** | Period-based, like the university's: several per person, one in use; the status rules read it. |
-| **Self-registration** | At the device, **no admin needed first**: with their own faculty login it is registered at once; otherwise it waits for the admin (Approve / Reject). |
+| **Self-registration** | At the device, **no admin needed first**: name, face, card, cabin. Registered at once when the server's records agree; otherwise it waits for the admin (Approve / Reject). |
 | **Device replacement** | Deactivate the old device and register the new one, by the faculty member or the admin. |
 | **Wi-Fi** | Laptop hotspot first, campus Wi-Fi as well, managed on the Pi page. Address **`smartcabin.local`**. |
 | **Hardware** | Buzzer (beeps for taps, photos, card left on the reader); Pi 4 and Pi 5 support. |
@@ -145,14 +145,16 @@ flowchart LR
 
 ### On the Pi: in or out
 
+The **camera decides**; a card tap is only a hint ("check me now"). A tap never logs anyone in or out by itself.
+
 ```mermaid
 stateDiagram-v2
     [*] --> Out
-    Out --> In: face matched in 2 checks in a row
-    Out --> TappedIn: registered card tapped
-    TappedIn --> In: face seen within 2 min<br/>(card-only person: anyone counted)
-    TappedIn --> Out: not confirmed in 2 min
-    In --> Out: card tapped again (tap out)
+    Out --> In: face recognised in 2 checks in a row
+    Out --> Looking: registered card tapped<br/>(Pi page: "looking for your face", confidence 35 %)
+    Looking --> In: face recognised within 2 min
+    Looking --> Out: face not seen in 2 min<br/>(the tap is forgotten)
+    In --> In: card tapped (confirms, never logs out)
     In --> Out: face not seen for 2 min<br/>(even if others are still counted)
     state In {
         [*] --> Available
@@ -161,8 +163,10 @@ stateDiagram-v2
     }
 ```
 
-**Confidence** = face (seen in the last 2 min) × card (tapped in): none 2 %, card only 35 %, face only 70 %, both 90 %;
-+10 % while someone is counted (at most 95 %).
+**Confidence** = face (seen in the last 2 min) × card (tapped): none 2 %, card only 35 % (always under 50), face only
+70 %, both 90 %; +10 % while someone is counted (at most 95 %). The server shows Available only when the face has
+confirmed it; while the Pi is looking for the face after a tap it shows Not available · "Card tapped, checking the
+camera". Someone registered with a card only (no face) is the exception: their tap is the only way in or out.
 
 ### On the server: what the pages show
 
@@ -181,13 +185,37 @@ flowchart TB
     TT -- no --> NC["Not available<br/>'Not in the cabin' + next item"]
 ```
 
-| Light | Status | Buzzer | When |
-|---|---|---|---|
-| green | Available | one short beep | card accepted (tap in / out) |
-| yellow | In a meeting | two short beeps | card refused (unknown / already linked) |
-| red | Not available | a tick | each face photo |
-| blue | registration going on | short + long | 10 face photos done |
-| white flash | dark room: light for one picture, at most every 2 min | two long beeps | card left on the reader |
+**The core:** the **face** says whether the person is there; the **headcount** says alone (Available) or with others
+(In a meeting). A card tap is an optional hint.
+
+**The light's steady colour:** green Available · yellow In a meeting · red Not available · blue registration going on ·
+white for a moment = dark room, light for one picture (at most every 2 minutes).
+
+**A sound and / or a light for every action and change** (`pi_edge/notify.py`):
+
+| Event | Buzzer | Light |
+|---|---|---|
+| App started | short + long | green flash |
+| Face recognised → Available | three quick beeps | turns green |
+| 2+ people counted → In a meeting | two medium beeps | turns yellow |
+| Back to 1 person → Available | one short beep | turns green |
+| Face not seen for 2 min → Not available | one long beep | turns red |
+| Headcount changed (same status) | a tick | – |
+| Registered card tapped | one short beep | white flash |
+| Looking for the face after a tap | – | blue blink every second (2 min) |
+| Face not seen after a tap | two short beeps | two red flashes |
+| Unknown card | two short beeps | purple flash |
+| Card left on the reader | two long beeps | two red flashes |
+| Registration started / each face photo / 10 photos done | short beep / tick / short + long | turns blue |
+| Card linked (registration, Add another card) | one short beep | white flash |
+| Registered / approved | short + long | two green flashes |
+| Sent for approval (or kept to send) | one short beep | green flash |
+| Rejected by the admin | two short beeps | two red flashes |
+| Face set, card or Wi-Fi network saved / removed | one short beep | green flash |
+| Something refused (card already linked, photos don't match) | two short beeps | two red flashes |
+| Server lost / connected again | two long beeps / one short beep | three red / two green flashes |
+| Device deactivated on the server | two long beeps | three purple flashes |
+| Too hot: vision paused | two long beeps | two yellow flashes |
 
 **Camera timing:** a 640x480 picture every 5 s (Zero 2W) or 2 s (Pi 4 / 5), faster for 30 s after a change; the
 1296x972 picture only when a face has to be checked. Above 70 °C half as many pictures; above 78 °C vision pauses.
@@ -196,10 +224,18 @@ flowchart TB
 
 The Pi is flashed with one setup Wi-Fi name and password. Nothing else is needed from the admin first.
 
+0. **Optional, after flashing:** put `smartcabin.txt` on the SD card's boot partition (the drive Windows shows as
+   `bootfs`); start from [pi_edge/smartcabin.txt.example](pi_edge/smartcabin.txt.example):
+   `cabin = LSC02` and `person = f805`. The device reads it at every start and sends it with its first hello: the
+   server sets the device's cabin from it (unless the admin set one) and remembers the person, whose name the
+   registration page then offers first ("Is this you?").
 1. Turn on a laptop **hotspot** with that Wi-Fi name and password, on **2.4 GHz**.
 2. Power the Pi. It starts by itself and joins the hotspot.
 3. Open **`smartcabin.local`** in the browser (accept the certificate warning once) → **Start registration**.
-4. Pick your name → 10 face photos → tap your card → **Confirm and send** with your faculty login and cabin.
+4. Pick your name → 10 face photos → tap your card → the page shows **the details the server has** (name, school,
+   department, cabin, device; nothing is typed) → **Yes, register** (linked to this cabin at once when the records
+   agree) or **No, request an update** (a short note; the admin fixes the details and approves).
+   The cabin comes from the server: the device's location, else the `cabin` column of `people.csv`.
 
 ```mermaid
 sequenceDiagram
@@ -209,19 +245,20 @@ sequenceDiagram
     F->>P: Start registration (no admin needed)
     P->>S: people list (or the last copy if the server is out of reach)
     F->>P: name → 10 face photos → card tap
-    F->>P: Confirm and send: faculty login + password, cabin
+    S-->>P: the details it has (school, department, cabin)
+    F->>P: Yes, register · or · No, request an update (+ what to change)
     alt server reachable
         P->>S: register (card id → stored only as a hash, face count; faces stay on the Pi)
-        alt own login, own password, not registered elsewhere
-            S-->>P: registered
-        else no login / default password / registered at another device
+        alt details confirmed, nobody at this device, not registered at another device
+            S-->>P: registered (checked against the records)
+        else update requested, registered at another device, or "Replace my old device"
             S-->>P: waiting for the admin (with the reason)
             Note over S: Devices page → Registration requests → Approve / Reject
             S-->>P: approved → registered · rejected → the Pi deletes the face and card
         end
     else server out of reach
         P->>P: kept on the Pi as "waiting"
-        P->>S: sent later, without the password → the admin decides
+        P->>S: sent later → checked the same way
     end
 ```
 
@@ -233,8 +270,8 @@ face is always registered again at the new device (it is, with the new registrat
 ```mermaid
 flowchart TB
     START(["new Pi in the cabin"]) --> WHO{"who does it?"}
-    WHO -- "faculty member,<br/>at the new Pi" --> TICK["registration → 'You are registered at SC-001'<br/>☑ Replace my old device + own login"]
-    TICK --> AUTO["old device deactivated,<br/>new one registered at once"]
+    WHO -- "faculty member,<br/>at the new Pi" --> TICK["registration → 'You are registered at SC-001'<br/>☑ Replace my old device"]
+    TICK --> AUTO["request → the admin approves:<br/>old device deactivated, new one registered"]
     WHO -- "faculty member,<br/>My cabin page" --> MY["Deactivate my device<br/>→ then register at the new Pi"]
     WHO -- "admin" --> ADMIN["Devices page: Deactivate (old)<br/>or Approve the waiting request<br/>(approve = replace)"]
     AUTO & MY & ADMIN --> DEAD["old device: refused by the server,<br/>forgets the person, its page says why;<br/>kept in the list as history"]
@@ -348,7 +385,9 @@ sets, cards, approval), `face.npy` (128 numbers per face photo, no photos), `peo
 - HTTPS everywhere (self-signed). The Pi remembers the server's certificate and refuses any other.
 - Each device has its own secret key (only its hash is stored); a deactivated device is refused.
 - Passwords: PBKDF2 hashes; the default faculty password must be changed at the first login and expires.
-- Self-registration is approved automatically only with the person's **own** password; otherwise the admin decides.
+- Self-registration is approved automatically when the records agree (name in the list, device free, person not
+  registered elsewhere); replacing a device always needs the admin. Known limit: anyone at a new device can pick a free
+  name; the admin sees every registration on the Devices page and can remove it.
 - Card ids are stored on the server only as hashes; faces (128 numbers each, never photos) stay on the Pi.
 - Public pages show only name, designation, school, department, status, cabin and timetable.
 - Known limits (prototype): self-signed certificates; the device page has no login (its live view can be seen on the

@@ -62,12 +62,10 @@ def on_tap(card_id):
 
 
 def on_card_left(card_id):
-    import buzzer
-    import led
+    import notify
     from logbook import log
     log.warning("a card has been left on the reader")
-    buzzer.beep("warning")
-    led.flash("red", 0.25, times=2)
+    notify.event("card left")
 
 
 def already_a_service():
@@ -155,6 +153,8 @@ def main():
     start_thread("discovery", server_link.listen)          # finds the server by its announcement
     import wifi
     start_thread("wifi", wifi.loop)                         # back to the laptop hotspot when it is on again
+    import notify
+    notify.event("ready")                                   # the device answers: it has started
     try:
         web.serve()
     except OSError as problem:

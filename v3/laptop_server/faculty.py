@@ -147,18 +147,6 @@ def find(text):
     return None
 
 
-def check(text, password):
-    # The account if the username / server id / ID card number and password are right, else None (no session made).
-    # Used when a faculty member proves who they are while registering at a device.
-    account = find(str(text or ""))
-    if account and security.check_password(str(password or ""), account["password_hash"]):
-        if account["must_change"] == "yes" and float(account["default_until"] or 0) < time.time():
-            return None                                    # an expired default password no longer works
-        return account
-    time.sleep(1)                                          # slows down password guessing
-    return None
-
-
 def login(text, password):
     # Returns (token, must_change) or raises UserError
     account = find(text)

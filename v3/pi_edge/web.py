@@ -74,6 +74,7 @@ def state_for_page(token, with_details=False):
         "person": person["name"] if person else "", "status": s["status"], "status_label": LABELS.get(s["status"], s["status"]),
         "in_cabin": s["in_cabin"], "confidence": s["confidence"], "headcount": s["headcount"], "dark": s["dark"],
         "card_in": s["card_in"], "led": s["led"], "card_warning": s["card_warning"],
+        "checking_seconds": max(0, int(s["checking_until"] - time.time())) if s["checking_until"] else 0,
         "face_recent": time.time() - s["face_seen_at"] < settings.FACE_RECENT_SECONDS,
         "vision_paused": s["vision_paused"], "picture_ms": s["picture_ms"],
         "last_picture": time.strftime("%H:%M:%S", time.localtime(s["last_picture_at"])) if s["last_picture_at"] else "none yet",
@@ -173,7 +174,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return state_for_page(token, with_details=bool(query.get("details")))
         if (method, path) == ("POST", "/api/register/start"):
             new_token = registration.start(call)
-            return {"token": new_token, "message": "Registration started. Find your name."}
+            import identity
+            return {"token": new_token, "message": "Registration started. Find your name.",
+                    "expected": identity.boot_info()["person"]}           # from smartcabin.txt: shown first
         if (method, path) == ("GET", "/api/register/people"):
             people = registration.people_list(token)
             return {"people": people, "message": str(len(people)) + " people"}
@@ -187,8 +190,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             registration.start_card(token)
             return {"message": "Tap your card on the reader within %d s." % settings.CARD_WAIT_SECONDS}
         if (method, path) == ("POST", "/api/register/save"):
-            state, message = registration.save(token, call, body.get("login", ""), body.get("password", ""),
-                                               body.get("cabin", ""), bool(body.get("replace")))
+            state, message = registration.save(token, call, bool(body.get("replace")), body.get("update_note", ""))
             return {"state": state, "message": message}
         if (method, path) == ("POST", "/api/register/cancel"):
             registration.check(token)

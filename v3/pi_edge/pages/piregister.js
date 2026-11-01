@@ -184,7 +184,7 @@ const BADGES = { draft: ['Not sent', '#eef1f4', '#3a4540'], sending: ['Sending�
                  pending: ['Waiting for approval', '#fbecc6', '#6b4a00'], waiting: ['Saved on this device', '#e6ecf5', '#1b2d4b'] };
 const DONE = { registered: ['Registration complete', 'The server has saved it. This cabin now shows your status live.'],
                pending: ['Request sent', 'The admin approves it. This cabin shows your status from then on.'],
-               waiting: ['Saved on this device', 'It is sent as soon as the server can be reached; the admin approves it then.'] };
+               waiting: ['Saved on this device', 'It is sent as soon as the server can be reached.'] };
 
 function badge(kind) {
   const [text, bg, fg] = BADGES[kind];
@@ -193,28 +193,45 @@ function badge(kind) {
 }
 
 function save() {
-  // From the card step: the confirm form (faculty login, cabin); nothing is sent yet
+  // From the card step: the details the server has (nothing typed) to confirm; nothing is sent yet
   goTo(4);
   $('save-summary').textContent = (reg ? reg.face_photos : 0) + ' face photos · Card ' + (reg && reg.card_id ? reg.card_id : '–');
   $('save-error').hidden = true;
   $('saved').hidden = true;
   $('save-steps').hidden = true;
   $('confirm').hidden = false;
-  if (!$('cabin').value) $('cabin').value = location_ || '';
-  $('cabin').readOnly = !!location_;
+  $('update-box').hidden = true;
+  $('update-note').value = '';
+  $('send').textContent = 'Yes, register';
+  const p = picked || {};
+  const cabin = reg && reg.cabin ? reg.cabin : '';
+  $('confirm-details').innerHTML = [['Name', p.name], ['Designation', p.designation], ['School', p.school],
+    ['Department', p.department], ['Server id', p.id], ['Cabin', cabin || 'not set yet on the server'], ['Device', $('dev-code').textContent]]
+    .map(([k, v]) => '<dt style="color: #56625c">' + k + '</dt><dd style="margin: 0; font-weight: 600">' + esc(v || '–') + '</dd>').join('');
+  document.querySelectorAll('.location-text').forEach((e) => { e.textContent = 'Cabin ' + (cabin || '(not set yet)'); });
   const old = reg && reg.elsewhere && reg.elsewhere.device ? reg.elsewhere : null;   // registered at another device
   $('replace-box').hidden = !old;
   $('replace-text').textContent = old ? 'You are registered at ' + old.device + (old.location ? ' (cabin ' + old.location + ')' : '') + '.' : '';
-  if (old && !location_ && !$('cabin').value) $('cabin').value = old.location || '';
   badge('draft');
+}
+
+function askUpdate() {
+  // "No, request an update": say what is wrong; it goes to the admin with the registration
+  $('update-box').hidden = false;
+  $('send').textContent = 'Send update request';
+  $('update-note').focus();
 }
 
 async function send() {
   $('save-error').hidden = true;
+  const note = $('update-box').hidden ? '' : $('update-note').value.trim();
+  if (!$('update-box').hidden && !note) {
+    $('save-error').textContent = 'Write what needs to change, for example: "My cabin is LSC 05".';
+    $('save-error').hidden = false;
+    return;
+  }
   badge('sending');
-  const r = await call('POST', '/api/register/save', { login: $('login').value, password: $('password').value, cabin: $('cabin').value,
-                                                       replace: !$('replace-box').hidden && $('replace').checked });
-  $('password').value = '';
+  const r = await call('POST', '/api/register/save', { replace: !$('replace-box').hidden && $('replace').checked, update_note: note });
   if (!r.ok) {
     badge('failed');
     $('save-error').textContent = r.message;
@@ -241,17 +258,21 @@ async function start() {
   drawSteps();
   drawPicked();
   let list = token ? await call('GET', '/api/register/people') : { ok: false };
+  let expected = '';                                       // the person named in smartcabin.txt on the SD card
   if (!list.ok) {                                          // no registration yet, or an old one that ended
     setToken('');
     const r = await api('POST', '/api/register/start');
     if (!r.ok) { serverBadge('failed', 'Not allowed'); return showBar(r.message); }
     setToken(r.token);
+    expected = r.expected || '';
     list = await call('GET', '/api/register/people');
   }
   if (!list.ok) { serverBadge('failed', 'Server not reachable'); return showBar(list.message); }
   people = list.people.sort((a, b) => sortKey(a.name).localeCompare(sortKey(b.name)));
   serverBadge('ok', people.length + ' names from server');
   drawPeople();
+  const named = expected && people.find((p) => p.id.toLowerCase() === expected.toLowerCase());
+  if (named) openView(named);                              // "Is this you?" for the person this device was set up for
   poll();
   setInterval(() => everySecond(poll), 1000);
 }
@@ -288,6 +309,7 @@ $('start-card').addEventListener('click', (e) => press(e.currentTarget, async ()
 }));
 $('save').addEventListener('click', save);
 $('back-card').addEventListener('click', () => goTo(3));
+$('wrong').addEventListener('click', askUpdate);
 $('confirm').addEventListener('submit', (e) => { e.preventDefault(); press($('send'), send); });
 $('cancel').addEventListener('click', async (e) => {
   e.preventDefault();

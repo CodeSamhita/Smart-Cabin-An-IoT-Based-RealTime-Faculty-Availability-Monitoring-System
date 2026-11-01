@@ -75,7 +75,7 @@ function cardHtml(d) {
   }
   if (d.location && !editing[d.device]) {
     html += '<dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 1rem; font-size: 0.875rem">' +
-      field('Location', d.location) + field('Person', d.person || 'Nobody registered') +
+      field('Location', d.location) + field('Person', d.person || (d.expected ? 'Nobody yet (set up for ' + d.expected + ')' : 'Nobody registered')) +
       field('Last seen', ago(d.seconds_since_seen), true) + field('CPU temp', d.temperature === '' ? '–' : d.temperature + ' °C', true) +
       field('IP', d.ip || '–', true) + field('Camera · card reader', partText(d.parts.camera) + ' · ' + partText(d.parts.rfid)) + '</dl>' +
       '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid #e6ebe8; padding-top: 1rem">' +

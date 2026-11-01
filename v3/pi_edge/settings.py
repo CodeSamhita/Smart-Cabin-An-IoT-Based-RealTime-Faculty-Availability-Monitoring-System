@@ -83,15 +83,14 @@ FLASH_EVERY_SECONDS = 120     # in a dark room, light up for a picture at most t
 FLASH_SECONDS = 0.6           # how long the white light stays on before the picture
 
 # Presence rules (PLAN.md section 3)
-ARRIVE_FACE_CHECKS = 2        # face matched in 2 checks in a row = arrived
-CARD_CONFIRM_SECONDS = 120    # after a card tap-in, the face must confirm within this time
-LOGOUT_PAUSE_SECONDS = 60     # after a tap-out, the face can't bring the person back in for this long
+ARRIVE_FACE_CHECKS = 2        # face matched in 2 checks in a row = arrived (1 while a card tap is being checked)
+CARD_CONFIRM_SECONDS = 120    # after a card tap, the camera looks for the face this long (a tap alone is never "in")
 LEAVE_SECONDS = 120           # face not seen for this long = left (card-only person: nobody counted for this long)
 FACE_RECENT_SECONDS = 120     # "face seen" (pages, confidence) = within this time
 CARD_LEFT_SECONDS = 5         # a card lying on the reader longer than this = warning
 
 # Confidence table: face (F) x card (R), from hardware test 10 without the Bluetooth column
-CONFIDENCE = {(0, 0): 2, (0, 1): 35, (1, 0): 70, (1, 1): 90}
+CONFIDENCE = {(0, 0): 2, (0, 1): 35, (1, 0): 70, (1, 1): 90}   # card only stays under 50: the face decides
 SOMEONE_COUNTED_BONUS = 10    # added while the person is in and the camera counts someone
 CONFIDENCE_MAX = 95
 

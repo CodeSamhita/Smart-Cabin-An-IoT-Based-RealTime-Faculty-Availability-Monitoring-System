@@ -1,9 +1,7 @@
-# Smart Cabin edge device - the buzzer (GPIO23, see settings.py).
-#   beep("ok")       one short beep     : card accepted (tap in / out, card taken by registration or Add another card)
-#   beep("refused")  two short beeps    : card refused (unknown card, or already linked)
-#   beep("photo")    a tick             : a face photo was taken
-#   beep("done")     short + long       : the 10 face photos are done
-#   beep("warning")  two long beeps     : a card has been left on the reader
+# Smart Cabin edge device - the buzzer (GPIO23, see settings.py). Which event plays which sound: notify.py.
+#   ok       one short beep        refused   two short beeps       photo   a tick
+#   done     short + long          warning   two long beeps
+#   arrive   three quick beeps     meeting   two medium beeps      leave   one long beep
 # The sound plays in the background, so the card reader and the camera never wait for it.
 # Active buzzer: the pin on = sound. Passive buzzer (BUZZER_PASSIVE): a tone of BUZZER_TONE Hz.
 # Not on a Pi: nothing sounds, the part shows Not present.
@@ -19,7 +17,10 @@ SOUNDS = {"ok": [(0.08, 0)],
           "refused": [(0.08, 0.08), (0.08, 0)],
           "photo": [(0.03, 0)],
           "done": [(0.08, 0.08), (0.3, 0)],
-          "warning": [(0.4, 0.2), (0.4, 0)]}
+          "warning": [(0.4, 0.2), (0.4, 0)],
+          "arrive": [(0.05, 0.06), (0.05, 0.06), (0.05, 0)],
+          "meeting": [(0.18, 0.12), (0.18, 0)],
+          "leave": [(0.6, 0)]}
 
 gpio = None                     # RPi.GPIO once the pin is set up
 tone = None                     # PWM for a passive buzzer

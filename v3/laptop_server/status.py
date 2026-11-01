@@ -94,9 +94,10 @@ def class_soon(person_id):
 
 
 def how_in(row):
-    # How the device knows the person is in: face seen (in the last 30 s) and / or card tapped in
+    # How the device knows the person is in: face seen (in the last 2 min) and / or card tapped. A card tap alone
+    # is not "in": the Pi is still looking for the face (the status stays Not available).
     if row.get("in_cabin") != "yes":
-        return ""
+        return "Card tapped, checking the camera" if row.get("card") == "yes" else ""
     face, card = row.get("face") == "yes", row.get("card") == "yes"
     if face and card:
         return "Seen and tapped in"

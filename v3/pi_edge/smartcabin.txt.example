@@ -1,0 +1,8 @@
+# Smart Cabin - which cabin this edge device is for.
+# After flashing the SD card, copy this file to the card's boot partition (the drive Windows shows as "bootfs"),
+# name it smartcabin.txt and fill it in. The device reads it at every start and tells the server.
+# Lines starting with # are notes. Leave a line out if you don't know the value.
+
+cabin = LSC02
+person = f805
+# server = https://192.168.137.1:8080

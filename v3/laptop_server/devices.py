@@ -17,8 +17,10 @@ import logbook
 import security
 from security import UserError
 
-DEVICE_COLUMNS = ["device", "serial", "model", "location", "key_hash", "ip", "first_seen", "last_seen", "deactivated"]
+DEVICE_COLUMNS = ["device", "serial", "model", "location", "key_hash", "ip", "first_seen", "last_seen", "deactivated",
+                  "expected"]
 # deactivated: "" = active, else who deactivated it and when, e.g. "by the admin on 2026-11-01 12:30"
+# expected   : the person this device was set up for (smartcabin.txt on its SD card), shown first at registration
 HEALTH_COLUMNS = ["device", "time", "temperature", "cpu_percent", "memory_free_mb", "throttled",
                   "parts", "last_error", "page_url"]
 DETAILS_COLUMNS = ["device", "time", "details", "person_data"]
@@ -27,8 +29,34 @@ DETAILS_COLUMNS = ["device", "time", "details", "person_data"]
 def all_devices():
     rows = csv_store.read("devices.csv")
     for row in rows:
-        row["deactivated"] = row.get("deactivated") or ""        # files from before this column existed
+        row["deactivated"] = row.get("deactivated") or ""        # files from before these columns existed
+        row["expected"] = row.get("expected") or ""
     return rows
+
+
+def apply_boot_info(device, info):
+    # smartcabin.txt on the device's SD card: its cabin becomes the location if none is set (the admin's value wins),
+    # and the person it names is remembered as expected here
+    info = info if isinstance(info, dict) else {}
+    cabin = " ".join(str(info.get("cabin") or "").split())[:80]
+    person = str(info.get("person") or "").strip().lower()[:20]
+    import people
+    with csv_store.lock:
+        rows = all_devices()
+        row = find(rows, "device", device)
+        if row is None:
+            return
+        changed = []
+        if cabin and not row["location"]:
+            row["location"] = cabin
+            changed.append("location " + cabin)
+        if person and person != row["expected"] and people.get(person):
+            row["expected"] = person
+            changed.append("expected person " + person)
+        if changed:
+            csv_store.write("devices.csv", rows, DEVICE_COLUMNS)
+    if changed:
+        logbook.event("location", device + " from its SD card (smartcabin.txt): " + ", ".join(changed), device)
 
 
 def refused_message(row):

@@ -18,6 +18,7 @@ import urllib.parse
 
 import health
 import identity
+import notify
 import registration
 import settings
 import shared
@@ -28,10 +29,11 @@ DISCOVERY_PORT = 50505
 
 
 def current_url():
-    # The server address: given with --server (always wins), else the one heard / used last time, else settings.py
+    # The server address: given with --server (always wins), else the one heard / used last time, else the one in
+    # smartcabin.txt on the SD card, else settings.py
     if "--server" in sys.argv:
         return settings.SERVER_URL
-    return identity.load().get("server_url") or settings.SERVER_URL
+    return identity.load().get("server_url") or identity.boot_info()["server"] or settings.SERVER_URL
 
 
 def listen():
@@ -123,17 +125,24 @@ def page_url():
 
 
 def refused(answer):
-    # The server refused us. Deactivated (replaced / broken): forget the person, the page says why.
+    # The server refused us or can't be reached. Deactivated (replaced / broken): forget the person, the page says why.
+    was_ok, was_deactivated = shared.get("server_ok"), shared.get("deactivated")
     shared.update(server_ok=False, server_message=answer["message"])
     shared.set_part("server", False, answer["message"])
     if "deactivated" in answer["message"].lower():
         shared.update(deactivated=answer["message"], person=None)
         if registration.local_person():
             registration.forget_person("this device was deactivated on the server")
+        if not was_deactivated:
+            notify.event("deactivated")
+    elif was_ok:
+        notify.event("server lost")
 
 
 def use_answer(answer):
     # The server tells us our number, location and who is registered here
+    if not shared.get("server_ok"):
+        notify.event("server back")
     shared.update(deactivated="")
     shared.update(device=answer.get("device", ""), location=answer.get("location", ""),
                   server_ok=True, server_message="connected", setup_allowed=bool(answer.get("setup_allowed")),
@@ -159,9 +168,11 @@ def hello():
     except Exception as problem:                               # the details are extra: never stop the hello for them
         log.warning("device details not sent: %s", problem)
         device_details, person_view = None, None
+    info = identity.boot_info()                                # smartcabin.txt from the SD card: cabin, person
     ok, answer = call("POST", "/api/device/hello", {"model": identity.model(), "health": health.report(),
                                                     "page_url": page_url(), "details": device_details,
-                                                    "person_data": person_view})
+                                                    "person_data": person_view,
+                                                    "boot_info": {"cabin": info["cabin"], "person": info["person"]}})
     if ok:
         if answer.get("key"):
             identity.save({"key": answer["key"], "device": answer["device"]})

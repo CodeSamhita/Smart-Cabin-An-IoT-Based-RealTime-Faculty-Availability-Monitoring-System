@@ -13,6 +13,7 @@ import subprocess
 import threading
 import time
 
+import notify
 import settings
 import shared
 from logbook import log
@@ -132,6 +133,7 @@ def add(ssid, password, username=""):
     nmcli(*args)
     cache["view"] = None
     log.info("wifi: saved the network %s%s", ssid, " (username + password)" if username else "")
+    notify.event("changed")
     return "\"" + ssid + "\" saved. The Pi uses it when the laptop hotspot is not on."
 
 
@@ -149,6 +151,7 @@ def remove(name):
     nmcli("connection", "delete", name)
     cache["view"] = None
     log.info("wifi: removed the network %s", network["ssid"])
+    notify.event("changed")
     return "\"" + network["ssid"] + "\" removed."
 
 

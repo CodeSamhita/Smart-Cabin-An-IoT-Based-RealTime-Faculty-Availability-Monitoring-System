@@ -4,8 +4,8 @@
 #                      (data/people_copy.csv), or the last copy is used when the server is out of reach
 #   start_face()     : takes 10 photos with exactly one face in view (thread), shows progress
 #   start_card()     : the next card tap (within 30 s) is the person's card
-#   save()           : sends it with the faculty login: registered at once, or a request waiting for the admin.
-#                      Server out of reach: kept on this device ("waiting") and sent later (without the password).
+#   save()           : sends it: registered at once when the server's records agree, or a request waiting for the admin.
+#                      Server out of reach: kept on this device ("waiting") and sent later.
 #                      The face and card are kept on this device in all three cases.
 #   sync_person()    : the server says who is registered here (after an admin removal or a rejected request,
 #                      the face is deleted)
@@ -21,11 +21,11 @@ import threading
 import time
 import urllib.parse
 
-import buzzer
 import camera
 import face
 import identity
 import led
+import notify
 import settings
 import shared
 from logbook import log
@@ -109,6 +109,7 @@ def sync_person(server_person, server_request=None):
             request = server_request or {}
             if request.get("person_id") == local.get("id") and request.get("state") == "rejected":
                 forget_person("the admin rejected the registration request")
+                notify.event("rejected")
             else:
                 if approval(local) == "pending" and request.get("person_id") != local.get("id"):
                     local["approval"] = "waiting"          # the server has no request from us: send it again
@@ -127,6 +128,7 @@ def sync_person(server_person, server_request=None):
         local["approval"] = "approved"                     # the admin approved the request
         write_person(local)
         log.info("registration approved: %s", local["name"])
+        notify.event("approved")
     if local and local.get("id") != server_person["id"]:
         forget_person("the server has someone else registered here")
         local = None
@@ -173,6 +175,7 @@ def start(server_call):
                         "person": None, "vectors": [], "face_busy": False, "face_message": "",
                         "card_id": "", "card_until": 0.0, "card_message": ""})
     led.show("blue")
+    notify.event("registration")
     log.info("registration started")
     return session["token"]
 
@@ -189,8 +192,10 @@ def pick(token, person_id, server_call):
         if p["id"] == person_id:
             session["person"] = p
             # Registered at another device already? Then the page offers "Replace my old device"
+            # The cabin the server has for them here (shown to confirm, never typed)
             ok, answer = server_call("GET", "/api/device/where?id=" + urllib.parse.quote(person_id))
             session["elsewhere"] = {"device": answer.get("device", ""), "location": answer.get("location", "")} if ok else None
+            session["cabin"] = answer.get("cabin", "") if ok else ""
             return p
     raise PageError("That person is not in the list.")
 
@@ -241,7 +246,7 @@ def collect_face(say, keep_going):
                 say(str(len(faces)) + " faces in view. Only you, please.")
             else:
                 vectors.append(face.vector(picture, faces[0]))
-                buzzer.beep("done" if len(vectors) == settings.FACE_PHOTOS else "photo")
+                notify.event("photos done" if len(vectors) == settings.FACE_PHOTOS else "photo")
                 say("Photo %d of %d" % (len(vectors), settings.FACE_PHOTOS))
             time.sleep(0.3)
         if len(vectors) < settings.FACE_PHOTOS:
@@ -282,12 +287,12 @@ def card_tapped(card_id):
         if not session or time.time() > session.get("card_until", 0):
             return False
         session.update(card_id=card_id, card_until=0.0, card_message="Card " + card_id + " read.")
-    buzzer.beep("ok")
-    led.flash("white", 0.15)
+    notify.event("card linked")
     return True
 
 
-def save(token, server_call, login="", password="", cabin="", replace=False):
+def save(token, server_call, replace=False, update_note=""):
+    # update_note: the person said the details shown are wrong and what to change (the admin updates them, then approves)
     # Returns (state, message): "registered", "pending" (the admin decides) or "waiting" (kept until the server is reachable)
     check(token)
     if not session["person"]:
@@ -297,43 +302,44 @@ def save(token, server_call, login="", password="", cabin="", replace=False):
     if session["face_busy"]:
         raise PageError("Wait until the photos are finished.")
     person = session["person"]
-    cabin = " ".join(str(cabin or "").split())[:60]
+    update_note = " ".join(str(update_note or "").split())[:200]
     ok, answer = server_call("POST", "/api/device/register", {
         "person_id": person["id"], "card_id": session["card_id"], "face_photos": len(session["vectors"]),
-        "cabin": cabin, "login": str(login or "").strip(), "password": str(password or ""), "replace": bool(replace)})
+        "replace": bool(replace), "update_note": update_note})
     if ok:
         state = "registered" if answer.get("state") == "registered" else "pending"
         message = answer["message"]
     elif answer.get("unreachable"):
-        state = "waiting"                                  # sent later, without the password: the admin decides then
+        state = "waiting"                                  # sent later; the server checks it then
         message = ("The server can't be reached right now, so this is kept on the device and sent as soon as it can "
-                   "be reached. The admin then approves it.")
+                   "be reached.")
     else:
-        raise PageError(answer["message"])                 # e.g. a wrong password: fix it and send again
+        raise PageError(answer["message"])                 # e.g. someone is already registered here
     face.forget()
     if session["vectors"]:
         face.save_vectors(session["vectors"])
     now = time.strftime("%Y-%m-%d %H:%M:%S")
     write_person({"id": person["id"], "name": person["name"], "designation": person["designation"], "registered": now,
-                  "approval": "approved" if state == "registered" else state, "cabin": cabin,
+                  "approval": "approved" if state == "registered" else state, "update_note": update_note,
                   "face_sets": [{"id": "set1", "added": "at setup", "photos": len(session["vectors"])}] if session["vectors"] else [],
                   "cards": [{"uid": session["card_id"], "added": "at setup"}] if session["card_id"] else []})
     if state == "registered":
         shared.update(person={"id": person["id"], "name": person["name"], "designation": person["designation"]},
                       in_cabin=False, card_in=False)
     end("saved: " + state)
+    notify.event("registered" if state == "registered" else "sent")
     shared.changed.set()
     return state, message
 
 
 def send_waiting(server_call):
-    # A registration kept while the server was out of reach: send it now (no password was kept, so the admin decides)
+    # A registration kept while the server was out of reach: send it now (the server checks it as usual)
     local = local_person()
     if session or not local or approval(local) != "waiting":
         return
     ok, answer = server_call("POST", "/api/device/register", {
         "person_id": local["id"], "card_id": (card_ids(local) or [""])[0], "face_photos": face_photo_count(local),
-        "cabin": local.get("cabin", "")})
+        "update_note": local.get("update_note", "")})
     if ok:
         local["approval"] = "approved" if answer.get("state") == "registered" else "pending"
         write_person(local)
@@ -360,7 +366,7 @@ def view(token):
         left = settings.REGISTRATION_MINUTES * 60 - (time.time() - session["started"])
         if session["card_message"].startswith("Tap") and time.time() > session["card_until"] and not session["card_id"]:
             session["card_message"] = "No card was tapped in %d s. Press 'Link my card' again." % settings.CARD_WAIT_SECONDS
-        return {"person": session["person"], "elsewhere": session.get("elsewhere"),
+        return {"person": session["person"], "elsewhere": session.get("elsewhere"), "cabin": session.get("cabin", ""),
                 "face_photos": len(session["vectors"]), "face_busy": session["face_busy"],
                 "face_message": session["face_message"], "card_id": session["card_id"],
                 "card_waiting": time.time() < session["card_until"], "card_message": session["card_message"],

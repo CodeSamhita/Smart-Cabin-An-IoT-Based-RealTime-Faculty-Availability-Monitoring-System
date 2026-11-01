@@ -289,6 +289,7 @@ def api_devices(req, query, body):
         result.append({"device": d["device"], "serial": d["serial"], "model": d["model"], "location": d["location"],
                        "ip": d["ip"], "first_seen": d["first_seen"], "key_set": bool(d["key_hash"]),
                        "deactivated": d["deactivated"],
+                       "expected": (people.get(d["expected"]) or {}).get("name", "") if d["expected"] else "",
                        "seconds_since_seen": int(time.time() - last) if last else None,
                        "online": bool(last) and time.time() - last <= settings.SILENT_SECONDS,
                        "person": registration["name"] if registration else "",
@@ -390,6 +391,8 @@ def api_hello(req, query, body):
                                  req.client_address[0], req.headers.get("X-Device-Key", ""))
     devices.save_health(row["device"], body.get("health"), field(body, "page_url", False))
     devices.save_details(row["device"], body.get("details"), body.get("person_data"))
+    devices.apply_boot_info(row["device"], body.get("boot_info"))            # smartcabin.txt: cabin, person
+    row = devices.find(devices.all_devices(), "device", row["device"]) or row
     answer = device_answer(row)
     answer["key"] = new_key
     answer["message"] = "Hello " + row["device"]
@@ -433,20 +436,25 @@ def api_device_people(req, query, body):
 
 @route("GET", "/api/device/where", "device")
 def api_device_where(req, query, body):
-    # Where a person picked at registration is registered now (for "Replace my old device"); public fields only
-    registration = registrations.current_for_person(str(query.get("id", "")))
+    # For the person picked at registration: the cabin the server has for them here (shown to confirm), and where they
+    # are registered now (for "Replace my old device"); public fields only
+    person = people.get(str(query.get("id", "")))
+    if person is None:
+        raise UserError("That person is not in the university list.")
+    cabin = setup_requests.cabin_for(req.device, person)
+    registration = registrations.current_for_person(person["id"])
     if not registration or registration["device"] == req.device["device"]:
-        return {"device": "", "location": ""}
-    return {"device": registration["device"], "location": registration["location"]}
+        return {"device": "", "location": "", "cabin": cabin}
+    return {"device": registration["device"], "location": registration["location"], "cabin": cabin}
 
 
 @route("POST", "/api/device/register", "device")
 def api_device_register(req, query, body):
-    # Registered at once when the faculty login proves who it is, else a request that waits for the admin
+    # Registered at once when the records agree and the person confirmed them (see setup_requests), else a request
+    # that waits for the admin
     state, message = setup_requests.submit(req.device, field(body, "person_id"), field(body, "card_id", False),
-                                           field(body, "face_photos", False) or 0, field(body, "cabin", False),
-                                           field(body, "login", False), body.get("password", ""),
-                                           replace=bool(body.get("replace")))
+                                           field(body, "face_photos", False) or 0, replace=bool(body.get("replace")),
+                                           update_note=field(body, "update_note", False))
     row = devices.find(devices.all_devices(), "device", req.device["device"])
     return {"state": state, "message": message, "location": row["location"] if row else ""}
 

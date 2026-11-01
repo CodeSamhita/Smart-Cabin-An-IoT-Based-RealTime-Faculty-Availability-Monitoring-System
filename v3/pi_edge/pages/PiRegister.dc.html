@@ -107,18 +107,19 @@ a{color:#2a4a7a}a:hover{color:#14243f}
 </div>
 </div>
 <form id="confirm" style="display: flex; flex-direction: column; gap: 0.75rem">
-<label style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.875rem; font-weight: 600; color: #3c4842">Faculty username, server id or ID card number
-<input type="text" id="login" autocomplete="username" style="min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font: inherit; font-weight: 400; font-size: 0.9375rem"></label>
-<label style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.875rem; font-weight: 600; color: #3c4842">Password
-<input type="password" id="password" autocomplete="current-password" style="min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font: inherit; font-weight: 400; font-size: 0.9375rem"></label>
-<label style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.875rem; font-weight: 600; color: #3c4842">Cabin
-<input type="text" id="cabin" maxlength="60" style="min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font: inherit; font-weight: 400; font-size: 0.9375rem"></label>
+<span style="font-size: 0.9375rem; font-weight: 700">Are these details correct?</span>
+<dl id="confirm-details" style="margin: 0; display: grid; grid-template-columns: minmax(6.5rem, auto) 1fr; gap: 0.5rem 1rem; font-size: 0.875rem; padding: 0.75rem 0.875rem; border-radius: 0.5rem; border: 1px solid #dde2ea"></dl>
+<label id="update-box" hidden style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.875rem; font-weight: 600; color: #3c4842">What needs to change?
+<textarea id="update-note" maxlength="200" rows="3" style="padding: 0.625rem 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font: inherit; font-weight: 400; font-size: 0.9375rem; resize: vertical"></textarea></label>
 <label id="replace-box" hidden style="display: flex; align-items: flex-start; gap: 0.625rem; padding: 0.75rem 0.875rem; border-radius: 0.5rem; background: #fbecc6; color: #6b4a00; font-size: 0.875rem">
 <input type="checkbox" id="replace" style="width: 1.125rem; height: 1.125rem; margin: 0.125rem 0 0; flex: none">
 <span><b id="replace-text"></b><br>Replace my old device</span></label>
-<div style="display: flex; justify-content: space-between; gap: 0.5rem; border-top: 1px solid #eef1f4; padding-top: 0.875rem">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; border-top: 1px solid #eef1f4; padding-top: 0.875rem">
 <button type="button" id="back-card" style="min-height: 2.75rem; padding: 0 1rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; background: #ffffff; color: #1a211e; font: inherit; font-weight: 600; cursor: pointer">Back</button>
-<button type="submit" id="send" style="min-height: 2.75rem; padding: 0 1.125rem; border: 0; border-radius: 0.5rem; background: #1e8a4c; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Send registration</button>
+<span style="display: flex; flex-wrap: wrap; gap: 0.5rem">
+<button type="button" id="wrong" style="min-height: 2.75rem; padding: 0 1rem; border: 1px solid #e2b4aa; border-radius: 0.5rem; background: #ffffff; color: #8a2412; font: inherit; font-weight: 600; cursor: pointer">No, request an update</button>
+<button type="submit" id="send" style="min-height: 2.75rem; padding: 0 1.125rem; border: 0; border-radius: 0.5rem; background: #1e8a4c; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Yes, register</button>
+</span>
 </div>
 </form>
 <ol id="save-steps" hidden role="status" aria-live="polite" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column"></ol>

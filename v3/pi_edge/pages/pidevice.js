@@ -130,8 +130,9 @@ function draw(s) {
   $('big-dot').style.boxShadow = '0 0 0 0.5rem ' + st.glow;
   $('big-label').textContent = st.label;
   $('big-label').style.color = st.fg;
-  const how = !s.in_cabin ? '' : s.face_recent && s.card_in ? 'Seen and tapped in' : s.face_recent ? 'Seen, not tapped in'
-    : s.card_in ? 'Tapped in, not seen yet' : 'Someone counted in the cabin';
+  const looking = s.checking_seconds > 0 ? 'Card tapped · looking for your face (' + s.checking_seconds + ' s)' : '';
+  const how = looking || (!s.in_cabin ? '' : s.face_recent && s.card_in ? 'Seen and tapped in' : s.face_recent ? 'Seen, not tapped in'
+    : s.card_in ? 'Tapped in, not seen yet' : 'Someone counted in the cabin');
   $('big-text').textContent = registered ? st.text + (how ? ' · ' + how : '') : 'Nobody registered';
   $('simple-reg').hidden = !registered;
   $('simple-noreg').hidden = registered;
@@ -154,7 +155,7 @@ function draw(s) {
   $('f-in').textContent = s.in_cabin ? 'yes' : 'no';
   $('f-confidence').textContent = s.confidence + ' %';
   $('f-count').textContent = s.headcount + (s.dark ? ' (room is dark)' : '');
-  $('f-card').textContent = s.card_in ? 'tapped in' : 'not tapped in';
+  $('f-card').textContent = looking ? 'tapped · looking for the face (' + s.checking_seconds + ' s)' : s.card_in ? 'tapped in' : 'not tapped in';
   $('f-picture').textContent = s.last_picture + ' · ' + s.picture_ms + ' ms';
   $('f-temp').textContent = s.temperature === null ? '–' : s.temperature + ' °C';
   $('server-state').style.color = s.server_ok ? '#14532d' : '#8a2412';
