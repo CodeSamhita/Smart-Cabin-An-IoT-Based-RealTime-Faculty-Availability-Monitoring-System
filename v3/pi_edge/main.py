@@ -153,6 +153,8 @@ def main():
     start_thread("presence", presence.loop)
     start_thread("server", server_link.loop)
     start_thread("discovery", server_link.listen)          # finds the server by its announcement
+    import wifi
+    start_thread("wifi", wifi.loop)                         # back to the laptop hotspot when it is on again
     try:
         web.serve()
     except OSError as problem:

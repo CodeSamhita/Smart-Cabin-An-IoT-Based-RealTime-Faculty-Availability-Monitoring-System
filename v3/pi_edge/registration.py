@@ -1,11 +1,15 @@
-# Smart Cabin edge device - registering a person at this device, from their phone.
-# Steps on the page (PiRegister.dc.html): pick your name -> register face (10 photos) -> tap card -> save.
-#   start()          : the server says whether setup is allowed here (nobody registered yet, location set);
-#                      the people list is copied from the server (data/people_copy.csv)
+# Smart Cabin edge device - registering a person at this device, from their phone. No admin needed first.
+# Steps on the page (PiRegister.dc.html): pick your name -> register face (10 photos) -> tap card -> confirm + send.
+#   start()          : allowed while nobody is registered here; the people list is copied from the server
+#                      (data/people_copy.csv), or the last copy is used when the server is out of reach
 #   start_face()     : takes 10 photos with exactly one face in view (thread), shows progress
 #   start_card()     : the next card tap (within 30 s) is the person's card
-#   save()           : the server registers the person, then this device keeps the face and card
-#   sync_person()    : the server says who is registered here (after an admin removal, the face is deleted)
+#   save()           : sends it with the faculty login: registered at once, or a request waiting for the admin.
+#                      Server out of reach: kept on this device ("waiting") and sent later (without the password).
+#                      The face and card are kept on this device in all three cases.
+#   sync_person()    : the server says who is registered here (after an admin removal or a rejected request,
+#                      the face is deleted)
+#   send_waiting()   : sends a registration that was kept while the server was out of reach
 # Only one registration at a time. It ends after REGISTRATION_MINUTES. The camera preview exists only during
 # a registration and only for the phone that started it (its secret session key).
 
@@ -88,17 +92,40 @@ def forget_person(reason):
     log.info("forgot the registered person: %s", reason)
 
 
-def sync_person(server_person):
+def approval(person=None):
+    # "approved" (registered on the server), "pending" (sent, the admin decides) or "waiting" (not sent yet)
+    person = person or local_person() or {}
+    return person.get("approval", "approved")             # files from before requests existed are approved
+
+
+def sync_person(server_person, server_request=None):
     # The server's answer is the truth about who is registered at this device
     if session:
         return                                            # don't interfere with a registration going on
     local = local_person()
     if not server_person:
-        if local:
+        if local and approval(local) != "approved":
+            request = server_request or {}
+            if request.get("person_id") == local.get("id") and request.get("state") == "rejected":
+                forget_person("the admin rejected the registration request")
+            else:
+                if approval(local) == "pending" and request.get("person_id") != local.get("id"):
+                    local["approval"] = "waiting"          # the server has no request from us: send it again
+                    write_person(local)
+                shared.update(person=None)
+                shared.set_part("registration", True, local["name"] + ": " + (
+                    "waiting for the admin's approval" if approval(local) == "pending"
+                    else "saved here, sent when the server can be reached"))
+                return
+        elif local:
             forget_person("the server says nobody is registered here (removed by the admin?)")
         shared.update(person=None)
         shared.set_part("registration", True, "nobody registered yet - press Start registration on this device's page")
         return
+    if local and approval(local) != "approved" and local.get("id") == server_person["id"]:
+        local["approval"] = "approved"                     # the admin approved the request
+        write_person(local)
+        log.info("registration approved: %s", local["name"])
     if local and local.get("id") != server_person["id"]:
         forget_person("the server has someone else registered here")
         local = None
@@ -115,7 +142,7 @@ def sync_person(server_person):
 def check(token):
     with lock:
         if not session or not secrets.compare_digest(session["token"], str(token or "")):
-            raise PageError("No registration going on from this phone. Start again with the setup PIN.")
+            raise PageError("No registration going on from this browser. Start it again on the device page.")
         if time.time() - session["started"] > settings.REGISTRATION_MINUTES * 60:
             end("timed out")
             raise PageError("The registration took longer than %d minutes and was stopped. Start again."
@@ -123,22 +150,22 @@ def check(token):
 
 
 def start(server_call):
-    # The server allows a registration while nobody is registered at this device and it has a location
-    if not shared.get("device"):
-        raise PageError("This device is not connected to the server yet, so it cannot register anyone. "
-                        "Check the 'server' line on the device page.")
-    ok, answer = server_call("POST", "/api/device/setup-allowed", {})
-    if not ok:
-        raise PageError(answer["message"])
-    if not answer.get("allowed"):
-        raise PageError(answer["message"])
+    # Allowed while nobody is registered at this device (a request still waiting may be replaced)
+    local = local_person()
+    if local and approval(local) == "approved":
+        raise PageError(local["name"] + " is registered at this device. The admin must remove them first.")
     ok, answer = server_call("GET", "/api/device/people")
-    if not ok:
-        raise PageError("Could not get the people list from the server: " + answer["message"])
-    with open(PEOPLE_COPY, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["id", "name", "designation", "role", "school", "department"], extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(answer["people"])
+    if ok:
+        with open(PEOPLE_COPY, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=["id", "name", "designation", "role", "school", "department"],
+                                    extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(answer["people"])
+    elif not answer.get("unreachable"):
+        raise PageError(answer["message"])
+    elif not os.path.exists(PEOPLE_COPY):
+        raise PageError("The server can't be reached and this device has no copy of the people list yet. "
+                        "Connect it to the server once (" + answer["message"] + ").")
     with lock:
         session.clear()
         session.update({"token": secrets.token_urlsafe(24), "started": time.time(),
@@ -256,7 +283,8 @@ def card_tapped(card_id):
     return True
 
 
-def save(token, server_call):
+def save(token, server_call, login="", password="", cabin=""):
+    # Returns (state, message): "registered", "pending" (the admin decides) or "waiting" (kept until the server is reachable)
     check(token)
     if not session["person"]:
         raise PageError("Pick your name first.")
@@ -265,24 +293,50 @@ def save(token, server_call):
     if session["face_busy"]:
         raise PageError("Wait until the photos are finished.")
     person = session["person"]
-    ok, answer = server_call("POST", "/api/device/register", {"person_id": person["id"],
-                                                              "card_id": session["card_id"],
-                                                              "face_photos": len(session["vectors"])})
-    if not ok:
-        raise PageError("The server did not save it: " + answer["message"])
+    cabin = " ".join(str(cabin or "").split())[:60]
+    ok, answer = server_call("POST", "/api/device/register", {
+        "person_id": person["id"], "card_id": session["card_id"], "face_photos": len(session["vectors"]),
+        "cabin": cabin, "login": str(login or "").strip(), "password": str(password or "")})
+    if ok:
+        state = "registered" if answer.get("state") == "registered" else "pending"
+        message = answer["message"]
+    elif answer.get("unreachable"):
+        state = "waiting"                                  # sent later, without the password: the admin decides then
+        message = ("The server can't be reached right now, so this is kept on the device and sent as soon as it can "
+                   "be reached. The admin then approves it.")
+    else:
+        raise PageError(answer["message"])                 # e.g. a wrong password: fix it and send again
     face.forget()
     if session["vectors"]:
         face.save_vectors(session["vectors"])
     now = time.strftime("%Y-%m-%d %H:%M:%S")
     write_person({"id": person["id"], "name": person["name"], "designation": person["designation"], "registered": now,
+                  "approval": "approved" if state == "registered" else state, "cabin": cabin,
                   "face_sets": [{"id": "set1", "added": "at setup", "photos": len(session["vectors"])}] if session["vectors"] else [],
                   "cards": [{"uid": session["card_id"], "added": "at setup"}] if session["card_id"] else []})
-    shared.update(person={"id": person["id"], "name": person["name"], "designation": person["designation"]},
-                  in_cabin=False, card_in=False)
-    message = answer["message"]
-    end("saved")
+    if state == "registered":
+        shared.update(person={"id": person["id"], "name": person["name"], "designation": person["designation"]},
+                      in_cabin=False, card_in=False)
+    end("saved: " + state)
     shared.changed.set()
-    return message
+    return state, message
+
+
+def send_waiting(server_call):
+    # A registration kept while the server was out of reach: send it now (no password was kept, so the admin decides)
+    local = local_person()
+    if session or not local or approval(local) != "waiting":
+        return
+    ok, answer = server_call("POST", "/api/device/register", {
+        "person_id": local["id"], "card_id": (card_ids(local) or [""])[0], "face_photos": face_photo_count(local),
+        "cabin": local.get("cabin", "")})
+    if ok:
+        local["approval"] = "approved" if answer.get("state") == "registered" else "pending"
+        write_person(local)
+        log.info("waiting registration sent: %s", answer["message"])
+    elif not answer.get("unreachable"):
+        log.warning("waiting registration refused by the server: %s", answer["message"])
+        shared.set_part("registration", False, local["name"] + ": the server refused the registration: " + answer["message"])
 
 
 def end(reason):

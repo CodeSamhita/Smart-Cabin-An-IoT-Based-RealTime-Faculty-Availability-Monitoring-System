@@ -138,9 +138,10 @@ a{color:#2a4a7a}a:hover{color:#14243f}
 <section id="setup-ok" hidden aria-labelledby="rg" style="background: #ffffff; border: 2px solid #2a4a7a; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.875rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
 <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem">
 <h2 id="rg" style="margin: 0; font-size: 1.125rem; font-weight: 700; flex: 1">One-time setup</h2>
-<span style="display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.25rem 0.625rem; border-radius: 999px; background: #dcf1e3; color: #14532d; font-size: 0.75rem; font-weight: 600"><span style="width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #1e8a4c"></span>Authorized by server</span>
+<span id="setup-badge" style="display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.25rem 0.625rem; border-radius: 999px; background: #dcf1e3; color: #14532d; font-size: 0.75rem; font-weight: 600"><span style="width: 0.5rem; height: 0.5rem; border-radius: 50%; background: #1e8a4c"></span><span id="setup-badge-text">Open</span></span>
 </div>
-<p style="margin: 0; font-size: 0.875rem; color: #4a5650">The admin has allowed this cabin to be set up. Register the faculty member who uses this cabin: name, face and RFID card. This is done only once.</p>
+<p style="margin: 0; font-size: 0.875rem; color: #4a5650">Register the faculty member who uses this cabin: name, face and RFID card. With your faculty login it is registered at once; otherwise the admin approves it.</p>
+<p id="setup-pending" hidden style="margin: 0; padding: 0.625rem 0.75rem; border-radius: 0.5rem; background: #fbecc6; color: #6b4a00; font-size: 0.875rem; font-weight: 600"></p>
 <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem">
 <a href="PiRegister.dc.html" style="display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 1.125rem; border-radius: 0.5rem; background: #1b2d4b; color: #ffffff; font-weight: 600; text-decoration: none">Start registration</a>
 <span style="font-size: 0.8125rem; color: #56625c">Allowed while nobody is registered here</span>
@@ -163,6 +164,26 @@ a{color:#2a4a7a}a:hover{color:#14243f}
 </div>
 <div id="meters" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr)); gap: 0.5rem"></div>
 <div id="spec-groups" style="display: flex; flex-direction: column; gap: 1rem"></div>
+</section>
+
+<section id="wifi-box" hidden aria-labelledby="wf" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.875rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">
+<h2 id="wf" style="margin: 0; font-size: 1.0625rem; font-weight: 700">Wi-Fi networks</h2>
+<p id="wifi-note" hidden style="margin: 0; font-size: 0.8125rem; color: #56625c"></p>
+<ul id="wifi-list" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.375rem"></ul>
+<form id="wifi-form" style="display: flex; flex-direction: column; gap: 0.625rem; border-top: 1px solid #eef1f4; padding-top: 0.875rem">
+<span style="font-size: 0.875rem; font-weight: 700">Add a network</span>
+<div role="radiogroup" aria-label="Kind of network" style="display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.875rem">
+<label style="display: inline-flex; align-items: center; gap: 0.375rem"><input type="radio" name="wifi-kind" value="password" checked> Name and password</label>
+<label style="display: inline-flex; align-items: center; gap: 0.375rem"><input type="radio" name="wifi-kind" value="campus"> Campus Wi-Fi (username and password)</label>
+</div>
+<label style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #3c4842">Wi-Fi name
+<input type="text" id="wifi-ssid" maxlength="32" autocomplete="off" style="min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font: inherit; font-weight: 400"></label>
+<label id="wifi-user-box" hidden style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #3c4842">Username
+<input type="text" id="wifi-user" maxlength="100" autocomplete="off" style="min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font: inherit; font-weight: 400"></label>
+<label style="display: flex; flex-direction: column; gap: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: #3c4842">Password
+<input type="password" id="wifi-password" maxlength="100" autocomplete="new-password" style="min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid #b8c1cf; border-radius: 0.5rem; font: inherit; font-weight: 400"></label>
+<div><button type="submit" id="wifi-add" style="min-height: 2.75rem; padding: 0 1.125rem; border: 0; border-radius: 0.5rem; background: #1b2d4b; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer">Save network</button></div>
+</form>
 </section>
 
 <section id="parts-box" hidden aria-labelledby="pt" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.625rem; box-shadow: 0 0.125rem 0.5rem rgba(27,45,75,0.08)">

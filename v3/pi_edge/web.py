@@ -12,6 +12,7 @@ import os
 import ssl
 import subprocess
 import sys
+import threading
 import time
 import traceback
 import urllib.parse
@@ -57,7 +58,10 @@ def state_for_page(token, with_details=False):
     answer = {
         "device": s["device"] or "not numbered yet", "location": s["location"] or "",
         "server_ok": s["server_ok"], "server_message": s["server_message"], "server_url": server_link.current_url(),
-        "setup_allowed": s["setup_allowed"], "setup_message": s["setup_message"], "registered_at": s["registered_at"],
+        # Setup is open while nobody is registered here; the server is not needed for it (requests are sent later)
+        "setup_allowed": not (local and registration.approval(local) == "approved"),
+        "setup_message": s["setup_message"], "registered_at": s["registered_at"],
+        "approval": registration.approval(local) if local else "", "approval_name": local.get("name", ""),
         "person_id": person["id"] if person else "", "designation": person.get("designation", "") if person else "",
         "school": extra.get("school", ""), "department": extra.get("department", ""),
         "face_photos": registration.face_photo_count(local) if person else 0,
@@ -79,6 +83,8 @@ def state_for_page(token, with_details=False):
     if view:
         answer["log"] = recent(40)
     if with_details:
+        import wifi
+        answer["wifi"] = wifi.view()
         answer["details"] = details.collect()
         for group in answer["details"]["groups"]:
             for row in group["rows"]:
@@ -180,7 +186,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             registration.start_card(token)
             return {"message": "Tap your card on the reader within %d s." % settings.CARD_WAIT_SECONDS}
         if (method, path) == ("POST", "/api/register/save"):
-            return {"message": registration.save(token, call)}
+            state, message = registration.save(token, call, body.get("login", ""), body.get("password", ""),
+                                               body.get("cabin", ""))
+            return {"state": state, "message": message}
         if (method, path) == ("POST", "/api/register/cancel"):
             registration.check(token)
             registration.end("cancelled on the page")
@@ -199,6 +207,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
             except (TypeError, ValueError):
                 raise PageError("No such card.")
             return {"message": person_data.delete_card(index, call)}
+        if (method, path) == ("POST", "/api/wifi/add"):
+            import wifi
+            return {"message": wifi.add(body.get("ssid", ""), body.get("password", ""), body.get("username", ""))}
+        if (method, path) == ("POST", "/api/wifi/remove"):
+            import wifi
+            return {"message": wifi.remove(str(body.get("name", "")))}
         if (method, path) == ("POST", "/api/person/stop"):
             person_data.stop()
             return {"message": "Cancelled."}
@@ -291,15 +305,47 @@ class PageServer(http.server.ThreadingHTTPServer):
 HANDSHAKE_SECONDS = 10
 
 
+class ToHttps(http.server.BaseHTTPRequestHandler):
+    # Port 80: anyone typing smartcabin.local (plain http) is sent on to the https page
+    def do_GET(self):
+        host = (self.headers.get("Host") or settings.HOSTNAME + ".local").split(":")[0]
+        self.send_response(301)
+        self.send_header("Location", "https://" + host + "/")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def log_message(self, form, *args):
+        pass
+
+
+def serve_also(port, handler, context):
+    # The same page on a second port (in its own thread); a port that is taken is only logged
+    try:
+        extra = PageServer(("0.0.0.0", port), handler)
+        extra.context = context
+        threading.Thread(target=extra.serve_forever, name="page-" + str(port), daemon=True).start()
+        return True
+    except OSError as problem:
+        log.warning("page not on port %d: %s", port, problem)
+        return False
+
+
 def serve():
     server = PageServer(("0.0.0.0", settings.PAGE_PORT), Handler)
     https = "--http" not in sys.argv and make_certificate()        # --http: plain page, only for troubleshooting
+    context = None
     if https:
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         context.minimum_version = ssl.TLSVersion.TLSv1_2
         context.load_cert_chain(CERT, KEY)
         server.context = context
+    ports = str(settings.PAGE_PORT)
+    if https and settings.ON_PI and not settings.SIMULATE:          # https://smartcabin.local without a port number
+        if serve_also(443, Handler, context):
+            ports += ", 443"
+        if serve_also(80, ToHttps, None):
+            ports += ", 80 (sends on to https)"
     shared.update(page_https=https)
-    shared.set_part("page", True, ("https" if https else "http (no certificate)") + " on port " + str(settings.PAGE_PORT))
+    shared.set_part("page", True, ("https" if https else "http (no certificate)") + " on port " + ports)
     log.info("device page: %s", server_link.page_url())
     server.serve_forever()

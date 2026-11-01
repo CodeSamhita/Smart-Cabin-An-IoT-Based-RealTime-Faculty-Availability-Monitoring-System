@@ -99,7 +99,8 @@ function cardHtml(d) {
 const EVENT_NAMES = { 'status': 'Status changed', 'new device': 'First seen', 'registered': 'Person registered',
                       'unregistered': 'Person removed', 'moved': 'Person moved', 'location': 'Location set',
                       'credentials': 'Face / cards changed', 'faculty': 'Faculty login', 'timetable': 'Timetable',
-                      'setup pin': 'Setup PIN made', 'device key': 'Device key', 'refused': 'Refused', 'admin': 'Admin' };
+                      'setup pin': 'Setup PIN made', 'device key': 'Device key', 'refused': 'Refused', 'admin': 'Admin',
+                      'request': 'Registration request' };
 
 function drawTiles(list) {
   const count = { all: list.length, online: list.filter((d) => kindOf(d) === 'online').length,
@@ -128,6 +129,44 @@ function drawDevices(list) {
     : '<p style="margin: 0; padding: 1.25rem; text-align: center; background: #ffffff; border: 1px dashed #b8c1cf; border-radius: 0.75rem; color: #4a5650">' +
       (list.length ? 'No device here.' : 'No device yet. Start the edge app on a Pi and it appears here by itself.') + '</p>';
 }
+
+// ---------- registration requests (made at a device, waiting for the admin) ----------
+function requestHtml(r) {
+  const button = 'min-height: 2.75rem; padding: 0 1rem; border-radius: 0.5rem; font: inherit; font-weight: 600; cursor: pointer; ';
+  const note = notes['request ' + r.id];
+  return '<article data-request="' + esc(r.id) + '" style="background: #ffffff; border: 1px solid #dde2ea; border-radius: 0.75rem; padding: 1.375rem; display: flex; flex-direction: column; gap: 1rem">' +
+    '<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem">' +
+    '<span style="font-family: \'IBM Plex Mono\', monospace; font-weight: 500; font-size: 0.9375rem; padding: 0.25rem 0.625rem; border-radius: 0.375rem; background: #1b2d4b; color: #ffffff">' + esc(r.device) + '</span>' +
+    '<span style="font-weight: 600; flex: 1; min-width: 0">' + esc(r.name) + '</span>' + pillHtml('nolocation').replace('No location', 'Waiting') + '</div>' +
+    '<dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 1rem; font-size: 0.875rem">' +
+    field('Cabin', r.cabin || '–') + field('Sent', r.time, true) +
+    field('Face photos · card', r.face_photos + ' · ' + (r.card ? 'yes' : 'no')) + field('Why it waits', r.reason) + '</dl>' +
+    '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem; border-top: 1px solid #e6ebe8; padding-top: 1rem">' +
+    '<button type="button" data-decide="yes" style="' + button + 'border: 0; background: #1e8a4c; color: #ffffff">Approve</button>' +
+    '<button type="button" data-decide="no" style="' + button + 'border: 1px solid #b8c1cf; background: #ffffff; color: #8a2412">Reject</button></div>' +
+    (note ? '<span style="font-size: 0.8125rem; color: ' + (note.ok ? '#14532d' : '#8a2412') + '">' + esc(note.text) + '</span>' : '') +
+    '</article>';
+}
+
+async function loadRequests() {
+  const data = await api('GET', '/api/admin/requests');
+  if (!data.ok) return showBar(data.message);
+  $('requests-box').hidden = data.requests.length === 0;
+  $('requests').innerHTML = data.requests.map(requestHtml).join('');
+}
+
+$('requests').addEventListener('click', (e) => {
+  const button = e.target.closest('button[data-decide]');
+  if (!button) return;
+  const id = button.closest('article').dataset.request;
+  const approve = button.dataset.decide === 'yes';
+  press(button, async () => {
+    const r = await api('POST', '/api/admin/requests/decide', { id, approve });
+    if (!r.ok) notes['request ' + id] = { ok: false, text: r.message };
+    else showBar(r.message, 'note');
+    await refresh(true);
+  });
+});
 
 // ---------- faculty ----------
 const shortSchool = (s) => (s || '').replace(/^Presidency School of /, '');
@@ -188,6 +227,7 @@ async function refresh(force) {
   drawTiles(lastDevices);
   drawDevices(lastDevices);
   $('updated').textContent = clock();
+  await loadRequests();
   if (Date.now() - peopleAt > 10000) loadPeople();
   const log = await api('GET', '/api/admin/log');
   if (!log.ok) return showBar(log.message);

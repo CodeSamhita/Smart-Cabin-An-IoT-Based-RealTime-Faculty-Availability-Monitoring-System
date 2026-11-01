@@ -28,14 +28,16 @@ def current_for_person(person_id):
     return None
 
 
-def register(device, location, person_id, card_id, face_photos):
+def register(device, location, person_id, card_id, face_photos, card_hash=None):
+    # card_hash: given instead of card_id when it was kept from a request (the card id itself is never stored)
     person = people.get(person_id)
     if person is None:
         raise UserError("Person " + str(person_id) + " is not in the university list.")
     face_photos = int(face_photos or 0)
-    if not card_id and face_photos <= 0:
+    if card_hash is None:
+        card_hash = security.sha256(str(card_id).upper()) if card_id else ""
+    if not card_hash and face_photos <= 0:
         raise UserError("Register at least the face or a card.")
-    card_hash = security.sha256(str(card_id).upper()) if card_id else ""
     now = logbook.now_text()
     with csv_store.lock:
         rows = csv_store.read("registrations.csv")
@@ -52,7 +54,7 @@ def register(device, location, person_id, card_id, face_photos):
                      "card_hash": card_hash, "face_photos": face_photos, "from_time": now, "to_time": ""})
         csv_store.write("registrations.csv", rows, COLUMNS)
     logbook.event("registered", person["name"] + " at " + device + " (" + (location or "location not set") + "), face photos: "
-                  + str(face_photos) + ", card: " + ("yes" if card_id else "no"), device, person_id)
+                  + str(face_photos) + ", card: " + ("yes" if card_hash else "no"), device, person_id)
     return person
 
 

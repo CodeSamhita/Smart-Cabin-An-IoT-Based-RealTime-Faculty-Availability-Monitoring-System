@@ -36,7 +36,7 @@ function serverBadge(kind, text) {
 
 // ---------- the steps ----------
 function drawSteps() {
-  $('steps').innerHTML = ['Your name', 'Your face', 'RFID card', 'Saved'].map((label, i) => {
+  $('steps').innerHTML = ['Your name', 'Your face', 'RFID card', 'Send'].map((label, i) => {
     const n = i + 1, done = n < step, cur = n === step;
     return '<li style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.625rem; border-radius: 0.5rem; font-size: 0.8125rem; font-weight: 600; ' +
       (cur ? 'background: #1b2d4b; color: #ffffff' : done ? 'background: #e6ecf5; color: #1b2d4b' : 'background: #ffffff; color: #56625c; border: 1px solid #dde2ea') + '">' +
@@ -59,7 +59,7 @@ function goTo(n) {
 function drawPicked() {
   document.querySelectorAll('.pick-initials').forEach((e) => { e.textContent = picked ? initials(picked.name) : ''; });
   document.querySelectorAll('.pick-name').forEach((e) => { e.textContent = picked ? picked.name : ''; });
-  document.querySelectorAll('.location-text').forEach((e) => { e.textContent = 'Cabin ' + (location_ || '(not set)') + ' · set by admin'; });
+  document.querySelectorAll('.location-text').forEach((e) => { e.textContent = 'Cabin ' + (location_ || '(not set yet)'); });
   const next = $('to-face');
   next.disabled = !picked;
   next.style.cssText = 'min-height: 2.75rem; padding: 0 1.125rem; border: 0; border-radius: 0.5rem; font: inherit; font-weight: 600; ' +
@@ -178,27 +178,56 @@ function drawSaveSteps(stage) {
   }).join('');
 }
 
-async function save() {
+// The badge and the closing message for each answer: registered at once, waiting for the admin, or kept on the device
+const BADGES = { draft: ['Not sent', '#eef1f4', '#3a4540'], sending: ['Sending…', '#fbecc6', '#6b4a00'],
+                 failed: ['Not sent', '#f8dcd5', '#8a2412'], registered: ['Registered', '#dcf1e3', '#14532d'],
+                 pending: ['Waiting for approval', '#fbecc6', '#6b4a00'], waiting: ['Saved on this device', '#e6ecf5', '#1b2d4b'] };
+const DONE = { registered: ['Registration complete', 'The server has saved it. This cabin now shows your status live.'],
+               pending: ['Request sent', 'The admin approves it. This cabin shows your status from then on.'],
+               waiting: ['Saved on this device', 'It is sent as soon as the server can be reached; the admin approves it then.'] };
+
+function badge(kind) {
+  const [text, bg, fg] = BADGES[kind];
+  $('save-badge').textContent = text;
+  $('save-badge').style.cssText = 'font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.625rem; border-radius: 999px; background: ' + bg + '; color: ' + fg;
+}
+
+function save() {
+  // From the card step: the confirm form (faculty login, cabin); nothing is sent yet
   goTo(4);
   $('save-summary').textContent = (reg ? reg.face_photos : 0) + ' face photos · Card ' + (reg && reg.card_id ? reg.card_id : '–');
   $('save-error').hidden = true;
   $('saved').hidden = true;
-  drawSaveSteps(0);
-  const r = await call('POST', '/api/register/save');
+  $('save-steps').hidden = true;
+  $('confirm').hidden = false;
+  if (!$('cabin').value) $('cabin').value = location_ || '';
+  $('cabin').readOnly = !!location_;
+  badge('draft');
+}
+
+async function send() {
+  $('save-error').hidden = true;
+  badge('sending');
+  const r = await call('POST', '/api/register/save', { login: $('login').value, password: $('password').value, cabin: $('cabin').value });
+  $('password').value = '';
   if (!r.ok) {
-    $('save-badge').textContent = 'Not saved';
-    $('save-badge').style.cssText = 'font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.625rem; border-radius: 999px; background: #f8dcd5; color: #8a2412';
+    badge('failed');
     $('save-error').textContent = r.message;
     $('save-error').hidden = false;
     return;
   }
   setToken('');
-  for (let stage = 1; stage <= 4; stage++) {               // the server has confirmed: show each part as done
-    drawSaveSteps(stage);
-    await new Promise((done) => setTimeout(done, 350));
+  $('confirm').hidden = true;
+  if (r.state === 'registered') {                          // the server has confirmed: show each part as done
+    $('save-steps').hidden = false;
+    for (let stage = 1; stage <= 4; stage++) {
+      drawSaveSteps(stage);
+      await new Promise((done) => setTimeout(done, 350));
+    }
   }
-  $('save-badge').textContent = 'Saved';
-  $('save-badge').style.cssText = 'font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.625rem; border-radius: 999px; background: #dcf1e3; color: #14532d';
+  badge(r.state);
+  $('saved-title').textContent = DONE[r.state][0];
+  $('saved-text').textContent = r.state === 'pending' ? r.message : DONE[r.state][1];
   $('saved').hidden = false;
 }
 
@@ -253,6 +282,8 @@ $('start-card').addEventListener('click', (e) => press(e.currentTarget, async ()
   poll();
 }));
 $('save').addEventListener('click', save);
+$('back-card').addEventListener('click', () => goTo(3));
+$('confirm').addEventListener('submit', (e) => { e.preventDefault(); press($('send'), send); });
 $('cancel').addEventListener('click', async (e) => {
   e.preventDefault();
   if (token) await call('POST', '/api/register/cancel');

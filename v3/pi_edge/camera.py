@@ -83,7 +83,9 @@ def grab(small):
         return cv2.resize(picture, size) if small else picture
     if small and has_small_stream:
         yuv = camera.capture_array("lores")
-        picture = cv2.cvtColor(yuv, cv2.COLOR_YUV420p2BGR)[:, :settings.LIVE_SIZE[0]]
+        # picamera2's YUV420 is I420 (U plane before V). Not COLOR_YUV420p2BGR: in OpenCV that means YV12 (V before U),
+        # which swaps the colours (orange shows as blue).
+        picture = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR_I420)[:, :settings.LIVE_SIZE[0]]
     else:
         picture = camera.capture_array("main")
         if small:

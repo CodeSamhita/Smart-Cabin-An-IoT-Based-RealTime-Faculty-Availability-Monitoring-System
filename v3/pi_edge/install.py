@@ -2,6 +2,7 @@
 #   On a Pi    : apt packages (camera, OpenCV, GPIO, SPI) + pip packages (RC522, NeoPixel)
 #   On a laptop: OpenCV and numpy only (the hardware is simulated)
 #   Models     : copied from the earlier test folders on the Pi if they are there, else downloaded.
+#   Name       : the Pi's network name becomes "smartcabin" (page at https://smartcabin.local)
 
 import importlib
 import os
@@ -100,6 +101,30 @@ def models():
                     print("  could not download", name + ":", problem, "- it is tried again at the next start")
 
 
+def hostname():
+    # The Pi's name on the network becomes "smartcabin", so its page is at https://smartcabin.local (avahi, mDNS:
+    # works on a laptop hotspot without a DNS server). Two Pis on one network: avahi calls the second smartcabin-2.local.
+    if not settings.ON_PI or settings.SIMULATE:
+        return
+    import socket
+    if socket.gethostname() == settings.HOSTNAME:
+        return
+    try:
+        old = socket.gethostname()
+        subprocess.run(["hostnamectl", "set-hostname", settings.HOSTNAME], check=True, capture_output=True, timeout=20)
+        with open("/etc/hosts") as f:
+            lines = [line for line in f.read().splitlines() if not line.startswith("127.0.1.1")]
+        lines.append("127.0.1.1\t" + settings.HOSTNAME)
+        with open("/etc/hosts", "w") as f:
+            f.write("\n".join(lines) + "\n")
+        subprocess.run(["systemctl", "restart", "avahi-daemon"], capture_output=True, timeout=20)
+        print("Network name changed from " + old + " to " + settings.HOSTNAME + ": the page is at https://"
+              + settings.HOSTNAME + ".local (and ssh pi@" + settings.HOSTNAME + ".local)")
+    except (OSError, subprocess.SubprocessError) as problem:
+        print("  could not set the network name to " + settings.HOSTNAME + ":", problem)
+
+
 def run():
     libraries()
     models()
+    hostname()

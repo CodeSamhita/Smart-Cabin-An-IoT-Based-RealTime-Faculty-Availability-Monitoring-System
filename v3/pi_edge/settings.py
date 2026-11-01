@@ -52,6 +52,12 @@ BUZZER_PIN = 23               # buzzer signal on GPIO23 (pin 16), GND pin 20; a 
 BUZZER_PASSIVE = False        # False = active buzzer (beeps by itself), True = passive (needs a tone)
 BUZZER_TONE = 2000            # Hz, for a passive buzzer
 
+# Wi-Fi: the network set when flashing the SD card = the laptop hotspot (its name differs by image: "preconfigured",
+# or "netplan-wlan0-<Wi-Fi name>" on trixie). Every network NOT added on the page counts as a setup network: used first
+# when it is on, and it can't be removed on the page. Networks added on the page (campus Wi-Fi) are named WIFI_PREFIX...
+WIFI_PREFIX = "smartcabin "
+HOSTNAME = "smartcabin"       # the page is also at https://smartcabin.local (mDNS: works without a DNS server)
+
 # Camera and vision (see PLAN.md section 4)
 CAMERA_SIZE = (1296, 972)     # for face checks only: faces need the pixels (no face found at 640x480 in tests)
 LIVE_SIZE = (640, 480)        # for the headcount and the live view (the middle of the three tested sizes)

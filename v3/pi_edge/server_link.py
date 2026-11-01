@@ -94,11 +94,13 @@ def call(method, path, body=None):
         data.setdefault("message", "HTTP " + str(answer.status))
         return bool(data["ok"]), data
     except socket.timeout:
-        return False, {"ok": False, "message": "the server did not answer in " + str(settings.SERVER_TIMEOUT) + " s"}
+        return False, {"ok": False, "unreachable": True,
+                       "message": "the server did not answer in " + str(settings.SERVER_TIMEOUT) + " s"}
     except ConnectionRefusedError:
-        return False, {"ok": False, "message": "the laptop is reachable but the server is not running"}
+        return False, {"ok": False, "unreachable": True, "message": "the laptop is reachable but the server is not running"}
     except OSError as problem:
-        return False, {"ok": False, "message": "cannot reach the server at " + current_url() + " (" + str(problem)
+        return False, {"ok": False, "unreachable": True,
+                       "message": "cannot reach the server at " + current_url() + " (" + str(problem)
                        + "). Is the laptop's hotspot on and the server running?"}
     finally:
         if connection:
@@ -125,8 +127,9 @@ def use_answer(answer):
     shared.update(device=answer.get("device", ""), location=answer.get("location", ""),
                   server_ok=True, server_message="connected", setup_allowed=bool(answer.get("setup_allowed")),
                   setup_message=answer.get("setup_message", ""), registered_at=answer.get("registered_at", ""))
-    registration.sync_person(answer.get("person"))
+    registration.sync_person(answer.get("person"), answer.get("request"))
     shared.set_part("server", True, "connected to " + current_url())
+    registration.send_waiting(call)                       # a registration saved while the server was out of reach
 
 
 def server_view():

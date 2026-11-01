@@ -26,6 +26,7 @@ import people
 import registrations
 import security
 import settings
+import setup_requests
 import status
 import timetables
 from security import UserError
@@ -319,6 +320,21 @@ def api_admin_unregister(req, query, body):
             else "Nobody was registered there."}
 
 
+@route("GET", "/api/admin/requests", "admin")
+def api_requests(req, query, body):
+    # Registrations made at a device that wait for the admin
+    rows = setup_requests.pending()
+    return {"requests": [{"id": r["id"], "time": r["time"], "device": r["device"], "person_id": r["person_id"],
+                          "name": r["name"], "cabin": r["cabin"], "face_photos": r["face_photos"],
+                          "card": bool(r["card_hash"]), "reason": r["reason"]} for r in rows],
+            "message": str(len(rows)) + " waiting"}
+
+
+@route("POST", "/api/admin/requests/decide", "admin")
+def api_requests_decide(req, query, body):
+    return {"message": setup_requests.decide(field(body, "id"), bool(body.get("approve")))}
+
+
 @route("GET", "/api/admin/log", "admin")
 def api_log(req, query, body):
     import csv_store
@@ -334,9 +350,12 @@ def device_answer(row):
         person = {"id": registration["person_id"], "name": registration["name"],
                   "designation": p.get("designation", "")}
     problem = setup_problem(row)
+    request = None if registration else setup_requests.latest_for_device(row["device"])
     return {"device": row["device"], "location": row["location"], "person": person,
             "setup_allowed": not problem, "setup_message": problem or "Setup allowed",
-            "registered_at": registration["from_time"] if registration else ""}
+            "registered_at": registration["from_time"] if registration else "",
+            "request": {"person_id": request["person_id"], "state": request["state"], "reason": request["reason"]}
+            if request else None}
 
 
 @route("POST", "/api/device/hello")
@@ -363,9 +382,7 @@ def api_report(req, query, body):
 
 
 def setup_problem(device):
-    # Why this device may not register a person right now, or "" if it may
-    if not device["location"]:
-        return "The admin has not set this device's location yet (Devices page on the server)."
+    # Why this device may not register a person right now, or "" if it may (no admin needed first: see setup_requests)
     current = registrations.current_for_device(device["device"])
     if current:
         return current["name"] + " is already registered here. The admin must remove them first."
@@ -374,7 +391,7 @@ def setup_problem(device):
 
 @route("POST", "/api/device/setup-allowed", "device")
 def api_setup_allowed(req, query, body):
-    # Registration at the device is allowed while nobody is registered there and it has a location
+    # Registration at the device is allowed while nobody is registered there
     problem = setup_problem(req.device)
     return {"allowed": not problem, "message": problem or "Setup allowed", "location": req.device["location"]}
 
@@ -390,13 +407,12 @@ def api_device_people(req, query, body):
 
 @route("POST", "/api/device/register", "device")
 def api_device_register(req, query, body):
-    device = req.device
-    problem = setup_problem(device)
-    if problem:
-        raise UserError(problem)
-    person = registrations.register(device["device"], device["location"], field(body, "person_id"),
-                                    field(body, "card_id", False), field(body, "face_photos", False) or 0)
-    return {"message": person["name"] + " is registered at " + device["device"] + ".", "location": device["location"]}
+    # Registered at once when the faculty login proves who it is, else a request that waits for the admin
+    state, message = setup_requests.submit(req.device, field(body, "person_id"), field(body, "card_id", False),
+                                           field(body, "face_photos", False) or 0, field(body, "cabin", False),
+                                           field(body, "login", False), body.get("password", ""))
+    row = devices.find(devices.all_devices(), "device", req.device["device"])
+    return {"state": state, "message": message, "location": row["location"] if row else ""}
 
 
 @route("POST", "/api/device/credentials", "device")

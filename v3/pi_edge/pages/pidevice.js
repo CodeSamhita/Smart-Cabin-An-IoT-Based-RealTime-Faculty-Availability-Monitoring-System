@@ -182,12 +182,19 @@ function draw(s) {
   // Setup state (only when nobody is registered)
   $('setup-ok').hidden = registered || !s.setup_allowed;
   $('setup-wait').hidden = registered || s.setup_allowed;
+  const waiting = !registered && (s.approval === 'pending' || s.approval === 'waiting');
+  $('setup-pending').hidden = !waiting;
+  $('setup-pending').textContent = !waiting ? '' : s.approval === 'pending'
+    ? s.approval_name + ' · waiting for the admin\'s approval'
+    : s.approval_name + ' · saved here, sent when the server can be reached';
+  $('setup-badge-text').textContent = waiting ? 'Waiting' : 'Open';
   $('wait-code').textContent = s.device;
   $('wait-reason').textContent = s.server_ok ? s.setup_message : 'The device cannot reach the server: ' + s.server_message;
 
   // Advanced view: details, parts, maintenance
   $('dev-details').hidden = !advanced;
   $('parts-box').hidden = !advanced;
+  $('wifi-box').hidden = !advanced;
   $('maintenance').hidden = !advanced;
   const NAMES = { camera: 'Camera', rfid: 'Card reader', led: 'Indication light', buzzer: 'Buzzer', vision: 'Vision', 'people model': 'People model',
                   'face model': 'Face model', server: 'Server link', page: 'This page', registration: 'Registration' };
@@ -268,6 +275,42 @@ function drawDetails(d) {
     '</dl></div>').join('');
 }
 
+// ---------- Wi-Fi networks (wifi.py on the Pi) ----------
+let wifiAsking = '';            // the network name while "Remove? Yes / No" is shown
+let wifiLast = null;
+
+function drawWifi(w) {
+  wifiLast = w;
+  $('wifi-note').hidden = !w.message;
+  $('wifi-note').textContent = w.message;
+  $('wifi-form').hidden = !w.present;
+  $('wifi-list').innerHTML = w.networks.map((n) => {
+    const state = n.active ? 'In use' : n.in_range ? 'In range' : 'Not in range';
+    const signal = n.signal !== null && n.signal !== undefined ? ' · ' + n.signal + ' %' : '';
+    let controls = '';
+    if (wifiAsking === n.name) {
+      controls = '<span style="font-size: 0.75rem; font-weight: 600; color: #8a2412">Remove?</span>' +
+        '<button type="button" data-wifi-yes="' + esc(n.name) + '" style="min-height: 1.75rem; padding: 0 0.5rem; border: 0; border-radius: 0.375rem; background: #9e2a17; color: #ffffff; font: inherit; font-size: 0.75rem; font-weight: 600; cursor: pointer">Yes</button>' +
+        '<button type="button" data-wifi-no="1" style="min-height: 1.75rem; padding: 0 0.5rem; border: 1px solid #b8c1cf; border-radius: 0.375rem; background: #ffffff; color: #1a211e; font: inherit; font-size: 0.75rem; font-weight: 600; cursor: pointer">No</button>';
+    } else if (!n.setup && !n.active) {
+      controls = '<button type="button" data-wifi-ask="' + esc(n.name) + '" aria-label="Remove ' + esc(n.ssid) + '" title="Remove" style="width: 2rem; height: 2rem; flex: none; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 0.375rem; background: transparent; color: #8a2412; cursor: pointer">' + TRASH + '</button>';
+    }
+    return '<li style="' + ITEM + '; background: #f4f5f8"><span style="width: 0.5rem; height: 0.5rem; flex: none; border-radius: 50%; background: ' + (n.active ? '#1e8a4c' : n.in_range ? '#d39b0b' : '#9aa5b4') + '"></span>' +
+      '<span style="flex: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-weight: 600">' + esc(n.ssid) + (n.setup ? ' <span style="font-weight: 400; color: #56625c">· setup network (laptop hotspot), used first</span>' : '') + '</span>' +
+      '<span style="font-size: 0.75rem; color: #56625c">' + state + signal + '</span></span>' + controls + '</li>';
+  }).join('') || '<li style="font-size: 0.8125rem; color: #56625c">No saved Wi-Fi network.</li>';
+}
+
+async function wifiCall(url, body) {
+  const r = await api('POST', url, body);
+  if (!r.ok) showBar(r.message);
+  else showBar(r.message, 'note');
+  wifiAsking = '';
+  detailsAt = 0;                 // read the list again now
+  refresh();
+  return r;
+}
+
 function drawActions() {
   $('actions').innerHTML = Object.keys(ACTIONS).map((k) => {
     const a = ACTIONS[k];
@@ -312,7 +355,28 @@ async function refresh() {
   draw(s);
   updateLive(s);
   if (s.details) { detailsAt = Date.now(); drawDetails(s.details); }
+  if (s.wifi) drawWifi(s.wifi);
 }
+
+$('wifi-form').addEventListener('change', () => {
+  $('wifi-user-box').hidden = document.querySelector('input[name="wifi-kind"]:checked').value !== 'campus';
+});
+$('wifi-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const campus = document.querySelector('input[name="wifi-kind"]:checked').value === 'campus';
+  press($('wifi-add'), async () => {
+    const r = await wifiCall('/api/wifi/add', { ssid: $('wifi-ssid').value, password: $('wifi-password').value,
+                                                username: campus ? $('wifi-user').value : '' });
+    $('wifi-password').value = '';
+    if (r.ok) { $('wifi-ssid').value = ''; $('wifi-user').value = ''; }
+  });
+});
+$('wifi-list').addEventListener('click', (e) => {
+  const ask = e.target.closest('[data-wifi-ask]'), yes = e.target.closest('[data-wifi-yes]'), no = e.target.closest('[data-wifi-no]');
+  if (ask) { wifiAsking = ask.dataset.wifiAsk; if (wifiLast) drawWifi(wifiLast); }
+  if (no) { wifiAsking = ''; if (wifiLast) drawWifi(wifiLast); }
+  if (yes) press(yes, () => wifiCall('/api/wifi/remove', { name: yes.dataset.wifiYes }));
+});
 
 $('live-img').addEventListener('load', () => { $('live-img').hidden = false; $('live-wait').hidden = true; });
 $('live-img').addEventListener('error', () => { $('live-wait').textContent = 'No picture yet (is the camera working? see Parts).'; });
