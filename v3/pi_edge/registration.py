@@ -214,6 +214,17 @@ def start_face(token):
     threading.Thread(target=take_face_photos, name="face-registration", daemon=True).start()
 
 
+def face_too_dark(picture, found):
+    # True when the face itself is too dark or too flat to learn from (backlight): its mean grey and grey spread
+    import cv2
+    x, y, w, h = [int(v) for v in found[:4]]
+    crop = picture[max(0, y):max(0, y) + max(1, h), max(0, x):max(0, x) + max(1, w)]
+    if crop.size == 0:
+        return True
+    grey = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+    return grey.mean() < settings.FACE_MIN_BRIGHTNESS or grey.std() < settings.FACE_MIN_CONTRAST
+
+
 def collect_face(say, keep_going):
     # Takes FACE_PHOTOS photos with exactly one face in view, within 30 s. Returns the list of face vectors, or None.
     # say(text) shows progress; keep_going() returning False stops early. Also used by person_data.py ("Add more").
@@ -231,8 +242,9 @@ def collect_face(say, keep_going):
             small = cv2.resize(picture, (480, 360))
             preview_jpeg = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 70])[1].tobytes()   # show it at once
             if cv2.cvtColor(small, cv2.COLOR_BGR2GRAY).mean() < settings.DARK_LEVEL:
-                say("Too dark to see a face. Turn the cabin light on, or face a lamp.")
-                time.sleep(0.5)
+                led.set_lamp(True)                          # the white light helps (the vision loop turns it off later)
+                say("Too dark to see a face. The white light is on now; turn the cabin light on if you can.")
+                time.sleep(settings.FLASH_SECONDS)
                 continue
             faces = face.find_faces(picture)
             sx = 480 / picture.shape[1]
@@ -244,6 +256,11 @@ def collect_face(say, keep_going):
                 say("No face found. Face the camera, closer, with light on your face.")
             elif len(faces) > 1:
                 say(str(len(faces)) + " faces in view. Only you, please.")
+            elif face_too_dark(picture, faces[0]):
+                # e.g. a window or light behind the person: the face is a dark shape, its features can't be learned
+                led.set_lamp(True)
+                say("Your face is too dark - the light is behind you. Face the light (or turn the cabin light on); "
+                    "the white light is on to help.")
             else:
                 vectors.append(face.vector(picture, faces[0]))
                 notify.event("photos done" if len(vectors) == settings.FACE_PHOTOS else "photo")

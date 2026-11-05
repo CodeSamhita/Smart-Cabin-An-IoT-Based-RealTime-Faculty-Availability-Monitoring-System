@@ -15,7 +15,9 @@ import settings
 import timetable
 from security import UserError
 
-STATUS_COLUMNS = ["person_id", "device", "status", "in_cabin", "confidence", "headcount", "face", "card", "face_age", "updated"]
+STATUS_COLUMNS = ["person_id", "device", "status", "in_cabin", "confidence", "headcount", "face", "card", "face_age",
+                  "arriving", "updated"]
+# arriving: seconds until the Pi reports the person in (it waits 100 s after the face is seen before telling the server)
 CLASS_SOON_MINUTES = 5          # a class this soon, and the face not seen for FACE_GONE_SECONDS = "Leaving for ..."
 FACE_GONE_SECONDS = 120
 NOT_BUSY = ("break", "lunch", "office hours", "free")   # timetable items that don't take the person out of the cabin
@@ -48,7 +50,8 @@ def receive_report(device_row, report):
            "confidence": int(number(report.get("confidence"), 0, 100)),
            "headcount": int(number(report.get("headcount"), 0, 50)),
            "face": "yes" if report.get("face") else "no", "card": "yes" if report.get("card") else "no",
-           "face_age": int(number(report.get("face_age"), 0, 86400, 86400)), "updated": time.time()}
+           "face_age": int(number(report.get("face_age"), 0, 86400, 86400)),
+           "arriving": int(number(report.get("arriving"), 0, 3600)), "updated": time.time()}
     with csv_store.lock:
         rows = csv_store.read("status_now.csv")
         old = next((r for r in rows if r["device"] == device), None)
@@ -82,6 +85,14 @@ def where_and_until(person_id, status):
     return "Not in the cabin", ""
 
 
+def busy_now(person_id):
+    # The timetable item now if it is not a free hour (lunch / break / office hours / free are free), else None
+    item = timetable.now_item(person_id)
+    if not item or item.get("kind") == "lunch" or any(word in item.get("activity", "").lower() for word in NOT_BUSY):
+        return None
+    return item
+
+
 def class_soon(person_id):
     # The next class / lab / meeting today if it starts within CLASS_SOON_MINUTES, else None
     item = timetable.next_item(person_id)
@@ -97,6 +108,8 @@ def how_in(row):
     # How the device knows the person is in: face seen (in the last 2 min) and / or card tapped. A card tap alone
     # is not "in": the Pi is still looking for the face (the status stays Not available).
     if row.get("in_cabin") != "yes":
+        if number(row.get("arriving"), 0, 3600) > 0:
+            return "Seen in the cabin, confirming (" + str(int(number(row.get("arriving"), 0, 3600))) + " s)"
         return "Card tapped, checking the camera" if row.get("card") == "yes" else ""
     face, card = row.get("face") == "yes", row.get("card") == "yes"
     if face and card:
@@ -127,6 +140,11 @@ def status_for(person, registration, status_rows, device_rows):
         result["status"] = row["status"]
         result["where"], result["until"] = where_and_until(person["id"], row["status"])
         result["how"] = how_in(row)
+        busy = busy_now(person["id"])
+        if busy and row["status"] in ("available", "meeting"):
+            # In the cabin, but the timetable has a class / lab / meeting now (not a free hour): not available
+            result["status"], result["how"] = "not_available", "In the cabin, but busy (timetable)"
+            result["where"], result["until"] = timetable.describe(busy) + " now", "until " + busy["end"]
         soon = class_soon(person["id"])
         if soon and row["status"] in ("available", "meeting") and number(row.get("face_age"), 0, 86400, 86400) > FACE_GONE_SECONDS:
             # A class in a few minutes and the face not seen for 2 minutes: on the way to it

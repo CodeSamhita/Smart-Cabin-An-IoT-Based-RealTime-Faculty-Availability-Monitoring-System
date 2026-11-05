@@ -130,7 +130,8 @@ function draw(s) {
   $('big-dot').style.boxShadow = '0 0 0 0.5rem ' + st.glow;
   $('big-label').textContent = st.label;
   $('big-label').style.color = st.fg;
-  const looking = s.checking_seconds > 0 ? 'Card tapped · looking for your face (' + s.checking_seconds + ' s)' : '';
+  const looking = s.checking_seconds > 0 ? 'Card tapped · looking for your face (' + s.checking_seconds + ' s)'
+    : s.arriving_seconds > 0 ? 'Seen · the website shows it in ' + s.arriving_seconds + ' s' : '';
   const how = looking || (!s.in_cabin ? '' : s.face_recent && s.card_in ? 'Seen and tapped in' : s.face_recent ? 'Seen, not tapped in'
     : s.card_in ? 'Tapped in, not seen yet' : 'Someone counted in the cabin');
   $('big-text').textContent = registered ? st.text + (how ? ' · ' + how : '') : 'Nobody registered';

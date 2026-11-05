@@ -17,8 +17,9 @@ EVENTS = {
     "alone":         ("ok",      None),                   # back to 1 person: Available (green)
     "leave":         ("leave",   None),                   # face not seen for 2 min: Not available (red)
     "people":        ("photo",   None),                   # the headcount changed (no change of status)
-    "tap":           ("ok",      ("white", 0.15, 1)),    # registered card tapped
-    "looking":       (None,      ("blue", 0.2, 1)),      # after a tap: looking for the face (every second)
+    "tap in":        ("ok",      ("green", 0.3, 1)),     # registered card tapped while out: waiting for the face
+    "tap out":       ("ok",      ("red", 0.3, 1)),       # registered card tapped while in: out unless the face is seen
+    "looking":       (None,      ("green", 0.15, 1)),    # after a tap in: looking for the face (every second)
     "not seen":      ("refused", ("red", 0.2, 2)),       # after a tap: the face was not seen in 2 min
     "unknown card":  ("refused", ("purple", 0.4, 1)),    # a card that is not registered here
     "card left":     ("warning", ("red", 0.25, 2)),      # a card lying on the reader

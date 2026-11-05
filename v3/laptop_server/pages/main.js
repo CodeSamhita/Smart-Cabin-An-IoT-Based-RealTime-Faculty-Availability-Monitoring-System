@@ -223,5 +223,13 @@ $('modal-close').addEventListener('click', () => { state.open = false; render();
 $('modal-backdrop').addEventListener('click', () => { state.open = false; render(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && (state.open || state.filtersOpen)) { state.open = false; state.filtersOpen = false; render(); } });
 
+// Logged in already (admin or faculty)? The header button shows who, and leads to their own page instead of Login
+api('GET', '/api/me').then((me) => {
+  if (!me.ok || !me.role || me.must_change) return;
+  const link = $('login-link');
+  link.textContent = (me.username || me.person_id) + ' · ' + (me.role === 'admin' ? 'Devices' : 'My cabin');
+  link.href = me.role === 'admin' ? 'Devices.dc.html' : 'Faculty.dc.html';
+});
+
 load();
 setInterval(() => everySecond(load), 1000);

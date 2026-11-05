@@ -1,7 +1,7 @@
 # Smart Cabin edge device - the NeoPixel (WS2812) light.
-#   green = available, yellow = in a meeting, red = not available, blue = registration going on,
-#   white = light for the camera in a dark room (a moment only), purple flash = unknown card,
-#   two red blinks = a card was left on the reader.
+#   green = available, yellow = in a meeting, red = not available, blue = registration going on.
+#   Dark room (set_lamp): the light stays white as a lamp for the camera and blinks the status colour every few seconds.
+#   Flashes for events (card tap, unknown card, ...): notify.py.
 # In simulation the colour is only shown on the device's page.
 # Zero 2W / Pi 4: rpi_ws281x on GPIO18. Pi 5: rpi_ws281x does not work there, so pi5neo on SPI1 (data on GPIO20).
 
@@ -18,11 +18,13 @@ STATUS_COLOUR = {"available": "green", "meeting": "yellow", "not_available": "re
 strip = None                    # rpi_ws281x strip (Zero 2W / Pi 4)
 neo = None                      # pi5neo strip (Pi 5)
 lock = threading.Lock()
-steady = "off"                  # the colour to come back to after a flash
+wanted = "off"                  # the steady colour asked for (status, or blue during registration)
+lamp = False                    # dark room: the light stays white and blinks the status colour
 
 
 def start():
     global strip, neo
+    threading.Thread(target=blink_status, name="led-blink", daemon=True).start()
     if settings.SIMULATE:
         shared.set_part("led", False, "no NeoPixel on this computer (" + settings.COMPUTER
                         + ") - its colour is shown on the device page", present=False)
@@ -62,17 +64,25 @@ def paint(name, brightness=None):
         shared.set_part("led", False, str(problem))
 
 
+def paint_steady():
+    # The colour shown between flashes: white while the lamp is on (dark room), else the status colour
+    if lamp and wanted != "blue":
+        paint("white", settings.LAMP_BRIGHTNESS)
+    else:
+        paint(wanted)
+
+
 def show(name):
-    # The steady colour (status or blue during registration)
-    global steady
+    # The steady colour asked for (status, or blue during registration)
+    global wanted
     with lock:
-        steady = name
-        paint(name)
+        wanted = name
+        paint_steady()
 
 
 def show_status(status, force=False):
     # Blue (registration) stays until the registration ends (force=True)
-    if force or steady != "blue":
+    if force or wanted != "blue":
         show(STATUS_COLOUR.get(status, "red"))
 
 
@@ -81,17 +91,34 @@ def flash(name, seconds=0.4, times=1):
         for i in range(times):
             paint(name, settings.FLASH_BRIGHTNESS if name == "white" else None)
             time.sleep(seconds)
-            paint(steady)
+            paint_steady()
             if i < times - 1:
                 time.sleep(seconds)
 
 
-def light_on():
-    # White for a dark-room picture; light_off() puts the status colour back
+def set_lamp(on):
+    # Dark room: the light stays white (a lamp for the camera) and blinks the status colour (see blink_status)
+    global lamp
+    if lamp != on:
+        lamp = on
+        with lock:
+            paint_steady()
+
+
+def lamp_off_moment():
+    # For one picture without the lamp (to see whether the room is still dark); lamp_back() ends it
     lock.acquire()
-    paint("white", settings.FLASH_BRIGHTNESS)
+    paint("off")
 
 
-def light_off():
-    paint(steady)
+def lamp_back():
+    paint_steady()
     lock.release()
+
+
+def blink_status():
+    # Thread: while the lamp is on, the status colour blinks every LAMP_BLINK_SECONDS, so the status is still seen
+    while True:
+        time.sleep(settings.LAMP_BLINK_SECONDS)
+        if lamp and wanted != "blue":
+            flash(wanted, 0.3)

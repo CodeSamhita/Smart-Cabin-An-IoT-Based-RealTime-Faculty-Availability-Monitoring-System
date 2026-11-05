@@ -186,7 +186,13 @@ def hello():
 def report():
     s = shared.snapshot()
     person = s["person"] or {}
-    body = {"status": s["status"], "in_cabin": s["in_cabin"], "confidence": s["confidence"],
+    # "In" goes to the server only after REPORT_IN_AFTER_SECONDS in (the light and this device's page change at once);
+    # until then the server hears Not available + how many seconds are left. Leaving is sent at once.
+    import presence
+    left = settings.REPORT_IN_AFTER_SECONDS - (time.time() - presence.arrived_at) if s["in_cabin"] else 0
+    confirmed = s["in_cabin"] and left <= 0
+    body = {"status": s["status"] if confirmed or not s["in_cabin"] else "not_available", "in_cabin": confirmed,
+            "arriving": max(0, int(left)), "confidence": s["confidence"],
             "headcount": s["headcount"], "face": time.time() - s["face_seen_at"] < settings.FACE_RECENT_SECONDS,
             "card": s["card_in"], "dark": s["dark"], "person_id": person.get("id", ""),
             "face_age": int(min(86400, time.time() - s["face_seen_at"])),

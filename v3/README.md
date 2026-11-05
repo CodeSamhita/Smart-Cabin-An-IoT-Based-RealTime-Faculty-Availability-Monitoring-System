@@ -151,10 +151,12 @@ The **camera decides**; a card tap is only a hint ("check me now"). A tap never 
 stateDiagram-v2
     [*] --> Out
     Out --> In: face recognised in 2 checks in a row
-    Out --> Looking: registered card tapped<br/>(Pi page: "looking for your face", confidence 35 %)
+    Out --> Looking: card tapped (tap in, green flash)<br/>(Pi page: "looking for your face", confidence 35 %)
     Looking --> In: face recognised within 2 min
     Looking --> Out: face not seen in 2 min<br/>(the tap is forgotten)
-    In --> In: card tapped (confirms, never logs out)
+    In --> TapOut: card tapped (tap out, red flash)
+    TapOut --> Out: face not seen for 30 s after the tap
+    TapOut --> In: face still seen
     In --> Out: face not seen for 2 min<br/>(even if others are still counted)
     state In {
         [*] --> Available
@@ -164,9 +166,21 @@ stateDiagram-v2
 ```
 
 **Confidence** = face (seen in the last 2 min) × card (tapped): none 2 %, card only 35 % (always under 50), face only
-70 %, both 90 %; +10 % while someone is counted (at most 95 %). The server shows Available only when the face has
-confirmed it; while the Pi is looking for the face after a tap it shows Not available · "Card tapped, checking the
-camera". Someone registered with a card only (no face) is the exception: their tap is the only way in or out.
+70 %, both 90 %; +10 % while someone is counted (at most 95 %).
+
+**To the server after 100 s:** the Pi's light and page change at once, but the website shows Available only after the
+person has been in for **100 seconds** ("Seen in the cabin, confirming (63 s)" until then). Leaving is sent at once.
+While the Pi looks for the face after a tap, the website shows Not available · "Card tapped, checking the camera".
+Someone registered with a card only (no face) is the exception: their tap is the only way in or out.
+
+**Timetable:** in the cabin during a slot that is **not free** (a class, lab, meeting; lunch, breaks and free hours
+are free) → the website shows **Not available** · "\<class\> now" · "In the cabin, but busy (timetable)".
+
+**Dark room:** the light becomes a **white lamp** for the camera and **blinks the status colour** every 3 s; every
+minute it looks at the room without the lamp and turns it off once there is enough light again.
+
+**Registration photos:** a face that is too dark or too flat (light behind the person, e.g. a window) is refused, and
+the white light turns on to help.
 
 ### On the server: what the pages show
 
@@ -189,7 +203,7 @@ flowchart TB
 (In a meeting). A card tap is an optional hint.
 
 **The light's steady colour:** green Available · yellow In a meeting · red Not available · blue registration going on ·
-white for a moment = dark room, light for one picture (at most every 2 minutes).
+white = dark room, the light is a lamp (the status colour blinks every 3 s).
 
 **A sound and / or a light for every action and change** (`pi_edge/notify.py`):
 
@@ -201,8 +215,9 @@ white for a moment = dark room, light for one picture (at most every 2 minutes).
 | Back to 1 person → Available | one short beep | turns green |
 | Face not seen for 2 min → Not available | one long beep | turns red |
 | Headcount changed (same status) | a tick | – |
-| Registered card tapped | one short beep | white flash |
-| Looking for the face after a tap | – | blue blink every second (2 min) |
+| Card tapped while out (tap in) | one short beep | green flash |
+| Looking for the face after a tap in | – | green blink every second (2 min) |
+| Card tapped while in (tap out) | one short beep | red flash; Not available if the face is not seen for 30 s |
 | Face not seen after a tap | two short beeps | two red flashes |
 | Unknown card | two short beeps | purple flash |
 | Card left on the reader | two long beeps | two red flashes |

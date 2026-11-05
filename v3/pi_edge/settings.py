@@ -78,13 +78,20 @@ FACE_PHOTOS = 10              # photos taken when registering a face
 FACE_RECHECK_SECONDS = 30     # once the person is in, check the face only this often
 WHOLE_PICTURE_FACE_SECONDS = 15   # no person box found: look for a face in the whole picture this often
 
-DARK_LEVEL = 40               # average brightness (0 - 255) under this = the room is dark
-FLASH_EVERY_SECONDS = 120     # in a dark room, light up for a picture at most this often (just to check who is in)
-FLASH_SECONDS = 0.6           # how long the white light stays on before the picture
+DARK_LEVEL = 40               # average brightness (0 - 255) under this = the room is dark: the light becomes a lamp
+LAMP_OFF_LEVEL = 55           # the lamp goes off again only when the room alone is this bright (no flickering on / off)
+LAMP_CHECK_SECONDS = 60       # with the lamp on, look at the room without it this often
+LAMP_BRIGHTNESS = 200         # 0 - 255, the white lamp
+LAMP_BLINK_SECONDS = 3        # with the lamp on, the status colour blinks this often
+FLASH_SECONDS = 0.6           # the camera adjusts to a change of light this long before a picture
+FACE_MIN_BRIGHTNESS = 70      # registration: a face darker than this (0 - 255) is refused (light behind the person)
+FACE_MIN_CONTRAST = 22        # registration: a face flatter than this (grey spread) is refused
 
 # Presence rules (PLAN.md section 3)
 ARRIVE_FACE_CHECKS = 2        # face matched in 2 checks in a row = arrived (1 while a card tap is being checked)
 CARD_CONFIRM_SECONDS = 120    # after a card tap, the camera looks for the face this long (a tap alone is never "in")
+TAP_OUT_SECONDS = 30          # a tap while in: out if the face is not seen for this long after it
+REPORT_IN_AFTER_SECONDS = 100 # the server is told "in" only after this long in (the Pi's light / page change at once)
 LEAVE_SECONDS = 120           # face not seen for this long = left (card-only person: nobody counted for this long)
 FACE_RECENT_SECONDS = 120     # "face seen" (pages, confidence) = within this time
 CARD_LEFT_SECONDS = 5         # a card lying on the reader longer than this = warning

@@ -2,15 +2,16 @@
 #   face_checked(matched) : after every face check
 #   card_tapped(card_id)  : a card was put on the reader
 #   update()              : every picture and every second: timeouts, confidence, status, LED
-# Rules (person with a registered face): the CAMERA decides, a card tap is only a hint ("check me now").
+# Rules (person with a registered face): the CAMERA decides, a card tap is only a hint.
 #   arrive  = face recognised in 2 checks in a row (1 is enough while a card tap is being checked)
-#   card tap = look for the face for CARD_CONFIRM_SECONDS (the Pi's page shows it at once); recognised -> in,
-#              not -> nothing changes. A tap never logs anyone in or out by itself, also not while they are in.
+#   tap while out = tap in: look for the face for CARD_CONFIRM_SECONDS (green flash, then a green blink every second);
+#                   recognised -> in, not -> nothing changes
+#   tap while in  = tap out: the face not seen for TAP_OUT_SECONDS after the tap -> out (red flash); still seen -> stays in
 #   leave   = face not seen for LEAVE_SECONDS (even if others are counted)
 # Someone registered with a card only (no face to check): a tap is the only way in, confirmed when anyone is counted
 # in the cabin; a tap while in = out; nobody counted for LEAVE_SECONDS = out.
 # Confidence = face (seen in the last 2 min) x card (tapped) table: card only 35, face 70, both 90; +10 while someone is
-# counted. The server shows Available only when the person is in (face confirmed).
+# counted. The server is told "in" only after REPORT_IN_AFTER_SECONDS in (see server_link.report); out at once.
 
 import threading
 import time
@@ -30,6 +31,7 @@ last_face_at = 0.0
 last_someone_at = 0.0
 card_in_at = 0.0
 card_confirmed = True          # False while a card tap waits for the face (vision then checks every picture)
+tap_out_at = 0.0               # a tap while in: out if the face is not seen for TAP_OUT_SECONDS after it (0 = none)
 
 
 def set_in(value, reason):
@@ -76,7 +78,7 @@ def face_checked(matched):
 
 def card_tapped(card_id):
     # Returns a message for the page / log
-    global card_in_at, card_confirmed
+    global card_in_at, card_confirmed, tap_out_at
     person = registration.local_person()
     if not person or not registration.card_ids(person):
         notify.event("unknown card")
@@ -88,8 +90,9 @@ def card_tapped(card_id):
     now = time.time()
     shared.update(known_tap_at=now)                        # the registered person is at the device (see person_data)
     with lock:
+        tapping_out = bool(shared.get("in_cabin"))
         if not has_face():                                 # card-only registration: the card is all there is
-            if shared.get("in_cabin"):
+            if tapping_out:
                 shared.update(card_in=False)
                 set_in(False, "card tapped out (card-only registration)")
                 message = "tapped out"
@@ -98,22 +101,22 @@ def card_tapped(card_id):
                 card_in_at, card_confirmed = now, False
                 set_in(True, "card tapped in (card-only registration)")
                 message = "tapped in - confirmed when someone is counted in the cabin"
-        else:                                              # the camera decides: look for the face now
+        elif tapping_out:                                  # tap out: the camera has the last word in 30 s
+            tap_out_at = now
+            message = "tapped out - not available if your face is not seen for %d s" % settings.TAP_OUT_SECONDS
+            log.info("card tapped while in: out if the face is not seen for %d s", settings.TAP_OUT_SECONDS)
+        else:                                              # tap in: look for the face now
             shared.update(card_in=True)
-            card_in_at = now
-            card_confirmed = shared.get("in_cabin") and now - last_face_at < settings.FACE_RECENT_SECONDS
-            if card_confirmed:
-                message = "card tapped - you are seen in the cabin"
-            else:
-                message = "card tapped - looking for your face for %d s" % settings.CARD_CONFIRM_SECONDS
-                log.info("card tapped: looking for the face for %d s", settings.CARD_CONFIRM_SECONDS)
-    notify.event("tap")
+            card_in_at, card_confirmed, tap_out_at = now, False, 0.0
+            message = "card tapped - looking for your face for %d s" % settings.CARD_CONFIRM_SECONDS
+            log.info("card tapped: looking for the face for %d s", settings.CARD_CONFIRM_SECONDS)
+    notify.event("tap out" if tapping_out else "tap in")
     update()
     return message
 
 
 def update():
-    global last_someone_at, card_confirmed
+    global last_someone_at, card_confirmed, tap_out_at
     now = time.time()
     with lock:
         s = shared.snapshot()
@@ -139,6 +142,13 @@ def update():
                 card_confirmed = True
                 log.info("card tap: the face was not seen within %d s, so nothing changes", settings.CARD_CONFIRM_SECONDS)
                 notify.event("not seen")
+            if tap_out_at and now - tap_out_at >= settings.TAP_OUT_SECONDS:
+                if s["in_cabin"] and last_face_at <= tap_out_at:    # no face after the tap: gone
+                    shared.update(card_in=False)
+                    set_in(False, "tapped out, face not seen for %d s" % settings.TAP_OUT_SECONDS)
+                else:
+                    log.info("tap out cancelled: the face is still seen")
+                tap_out_at = 0.0
             if s["in_cabin"] and now - max(last_face_at, arrived_at) > settings.LEAVE_SECONDS:
                 shared.update(card_in=False)
                 set_in(False, "face not seen for %d s" % settings.LEAVE_SECONDS)

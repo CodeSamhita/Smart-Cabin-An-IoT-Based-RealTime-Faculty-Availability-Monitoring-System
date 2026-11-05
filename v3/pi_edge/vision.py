@@ -1,5 +1,5 @@
 # Smart Cabin edge device - the vision loop (PLAN.md section 4). Snapshots only.
-# Each round: temperature check -> one small picture (640x480) -> (dark? white light for one picture) -> headcount ->
+# Each round: temperature check -> one small picture (640x480) -> (dark? the light becomes a white lamp) -> headcount ->
 # only when a face check is useful: one big picture (1296x972) -> face -> presence update.
 # Then it waits PICTURE_SECONDS, or FAST_PICTURE_SECONDS for 30 s after a change (shorter on a Pi 4 / 5).
 
@@ -52,7 +52,7 @@ def face_regions(boxes, scale):
 def loop():
     global fast_until
     cv2.setNumThreads(settings.OPENCV_THREADS)
-    last_flash = last_face_check = last_whole_check = 0.0
+    last_lamp_check = last_face_check = last_whole_check = 0.0
     while True:
         try:
             if registration.camera_busy() or person_data.face_busy():   # face photos are being taken
@@ -78,20 +78,31 @@ def loop():
                                 else "waiting for the camera (see the camera line)", present=not no_camera)
                 time.sleep(5)
                 continue
+            # Dark room: the light becomes a white lamp until the room alone is bright enough again
             level = brightness_of(small)
-            dark = level < settings.DARK_LEVEL
-            lit_room = False
-            if dark and (started - last_flash > settings.FLASH_EVERY_SECONDS or started - last_tap_at < 10):
-                last_flash = started
-                led.light_on()
+            if not led.lamp and level < settings.DARK_LEVEL:
+                led.set_lamp(True)
+                log.info("dark room (%.0f): the light is a white lamp now", level)
+                time.sleep(settings.FLASH_SECONDS)           # the camera adjusts to the light
+                small = camera.take_small()
+                last_lamp_check = time.time()
+                if small is None:
+                    continue
+            elif led.lamp and started - last_lamp_check > settings.LAMP_CHECK_SECONDS:
+                last_lamp_check = started
+                led.lamp_off_moment()                        # how bright is the room without the lamp?
                 try:
-                    time.sleep(settings.FLASH_SECONDS)       # the camera adjusts to the light
-                    lit = camera.take_small()
+                    time.sleep(settings.FLASH_SECONDS)
+                    alone = camera.take_small()
                 finally:
-                    led.light_off()
-                if lit is not None:
-                    small, lit_room = lit, True
-                    log.info("dark room (%.0f): took a picture with the white light (%.0f)", level, brightness_of(lit))
+                    led.lamp_back()
+                room = brightness_of(alone) if alone is not None else 0
+                if room >= settings.LAMP_OFF_LEVEL:
+                    led.set_lamp(False)
+                    log.info("enough light (%.0f): the lamp is off", room)
+                    small, level = alone, room
+            dark = led.lamp                                  # the room itself is dark (the lamp lights the pictures)
+            lit_room = led.lamp
 
             steady, raw, boxes = people_count.count(small)
 

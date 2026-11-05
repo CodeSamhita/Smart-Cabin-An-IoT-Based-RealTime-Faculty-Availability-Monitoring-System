@@ -49,6 +49,14 @@ def person_extra(person_id):
     return {}
 
 
+def arriving_seconds(s):
+    # Seconds until the server is told the person is in (it waits REPORT_IN_AFTER_SECONDS after they arrive)
+    import presence
+    if not s["in_cabin"]:
+        return 0
+    return max(0, int(settings.REPORT_IN_AFTER_SECONDS - (time.time() - presence.arrived_at)))
+
+
 def state_for_page(token, with_details=False):
     s = shared.snapshot()
     person = s["person"]
@@ -75,6 +83,7 @@ def state_for_page(token, with_details=False):
         "in_cabin": s["in_cabin"], "confidence": s["confidence"], "headcount": s["headcount"], "dark": s["dark"],
         "card_in": s["card_in"], "led": s["led"], "card_warning": s["card_warning"],
         "checking_seconds": max(0, int(s["checking_until"] - time.time())) if s["checking_until"] else 0,
+        "arriving_seconds": arriving_seconds(s),
         "face_recent": time.time() - s["face_seen_at"] < settings.FACE_RECENT_SECONDS,
         "vision_paused": s["vision_paused"], "picture_ms": s["picture_ms"],
         "last_picture": time.strftime("%H:%M:%S", time.localtime(s["last_picture_at"])) if s["last_picture_at"] else "none yet",
