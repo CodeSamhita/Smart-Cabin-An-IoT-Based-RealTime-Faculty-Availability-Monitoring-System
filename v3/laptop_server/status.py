@@ -204,5 +204,6 @@ def person_detail(person_id):
     result = status_for(person, registrations.current_for_person(person_id),
                         csv_store.read("status_now.csv"), devices.all_devices())
     result["today"] = timetable.public_items(person_id)
+    result["week"] = timetable.public_week(person_id)
     result["day"] = time.strftime("%A")
     return result

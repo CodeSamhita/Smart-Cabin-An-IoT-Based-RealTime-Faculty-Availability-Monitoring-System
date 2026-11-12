@@ -40,3 +40,7 @@ pi board codes/pi_status.json.tmp
 
 # Temporary file written by laptop codes/code/webpage.py
 laptop codes/web/data.js.tmp
+
+# University timetables (kept on this laptop only, not uploaded)
+Documents/*_TT_*.pdf
+Documents/*[Tt]imetable*.pdf

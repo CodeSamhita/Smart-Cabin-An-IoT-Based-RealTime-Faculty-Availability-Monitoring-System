@@ -11,7 +11,8 @@ const STATUS = {
 };
 const SCHOOL_COLORS = ['#e6ecf5'];
 
-const state = { all: [], loaded: false, failed: false, q: '', status: 'all', role: 'all', school: '', picked: '', open: false, filtersOpen: false };
+const state = { all: [], loaded: false, failed: false, q: '', status: 'all', role: 'all', school: '', picked: '', open: false, filtersOpen: false,
+                ttView: 'week', person: null };   // ttView: the details window's timetable, 'week' or 'today'
 
 // ---------- the design's helpers ----------
 function shortSchool(s) { return s.replace(/^Presidency School of /, ''); }
@@ -188,13 +189,48 @@ async function fillDetails() {
   }
   const p = data.person;
   $('sel-seen').textContent = p.updated || (p.status === 'not_set_up' ? 'no cabin device' : '–');
+  state.person = p;
+  drawTimetable();
+}
+
+// The timetable in the details window: the whole week (today highlighted) or only today
+function drawTimetable() {
+  const p = state.person;
+  if (!p) return;
+  const week = state.ttView === 'week';
+  $('sel-tt-title').textContent = week ? "This week's timetable" : "Today's timetable";
+  [['tt-week', week], ['tt-today', !week]].forEach(([id, on]) => {
+    $(id).setAttribute('aria-selected', on);
+    $(id).style.background = on ? '#ffffff' : 'transparent';
+    $(id).style.color = on ? '#1b2d4b' : '#56625c';
+    $(id).style.boxShadow = on ? '0 1px 2px rgba(27,45,75,0.15)' : 'none';
+  });
   const busy = 'display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; padding: 0.75rem 0.875rem; border-radius: 0.5rem; background: #f4f5f8';
   const free = 'display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; padding: 0.75rem 0.875rem; border-radius: 0.5rem; border: 1px dashed #c6d0ca';
   const time = '<span style="font-family: \'IBM Plex Mono\', monospace; font-size: 0.8125rem; color: #3c4842; white-space: nowrap">';
-  $('sel-timetable').innerHTML = p.today.length
-    ? p.today.map((i) => '<div style="' + busy + '">' + time + esc(i.start) + '–' + esc(i.end) + '</span><span style="font-size: 0.875rem">' + esc(i.activity) + '</span></div>').join('')
-    : '<div style="' + free + '"><span style="font-size: 0.875rem; color: #4a5650">Nothing on the timetable today (' + esc(p.day) + ')</span></div>';
+  if (!week) {
+    $('sel-timetable').innerHTML = p.today.length
+      ? p.today.map((i) => '<div style="' + busy + '">' + time + esc(i.start) + '–' + esc(i.end) + '</span><span style="font-size: 0.875rem">' + esc(i.activity) + '</span></div>').join('')
+      : '<div style="' + free + '"><span style="font-size: 0.875rem; color: #4a5650">Nothing on the timetable today (' + esc(p.day) + ')</span></div>';
+    return;
+  }
+  $('sel-timetable').innerHTML = (p.week || []).map((d) => {
+    const today = d.day === p.day;
+    const lines = d.items.length
+      ? d.items.map((i) => '<div style="display: flex; flex-wrap: wrap; gap: 0.125rem 0.75rem">' + time + esc(i.start) + '–' + esc(i.end) +
+          '</span><span style="font-size: 0.8125rem">' + esc(i.activity) + '</span></div>').join('')
+      : '<span style="font-size: 0.8125rem; color: #56625c">Free</span>';
+    return '<div style="display: flex; gap: 0.75rem; padding: 0.625rem 0.75rem; border-radius: 0.5rem; ' +
+      (today ? 'background: #e6ecf5; border: 2px solid #1b2d4b' : 'background: #f4f5f8; border: 2px solid transparent') + '">' +
+      '<span style="flex: none; width: 3rem; display: flex; flex-direction: column; gap: 0.125rem">' +
+      '<span style="font-size: 0.8125rem; font-weight: 700; color: #1b2d4b">' + esc(d.day.slice(0, 3)) + '</span>' +
+      (today ? '<span style="font-size: 0.6875rem; font-weight: 600; color: #1b2d4b">Today</span>' : '') + '</span>' +
+      '<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.375rem">' + lines + '</span></div>';
+  }).join('');
 }
+
+$('tt-week').addEventListener('click', () => { state.ttView = 'week'; drawTimetable(); });
+$('tt-today').addEventListener('click', () => { state.ttView = 'today'; drawTimetable(); });
 
 // ---------- clicks and typing ----------
 $('school-grid').addEventListener('click', (e) => {
