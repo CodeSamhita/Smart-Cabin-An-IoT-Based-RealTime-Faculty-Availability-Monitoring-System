@@ -32,12 +32,32 @@ function statusPill(status) {
 
 function yesNo(v) { return v === 'yes' ? 'yes' : v === 'no' ? 'no' : '–'; }
 
+function agoText(seconds) {
+  if (seconds === null || seconds === undefined) return 'never';
+  if (seconds < 120) return seconds + ' s ago';
+  if (seconds < 7200) return Math.round(seconds / 60) + ' min ago';
+  if (seconds < 172800) return Math.round(seconds / 3600) + ' h ago';
+  return Math.round(seconds / 86400) + ' days ago';
+}
+
+function offlineBanner(r, updated) {
+  // Shown while the device is not reporting: everything below it is the last report, not live
+  if (!r || r.online) return '';
+  return '<div role="status" style="padding: 0.625rem 0.875rem; border-radius: 0.5rem; background: #f8dcd5; color: #8a2412; font-size: 0.875rem; font-weight: 600">' +
+    'Device offline · last report ' + esc(updated || '–') + ' (' + agoText(r.seconds_since_seen) + '). The values shown are the last known, not live.</div>';
+}
+
+function markStale(ids, stale) {
+  // Dims the boxes that only hold the last known values while the device is offline
+  ids.forEach((id) => { const el = $(id); if (el) { el.style.opacity = stale ? '0.5' : ''; el.title = stale ? 'Last known values - the device is offline' : ''; } });
+}
+
 function drawStatusBox(p) {
   // The Status box: status, in the cabin, confidence, people counted, ID card, last report, temperature
   const r = p.registration;
   const row = (label, value, mono) => '<div><dt style="font-size: 0.75rem; color: #56625c">' + label + '</dt><dd style="margin: 0.125rem 0 0; ' +
     (mono ? "font-family: 'IBM Plex Mono', monospace" : 'font-weight: 600') + '">' + esc(value) + '</dd></div>';
-  return '<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem">' + statusPill(p.status) +
+  return offlineBanner(r, p.updated) + '<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem">' + statusPill(p.status) +
     (p.how ? '<span style="font-size: 0.8125rem; color: #4a5650">' + esc(p.how) + '</span>' : '') + '</div>' +
     '<dl style="margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem 1rem; font-size: 0.875rem">' +
     row('In the cabin', yesNo(r.in_cabin)) + row('Confidence', r.confidence === '' ? '–' : r.confidence + ' %') +

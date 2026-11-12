@@ -6,6 +6,7 @@
 #   save()      : replace one timetable after the checks below
 #   use(), delete()
 #   today()     : today's entries of the timetable in use, with start and end times from the periods
+#   on_day()    : the same for any day (the public page's week view)
 
 import time
 
@@ -131,10 +132,14 @@ def delete(person_id, name):
 def today(person_id):
     # Today's entries of the timetable in use, in the old timetable.csv form (start, end, activity, room) plus kind,
     # or None if the person has no timetable of their own yet
+    return on_day(person_id, time.strftime("%A"))
+
+
+def on_day(person_id, day):
+    # One day's entries of the timetable in use (as today()), or None without a timetable of their own
     name = in_use(person_id)
     if not name:
         return None
-    day = time.strftime("%A")
     items = []
     for r in csv_store.read("timetables.csv"):
         if r["person_id"] == person_id and r["timetable"] == name and r["day"] == day and r["kind"] != "name":

@@ -44,6 +44,7 @@ function draw() {
     $('details').innerHTML = drawDetails(r.details);
     $('uptime').textContent = r.details && r.details.uptime ? 'Up ' + r.details.uptime : '';
     $('parts').innerHTML = drawParts(r.parts);
+    markStale(['charts', 'details', 'parts'], !r.online);
   } else {
     const free = devicesList.filter((d) => !d.person && d.location);
     const keep = $('free-device').value;

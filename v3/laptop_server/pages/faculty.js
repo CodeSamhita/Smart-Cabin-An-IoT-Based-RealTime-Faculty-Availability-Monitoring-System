@@ -249,12 +249,13 @@ function drawAdvanced() {
   $('device-sections').hidden = !r;
   if (!r) return;
   $('rd-when').textContent = 'registered ' + r.from_time;
-  $('registration').innerHTML = drawRegistration(p);
+  $('registration').innerHTML = offlineBanner(r, p.updated) + drawRegistration(p);
   $('device-link').href = r.page_url || '#';
   $('dv-code').textContent = r.device;
   $('details').innerHTML = drawDetails(r.details);
   $('uptime').textContent = r.details && r.details.uptime ? 'Up ' + r.details.uptime : '';
   $('parts').innerHTML = drawParts(r.parts);
+  markStale(['details', 'parts'], !r.online);
 }
 
 $('views').addEventListener('click', (e) => {

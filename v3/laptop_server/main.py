@@ -31,7 +31,7 @@ import logbook
 import security
 import web
 
-STARTER_FILES = ["people.csv", "programs.csv", "timetable.csv"]
+STARTER_FILES = ["people.csv", "programs.csv"]   # timetables come from import_timetable.py, not a starter file
 STARTER_FOLDER = os.path.join(settings.FOLDER, "..", "..", "laptop codes", "data")   # the earlier data folder
 
 
