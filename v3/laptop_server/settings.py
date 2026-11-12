@@ -23,9 +23,9 @@ PUBLIC_LIMIT = 60              # the public page shows at most this many people 
 FACULTY_SESSION_HOURS = 12     # a faculty login lasts this long
 DEFAULT_PASSWORD_DAYS = (1, 3, 7, 14)    # how long the admin's default password may work (the admin picks one)
 
-# The university's periods (1MTDSC01 timetable). Short breaks after period 2 and after period 6 are the same for
-# everyone; lunch is an entry in each person's timetable.
-PERIODS = {1: ("08:55", "09:45"), 2: ("09:45", "10:40"), 3: ("10:50", "11:45"), 4: ("11:45", "12:35"),
+# The university's periods (section timetable, odd semester 2026-27). Short breaks after period 2 and after period 6
+# are the same for everyone; lunch is an entry in each person's timetable.
+PERIODS = {1: ("08:50", "09:45"), 2: ("09:45", "10:40"), 3: ("10:50", "11:45"), 4: ("11:45", "12:35"),
            5: ("12:35", "13:25"), 6: ("13:25", "14:20"), 7: ("14:30", "15:25"), 8: ("15:25", "16:15")}
 BREAKS = (("10:40", "10:50"), ("14:20", "14:30"))
 DAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
