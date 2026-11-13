@@ -32,7 +32,7 @@ As of 21 October 2026, the project has three working parts. The full design belo
 
 1. **Web dashboard (laptop):** shows the status of all 839 Presidency University faculty. It uses **demo statuses** for now, because it is not yet connected to a camera.
 2. **Face recognition on the laptop** (`laptop codes/face recoginition/`): webcam, MTCNN + FaceNet (PyTorch). Register, recognise and delete people.
-3. **Face recognition on the Raspberry Pi Zero 2W** (`pi board codes/`): one self-installing file with OpenCV YuNet + SFace (light enough for 512 MB RAM) and its own web page. **Not yet run on the real Pi.**
+3. **Face recognition on the Raspberry Pi Zero 2W** (`pi board codes/`): one self-installing file with OpenCV YuNet + SFace (light enough for 512 MB RAM) and its own web page. Not yet run on the real Pi as of 21 Oct; the v2 / v3 device has run on real Pi boards since 25 Oct 2026.
 
 ### Folder layout
 
