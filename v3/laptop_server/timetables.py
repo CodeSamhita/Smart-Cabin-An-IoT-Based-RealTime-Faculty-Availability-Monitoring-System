@@ -145,8 +145,11 @@ def on_day(person_id, day):
         if r["person_id"] == person_id and r["timetable"] == name and r["day"] == day and r["kind"] != "name":
             start, end = settings.PERIODS[int(r["period_from"])][0], settings.PERIODS[int(r["period_to"])][1]
             if r["kind"] == "lunch":
-                items.append({"start": start, "end": end, "activity": "Lunch break", "room": "", "kind": "lunch"})
+                items.append({"start": start, "end": end, "activity": "Lunch break", "room": "", "kind": "lunch",
+                              "from": int(r["period_from"]), "to": int(r["period_to"])})
             else:
                 what = r["course"] + (" " + r["batch"] if r["batch"] else "") + (" (" + r["section"] + ")" if r["section"] else "")
-                items.append({"start": start, "end": end, "activity": what, "room": r["room"], "kind": "class"})
+                items.append({"start": start, "end": end, "activity": what, "room": r["room"], "kind": "class",
+                              "from": int(r["period_from"]), "to": int(r["period_to"]),
+                              "course": r["course"], "section": r["section"], "batch": r["batch"]})
     return sorted(items, key=lambda i: i["start"])

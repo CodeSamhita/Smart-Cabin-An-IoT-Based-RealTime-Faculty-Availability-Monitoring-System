@@ -10,6 +10,9 @@
 # teacher is matched to people.csv by name (title dropped, any word order, only a
 # unique match), and the person gets a timetable with that name, set in use, saved with timetables.save() (the same
 # checks as on the website). Teachers that don't match anyone are listed in data/timetable_import_unmatched.csv.
+# Lunch: each section page has its "Lunch Break" column (period 4 or 5). A teacher keeps one lunch period all week:
+# the one most of their classes' sections have (a tie: period 5, the more common one). On a day they teach in it,
+# they get the other of 4 / 5 if that is free, else no lunch that day.
 # Needs the pypdf package (pip install pypdf).
 
 import collections
@@ -38,19 +41,27 @@ def option(name, default):
 
 
 def read_pdf(path):
-    # [{section, day, period, course, teacher, room}] for every class cell in the PDF
+    # [{section, day, period, course, teacher, room}] for every class cell in the PDF, and {section: lunch period}
     from pypdf import PdfReader
-    classes = []
+    classes, lunch = [], {}
     for page in PdfReader(path).pages:
-        items = []
-        page.extract_text(visitor_text=lambda text, cm, tm, font, size:
-                          items.append((text.strip(), tm[4], tm[5])) if text.strip() else None)
+        items, placed = [], []
+        def visit(text, cm, tm, font, size):
+            if text.strip():
+                items.append((text.strip(), tm[4], tm[5]))
+                # The same text on the page itself (cm applied): the rotated "Lunch Break" is only placed right this way
+                placed.append((text.strip(), tm[4] * cm[0] + tm[5] * cm[2] + cm[4]))
+        page.extract_text(visitor_text=visit)
         section = items[-1][0] if items else "?"              # the section's name is the last text on the page
         days = [(DAYS[t], y) for t, x, y in items if t in DAYS]
         periods = [(int(t), x) for t, x, y in items if re.fullmatch(r"[1-8]", t)]
         if not days or not periods:
             continue
         column = lambda x: min(periods, key=lambda p: abs(p[1] - x))[0]
+        on_page = [(int(t), x) for t, x in placed if re.fullmatch(r"[1-8]", t)]
+        for t, x in placed:
+            if t.startswith("Lunch"):
+                lunch[section] = min(on_page, key=lambda p: abs(p[1] - x))[0]
         for i, (t, x, y) in enumerate(items):
             if COURSE.fullmatch(t) and i + 2 < len(items):
                 # A cell: course (left), teacher, room (right), and for a lab batch its batch ("B1", "B2").
@@ -62,7 +73,7 @@ def read_pdf(path):
                                 "batch": after.lstrip("a") if BATCH_TEXT.fullmatch(after) else "",
                                 "day": min(days, key=lambda d: abs(d[1] - y))[0],
                                 "period": first, "to": max(first, last)})
-    return classes
+    return classes, lunch
 
 
 def name_key(name):
@@ -120,12 +131,31 @@ def entries_for(rows):
     return entries
 
 
+def lunch_period(sections_week, lunch):
+    # One teacher's lunch period for the whole week (see the top of this file), or None
+    votes = collections.Counter(lunch[s] for s in sections_week if s in lunch)
+    if not votes:
+        return None
+    return max(votes, key=lambda period: (votes[period], period == 5))
+
+
+def lunch_for(entries, first):
+    # That period on one day, the other of 4 / 5 if they teach in it, or None if they teach in both
+    if not first:
+        return None
+    busy = {n for e in entries for n in range(e["from"], e["to"] + 1)}
+    for period in (first, 9 - first if first in (4, 5) else first):
+        if period not in busy:
+            return period
+    return None
+
+
 def main():
     if len(sys.argv) < 2 or not os.path.isfile(sys.argv[1]):
         sys.exit("Usage: python import_timetable.py <timetable.pdf> [--name \"Odd semester 2026-27\"] [--dry-run] [--data <folder>]")
     name, dry = option("--name", "Odd semester 2026-27"), "--dry-run" in sys.argv
     try:
-        classes = read_pdf(sys.argv[1])
+        classes, lunch = read_pdf(sys.argv[1])
     except ImportError:
         sys.exit("The pypdf package is missing: pip install pypdf")
     teachers = collections.Counter(c["teacher"] for c in classes)
@@ -137,7 +167,8 @@ def main():
     for c in classes:
         if c["teacher"] in ids:
             per_person[ids[c["teacher"]]][c["day"]].append(c)
-    saved, skipped = 0, []
+    print("lunch break found for %d of %d sections" % (len(lunch), len({c["section"] for c in classes})))
+    saved, skipped, lunches = 0, [], 0
     for person_id, days in sorted(per_person.items()):
         week = {d: [] for d in settings.DAYS}
         for day, rows in days.items():
@@ -147,6 +178,14 @@ def main():
                     week[day].append(e)
                 except UserError as problem:
                     skipped.append((person_id, day, e["from"], e["course"], e["section"], str(problem)))
+        own = lunch_period([c["section"] for rows in days.values() for c in rows], lunch)
+        for day in [d for d in settings.DAYS if d != "Saturday"]:
+            period = lunch_for(week[day], own)
+            if period:
+                week[day].append({"kind": "lunch", "from": period, "to": period, "course": "", "room": "",
+                                  "section": "", "batch": ""})
+                week[day].sort(key=lambda e: e["from"])
+                lunches += 1
         if not dry:
             timetables.save(person_id, name, name, week)
             timetables.use(person_id, name)
@@ -156,6 +195,7 @@ def main():
         csv_store.write("timetable_import_unmatched.csv", [{"teacher": t, "classes": teachers[t]} for t in unmatched],
                         ["teacher", "classes"])
     print(("would save" if dry else "saved") + " \"%s\" (in use) for %d faculty members" % (name, saved))
+    print("lunch breaks added: %d" % lunches)
     print("left out (a different class at the same time, a clash in the PDF): %d" % len(skipped))
     for s in skipped[:12]:
         print("    %s %s period %s: %s %s" % s[:5])

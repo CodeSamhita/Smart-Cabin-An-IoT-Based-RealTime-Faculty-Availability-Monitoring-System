@@ -12,7 +12,7 @@ const STATUS = {
 const SCHOOL_COLORS = ['#e6ecf5'];
 
 const state = { all: [], loaded: false, failed: false, q: '', status: 'all', role: 'all', school: '', picked: '', open: false, filtersOpen: false,
-                ttView: 'week', person: null };   // ttView: the details window's timetable, 'week' or 'today'
+                person: null };
 
 // ---------- the design's helpers ----------
 function shortSchool(s) { return s.replace(/^Presidency School of /, ''); }
@@ -193,25 +193,18 @@ async function fillDetails() {
   drawTimetable();
 }
 
-// The timetable in the details window: the whole week (today highlighted) or only today
+// The timetable in the details window: the whole week, today highlighted (no Week / Today switch: the user's call)
 function drawTimetable() {
   const p = state.person;
   if (!p) return;
-  const week = state.ttView === 'week';
-  $('sel-tt-title').textContent = week ? "This week's timetable" : "Today's timetable";
-  [['tt-week', week], ['tt-today', !week]].forEach(([id, on]) => {
-    $(id).setAttribute('aria-selected', on);
-    $(id).style.background = on ? '#ffffff' : 'transparent';
-    $(id).style.color = on ? '#1b2d4b' : '#56625c';
-    $(id).style.boxShadow = on ? '0 1px 2px rgba(27,45,75,0.15)' : 'none';
-  });
-  const busy = 'display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; padding: 0.75rem 0.875rem; border-radius: 0.5rem; background: #f4f5f8';
-  const free = 'display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; padding: 0.75rem 0.875rem; border-radius: 0.5rem; border: 1px dashed #c6d0ca';
   const time = '<span style="font-family: \'IBM Plex Mono\', monospace; font-size: 0.8125rem; color: #3c4842; white-space: nowrap">';
-  if (!week) {
-    $('sel-timetable').innerHTML = p.today.length
-      ? p.today.map((i) => '<div style="' + busy + '">' + time + esc(i.start) + '–' + esc(i.end) + '</span><span style="font-size: 0.875rem">' + esc(i.activity) + '</span></div>').join('')
-      : '<div style="' + free + '"><span style="font-size: 0.875rem; color: #4a5650">Nothing on the timetable today (' + esc(p.day) + ')</span></div>';
+  // The week as the university's section timetable (periods across, days down) is wider than the window
+  $('sel-timetable').closest('section').style.maxWidth = p.grid ? '78rem' : '28.75rem';
+  if (p.grid) {
+    // min-width 0 lets the wide grid scroll inside the window instead of stretching it past the screen
+    $('sel-timetable').style.minWidth = '0';
+    $('sel-timetable').parentElement.style.minWidth = '0';
+    $('sel-timetable').innerHTML = gridHtml(p.grid, p.day);
     return;
   }
   $('sel-timetable').innerHTML = (p.week || []).map((d) => {
@@ -229,8 +222,87 @@ function drawTimetable() {
   }).join('');
 }
 
-$('tt-week').addEventListener('click', () => { state.ttView = 'week'; drawTimetable(); });
-$('tt-today').addEventListener('click', () => { state.ttView = 'today'; drawTimetable(); });
+// The week grid, laid out like the university's section timetable (aSc): one column per period with its
+// time, the short breaks as narrow "Break" columns, one row per day, each class in the period(s) it takes
+// (section on top, course in the middle, batch and room at the bottom), lunch as "Lunch Break". Today's row is outlined.
+function gridHtml(g, todayName) {
+  const colours = ['#eef1f4', '#eef1f4'];   // headings and day labels: the site's soft grey (no PDF cyan / yellow)
+  const cols = [];                       // {period} or {brk}, in time order
+  g.periods.forEach((per) => {
+    cols.push({ period: per });
+    const brk = g.breaks.find((b) => b.start === per.end);
+    if (brk) cols.push({ brk: brk });
+  });
+  const colOf = {};
+  cols.forEach((c, i) => { if (c.period) colOf[c.period.n] = i + 2; });   // grid column (1 is the day)
+  const rows = g.days.length;
+  const cell = (row, col, span, style, html) => '<div style="grid-row: ' + row + '; grid-column: ' + col + ' / span ' + span +
+    '; ' + style + '">' + html + '</div>';
+  const out = [cell(1, 1, 1, 'background: #ffffff', '')];
+  const brkText = 'writing-mode: vertical-rl; transform: rotate(180deg); font-size: 2.25rem; line-height: 1';
+  cols.forEach((c, i) => {
+    const head = 'background: ' + colours[i % 2] + '; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.375rem; padding: 0.625rem 0.25rem 0.375rem; text-align: center';
+    out.push(cell(1, i + 2, 1, head, c.period
+      ? '<span style="font-size: 1.875rem; line-height: 1">' + c.period.n + '</span><span style="font-size: 0.75rem; white-space: nowrap">' + esc(c.period.start) + ' - ' + esc(c.period.end) + '</span>'
+      : '<span style="font-size: 1rem; line-height: 1">Break</span><span style="font-size: 0.625rem; line-height: 1.3">' + esc(c.brk.start) + '<br>' + esc(c.brk.end) + '</span>'));
+    if (c.brk) {
+      out.push('<div style="grid-row: 2 / span ' + rows + '; grid-column: ' + (i + 2) + '; background: #ffffff; display: flex; align-items: center; justify-content: center">' +
+        '<span style="' + brkText + '">Break</span></div>');
+    }
+  });
+  g.days.forEach((d, r) => {
+    const row = r + 2;
+    const today = d.day === todayName;
+    out.push(cell(row, 1, 1, 'background: ' + (today ? '#1b2d4b; color: #ffffff' : colours[r % 2]) + '; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.25rem; padding: 0 0.375rem',
+      '<span style="font-size: 2.5rem; line-height: 1">' + esc(d.day.slice(0, 3)) + '</span>' +
+      (today ? '<span style="font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em">TODAY</span>' : '')));
+    const groups = {};                   // batches of one lab share a cell, one under the other
+    const taken = {};
+    d.items.forEach((it) => {
+      if (it.kind === 'lunch') { taken[it.from] = true; return; }   // drawn below, like the breaks
+      const k = it.from + '-' + it.to; (groups[k] = groups[k] || []).push(it);
+    });
+    const bg = today ? '#dce6f5' : '#ffffff';
+    Object.values(groups).forEach((list) => {
+      const first = list[0];
+      if (!colOf[first.from] || !colOf[first.to]) return;
+      for (let n = first.from; n <= first.to; n++) taken[n] = true;
+      const inner = list.map((it) => '<div style="flex: 1; display: flex; flex-direction: column; padding: 0.375rem 0.5rem 0.25rem">' +
+          '<span style="font-size: 0.75rem; text-align: center">' + esc(it.section) + '</span>' +
+          '<span style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 0.375rem 0; font-size: 1.125rem; text-align: center; overflow-wrap: anywhere">' + esc(it.course) + '</span>' +
+          '<span style="display: flex; justify-content: space-between; gap: 0.25rem; font-size: 0.75rem"><span>' + esc(it.batch) + '</span><span style="font-size: 0.9375rem">' + esc(it.room) + '</span></span></div>'
+      ).join('<div style="height: 1px; background: #1a211e"></div>');
+      out.push(cell(row, colOf[first.from], colOf[first.to] - colOf[first.from] + 1,
+        'background: ' + bg + '; display: flex; flex-direction: column', inner));
+    });
+    g.periods.forEach((per) => {
+      if (!taken[per.n]) out.push(cell(row, colOf[per.n], 1, 'background: ' + bg, ''));
+    });
+  });
+  // Lunch Break like the breaks: days in a row with lunch in the same period share one tall cell with the words
+  // written upwards (the whole column when it is the same period every day, as on the section sheet)
+  const lunchAt = g.days.map((d) => (d.items.find((it) => it.kind === 'lunch') || {}).from);
+  for (let r = 0; r < rows; r++) {
+    const n = lunchAt[r];
+    if (!n || !colOf[n] || (r > 0 && lunchAt[r - 1] === n)) continue;
+    let span = 1;
+    while (r + span < rows && lunchAt[r + span] === n) span++;
+    const size = span >= 3 ? '2.25rem' : span === 2 ? '1.5rem' : '1rem';
+    out.push('<div style="grid-row: ' + (r + 2) + ' / span ' + span + '; grid-column: ' + colOf[n] + '; background: #ffffff; display: flex; align-items: center; justify-content: center; text-align: center">' +
+      (span >= 2 ? '<span style="' + brkText + '; font-size: ' + size + '; white-space: nowrap">Lunch Break</span>' : '<span style="font-size: 1rem; padding: 0 0.25rem">Lunch Break</span>') + '</div>');
+  }
+  // Today's row: one navy frame over the whole row (on top of the cells, clicks pass through)
+  const t = g.days.findIndex((d) => d.day === todayName);
+  if (t >= 0) {
+    out.push('<div style="grid-row: ' + (t + 2) + '; grid-column: 1 / -1; border: 3px solid #1b2d4b; pointer-events: none; z-index: 1"></div>');
+  }
+  // Sizes as on the printed sheet: tall day rows, wide period columns, narrow break columns
+  const template = '5rem ' + cols.map((c) => (c.period ? 'minmax(6rem, 1fr)' : '3.25rem')).join(' ');
+  return '<div style="overflow-x: auto; -webkit-overflow-scrolling: touch">' +
+    '<div style="display: grid; grid-template-columns: ' + template + '; grid-template-rows: auto repeat(' + rows + ', minmax(7.5rem, auto)); gap: 1px; background: #1a211e; border: 2px solid #1a211e; min-width: 60rem; color: #1a211e; font-family: Arial, Helvetica, sans-serif">' +
+    out.join('') + '</div></div>';
+}
+
 
 // ---------- clicks and typing ----------
 $('school-grid').addEventListener('click', (e) => {

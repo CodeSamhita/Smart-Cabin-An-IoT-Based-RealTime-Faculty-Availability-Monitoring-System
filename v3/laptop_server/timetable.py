@@ -3,6 +3,7 @@
 # timetable.csv (person_id, day, start, end, activity, room).
 #   today()    : a person's items for today, in time order (on_day(): any day)
 #   public_items(), public_week(): today's / the week's items as the public page shows them
+#   public_grid(): the week as a period grid, like the university's section timetable
 #   now_item() : what the timetable says they are doing right now (or None)
 #   next_item(): their next item today (or None)
 # Times are "HH:MM", days are "Monday" ... "Saturday".
@@ -10,6 +11,7 @@
 import time
 
 import people
+import settings
 import timetables
 
 WEEK = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
@@ -60,3 +62,16 @@ def public_week(person_id):
     # The whole week for the public page: Monday - Friday, and Saturday only if it has something
     week = [{"day": d, "items": public_items(person_id, d)} for d in WEEK]
     return [w for w in week if w["items"] or w["day"] != "Saturday"]
+
+
+def public_grid(person_id):
+    # The week laid out like the university's section timetable: periods as columns (with the short breaks),
+    # days as rows. None when the person has no timetable of their own (then the page shows the list).
+    if not timetables.in_use(person_id):
+        return None
+    fields = ("kind", "from", "to", "course", "section", "batch", "room")
+    days = [{"day": d, "items": [{k: i.get(k, "") for k in fields} for i in timetables.on_day(person_id, d) or []]}
+            for d in WEEK]
+    return {"periods": [{"n": n, "start": s, "end": e} for n, (s, e) in sorted(settings.PERIODS.items())],
+            "breaks": [{"start": s, "end": e} for s, e in settings.BREAKS],
+            "days": [d for d in days if d["items"] or d["day"] != "Saturday"]}

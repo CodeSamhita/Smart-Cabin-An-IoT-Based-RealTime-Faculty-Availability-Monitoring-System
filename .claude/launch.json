@@ -4,7 +4,7 @@
     {
       "name": "v3-server-test",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["v3/laptop_server/main.py", "--http", "--port", "8090", "--no-browser", "--data", "C:\\Users\\balak\\AppData\\Local\\Temp\\claude\\D--USER-Documents-GitHub-Smart-Cabin--An-IoT-Based-RealTime-Faculty-Availability-Monitoring-System\\ad1403a0-e1ce-4300-b17c-91461b615d6e\\scratchpad\\testdata"],
+      "runtimeArgs": ["v3/laptop_server/main.py", "--http", "--port", "8090", "--no-browser", "--data", "C:\\Users\\balak\\AppData\\Local\\Temp\\claude\\d65d2f5d779c74d6\\373b94a3-f5b4-4f75-b2b5-d7ca83ad1a93\\scratchpad\\testdata"],
       "port": 8090
     }
   ]
